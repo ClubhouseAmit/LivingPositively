@@ -18,7 +18,6 @@
 //     'lib/main.dart': 65.0,                                         // ADR-005 § B (was 50.0 under ADR-002)
 //     'lib/pages/WellnessTools/player.dart': 60.0,                   // ADR-002
 //     'lib/util/async/logger_service.dart': 60.0,                          // ADR-002
-//     'lib/pages/notifications/notification_service.dart': 85.0,     // ADR-002
 //   };
 //
 // Exit codes:
@@ -45,7 +44,6 @@ const _floors = <String, double>{
   'lib/main.dart': 65.0,
   'lib/features/wellness_tools/ui/player.dart': 60.0,
   'lib/util/async/logger_service.dart': 60.0,
-  'lib/features/notifications/data/notification_repository.dart': 85.0,
 };
 
 void main(List<String> args) {

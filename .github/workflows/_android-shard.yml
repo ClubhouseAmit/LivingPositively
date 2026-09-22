@@ -27,6 +27,7 @@ jobs:
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         include:
           - id: custom-categories
@@ -76,7 +77,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.44.0"
+          flutter-version: "3.47.5"
           cache: true
 
       - name: Install dependencies
@@ -138,8 +139,9 @@ jobs:
           # The synthetic, non-routable SENTRY_DSN exercises logger
           # initialization; native Sentry channels are mocked, so no network
           # traffic leaves the runner. The explicit device keeps the test on
-          # the emulator shown by `flutter devices`. The iOS-only notifications
-          # entry point is excluded because integration-test-ios owns it.
+          # the emulator shown by `flutter devices`. The notifications schedule
+          # shard is an FCM policy smoke test; integration-test-ios owns native
+          # iOS FCM initialization.
           # `>-` is load-bearing: android-emulator-runner executes each non-empty
           # line in a separate `sh -c`; the test exit code must stay in one
           # folded command through the post-test disk diagnostic and final exit.

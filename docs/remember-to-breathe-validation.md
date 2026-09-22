@@ -1,6 +1,6 @@
 # Remember to Breathe validation
 
-Use Flutter 3.44.0 (Dart 3.12.0), matching CI. Run focused tests under
+Use Flutter 3.47.5 (Dart 3.13), matching CI. Run focused tests under
 `test/features/remember_to_breathe`, then the full unit/widget suite with
 coverage and existing coverage scripts. The Android integration shard is
 `integration_test/remember_to_breathe_test.dart`.

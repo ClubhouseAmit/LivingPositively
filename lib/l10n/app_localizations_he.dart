@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -484,12 +485,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר',
-        'female':
-            'זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר',
-        'other':
-            ' זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר',
+        'male': 'זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר',
+        'female': 'זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר',
+        'other': ' זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר',
       },
     );
     return '$_temp0';
@@ -500,12 +498,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'ההמלצה היא כל יום להביט ברשימת המעלות שלך. וכשיש דבר מה להוסיף, לא להתבייש ולהוסיף ללא שיפוטיות ובלב שלם',
-        'female':
-            ' ההמלצה היא כל יום להביט ברשימת המעלות שלך. וכשיש דבר מה להוסיף, לא להתבייש ולהוסיף ללא שיפוטיות ובלב שלם',
-        'other':
-            ' ההמלצה היא כל יום להביט ברשימת המעלות שלך. וכשיש דבר מה להוסיף, לא להתבייש ולהוסיף ללא שיפוטיות ובלב שלם',
+        'male': 'ההמלצה היא כל יום להביט ברשימת המעלות שלך. וכשיש דבר מה להוסיף, לא להתבייש ולהוסיף ללא שיפוטיות ובלב שלם',
+        'female': ' ההמלצה היא כל יום להביט ברשימת המעלות שלך. וכשיש דבר מה להוסיף, לא להתבייש ולהוסיף ללא שיפוטיות ובלב שלם',
+        'other': ' ההמלצה היא כל יום להביט ברשימת המעלות שלך. וכשיש דבר מה להוסיף, לא להתבייש ולהוסיף ללא שיפוטיות ובלב שלם',
       },
     );
     return '$_temp0';
@@ -607,12 +602,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'יצרת לך מדריך שיעזור לך ברגעי משבר! בוא ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי',
-        'female':
-            'יצרת לך מדריך שיעזור לך ברגעי משבר! בואי ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי',
-        'other':
-            'יצרת לך מדריך שיעזור לך ברגעי משבר! הבה ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי',
+        'male': 'יצרת לך מדריך שיעזור לך ברגעי משבר! בוא ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי',
+        'female': 'יצרת לך מדריך שיעזור לך ברגעי משבר! בואי ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי',
+        'other': 'יצרת לך מדריך שיעזור לך ברגעי משבר! הבה ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי',
       },
     );
     return '$_temp0';
@@ -623,10 +615,8 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'עכשיו אתה יכול לשתף את התוכנית עם הקרובים אליך או להוריד אותה כקובץ',
-        'female':
-            'עכשיו את יכולה לשתף את התוכנית עם הקרובים אלייך או להוריד אותה כקובץ',
+        'male': 'עכשיו אתה יכול לשתף את התוכנית עם הקרובים אליך או להוריד אותה כקובץ',
+        'female': 'עכשיו את יכולה לשתף את התוכנית עם הקרובים אלייך או להוריד אותה כקובץ',
         'other':
             'עכשיו ניתן לשתף את התוכנית עם הקרובים לך או להוריד אותה כקובץ',
       },
@@ -909,12 +899,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'מוזמן ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי',
-        'female':
-            'מוזמנת ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי',
-        'other':
-            'הזמנה ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי',
+        'male': 'מוזמן ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי',
+        'female': 'מוזמנת ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי',
+        'other': 'הזמנה ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי',
       },
     );
     return '$_temp0';
@@ -954,12 +941,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'היי, שמחים שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אליך',
-        'female':
-            'היי, שמחות שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אלייך',
-        'other':
-            'היי, כיף שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות בצורה הנוחה לך ביותר',
+        'male': 'היי, שמחים שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אליך',
+        'female': 'היי, שמחות שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אלייך',
+        'other': 'היי, כיף שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות בצורה הנוחה לך ביותר',
       },
     );
     return '$_temp0';
@@ -1074,12 +1058,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
-        'female':
-            'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
-        'other':
-            'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
+        'male': 'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
+        'female': 'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
+        'other': 'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
       },
     );
     return '$_temp0';
@@ -1090,12 +1071,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'מה עוזר לי לשפר את מצב הרוח, להירגע, להרגיש קצת פחות לחץ. דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.',
-        'female':
-            'דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.',
-        'other':
-            'דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.',
+        'male': 'מה עוזר לי לשפר את מצב הרוח, להירגע, להרגיש קצת פחות לחץ. דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.',
+        'female': 'דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.',
+        'other': 'דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.',
       },
     );
     return '$_temp0';
@@ -1132,12 +1110,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'תמיכות ועזרה מהסביבה כשאני חווה סימני אזהרה מוקדמים, איך הייתי רוצה שיעזרו לי',
-        'female':
-            'תמיכות ועזרה מהסביבה כשאני חווה סימני אזהרה מוקדמים, איך הייתי רוצה שיעזרו לי',
-        'other':
-            'תמיכות ועזרה מהסביבה כשאני חווה סימני אזהרה מוקדמים, איך הייתי רוצה שיעזרו לי',
+        'male': 'תמיכות ועזרה מהסביבה כשאני חווה סימני אזהרה מוקדמים, איך הייתי רוצה שיעזרו לי',
+        'female': 'תמיכות ועזרה מהסביבה כשאני חווה סימני אזהרה מוקדמים, איך הייתי רוצה שיעזרו לי',
+        'other': 'תמיכות ועזרה מהסביבה כשאני חווה סימני אזהרה מוקדמים, איך הייתי רוצה שיעזרו לי',
       },
     );
     return '$_temp0';
@@ -1723,12 +1698,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'מי האנשים שתומכים בי, שאני יכול לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
-        'female':
-            'מי האנשים שתומכים בי, שאני יכולה לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
-        'other':
-            'מי האנשים שתומכים בי, שניתן לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
+        'male': 'מי האנשים שתומכים בי, שאני יכול לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
+        'female': 'מי האנשים שתומכים בי, שאני יכולה לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
+        'other': 'מי האנשים שתומכים בי, שניתן לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
       },
     );
     return '$_temp0';
@@ -2147,12 +2119,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'מומלץ להוסיף תמונות מעודדות, מחזקות ומשמחות. תמונות מעוררות חיוך של משפחה, חברים וחברות, תחביבים, טיולים מוצלחים ועוד.',
-        'female':
-            'מומלץ להוסיף תמונות מעודדות, מחזקות ומשמחות. תמונות מעוררות חיוך של משפחה, חברים וחברות, תחביבים, טיולים מוצלחים ועוד.',
-        'other':
-            'מומלץ להוסיף תמונות מעודדות, מחזקות ומשמחות. תמונות מעוררות חיוך של משפחה, חברים וחברות, תחביבים, טיולים מוצלחים ועוד.',
+        'male': 'מומלץ להוסיף תמונות מעודדות, מחזקות ומשמחות. תמונות מעוררות חיוך של משפחה, חברים וחברות, תחביבים, טיולים מוצלחים ועוד.',
+        'female': 'מומלץ להוסיף תמונות מעודדות, מחזקות ומשמחות. תמונות מעוררות חיוך של משפחה, חברים וחברות, תחביבים, טיולים מוצלחים ועוד.',
+        'other': 'מומלץ להוסיף תמונות מעודדות, מחזקות ומשמחות. תמונות מעוררות חיוך של משפחה, חברים וחברות, תחביבים, טיולים מוצלחים ועוד.',
       },
     );
     return '$_temp0';
@@ -4607,12 +4576,9 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.',
-        'female':
-            'האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.',
-        'other':
-            'האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.',
+        'male': 'האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.',
+        'female': 'האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.',
+        'other': 'האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.',
       },
     );
     return '$_temp0';
@@ -4964,6 +4930,126 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get speechDictationPhoneInvalid =>
       'מספר הטלפון שהוכתב אינו תקין עבור המדינה שנבחרה.';
+
+  @override
+  String get notificationsPermissionDeniedTitle => 'תזכורות חסומות';
+
+  @override
+  String get notificationsPermissionDeniedBody =>
+      'כדי לקבל תזכורות, יש לאפשר תזכורות בהגדרות המכשיר';
+
+  @override
+  String get notificationsOpenSettings => 'הגדרות';
+
+  @override
+  String get notificationsEnable => 'הפעלת התראות';
+
+  @override
+  String get notificationsSetTime => 'הגדרת שעה';
+
+  @override
+  String get notificationsDebugPanelEnabled => 'לוח ניפוי התזכורות הופעל';
+
+  @override
+  String get notificationsDebugPanelHidden => 'לוח ניפוי התזכורות הוסתר';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
+
+  @override
+  String get resetDataFailed => 'לא ניתן לאפס את הנתונים שלך. נסה/י שוב.';
+
+  @override
+  String get authWelcomeTitle => 'ברוכים הבאים';
+
+  @override
+  String get authLoginTab => 'התחברות';
+
+  @override
+  String get authSignupTab => 'הרשמה';
+
+  @override
+  String get authSkip => 'דילוג לעת עתה';
+
+  @override
+  String get authEmailHint => 'כתובת אימייל';
+
+  @override
+  String get authPasswordHint => 'סיסמה';
+
+  @override
+  String get authConfirmPasswordHint => 'אימות סיסמה';
+
+  @override
+  String get authNameHint => 'שם מלא';
+
+  @override
+  String get authLoginButton => 'התחברות';
+
+  @override
+  String get authSignupButton => 'יצירת חשבון';
+
+  @override
+  String get authForgotPassword => 'שכחת סיסמה?';
+
+  @override
+  String get authOr => 'או';
+
+  @override
+  String get authGoogleButton => 'המשך עם Google';
+
+  @override
+  String get authAppleButton => 'המשך עם Apple';
+
+  @override
+  String get authErrorInvalidEmail => 'כתובת אימייל לא תקינה';
+
+  @override
+  String get authErrorWeakPassword => 'הסיסמה חייבת להכיל לפחות 6 תווים';
+
+  @override
+  String get authErrorPasswordMismatch => 'הסיסמאות אינן תואמות';
+
+  @override
+  String get authErrorUserNotFound => 'שם המשתמש או הסיסמא לא נכונים';
+
+  @override
+  String get authErrorEmailInUse => 'כבר קיים חשבון עם כתובת אימייל זו';
+
+  @override
+  String get authErrorGeneric => 'אירעה שגיאה. נסו שנית.';
+
+  @override
+  String get authForgotPasswordTitle => 'איפוס סיסמה';
+
+  @override
+  String get authForgotPasswordHint => 'הכניסו כתובת אימייל';
+
+  @override
+  String get authForgotPasswordButton => 'לקבלת קישור לאיפוס';
+
+  @override
+  String get authForgotPasswordSuccess => 'בידקו את תיבת הדואר לקישור איפוס';
+
+  @override
+  String get authSignOut => 'התנתקות';
+
+  @override
+  String get authSignOutConfirmTitle => 'להתנתק?';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'יהיה עליך להתחבר שוב כדי לגשת לכל התכונות.';
+
+  @override
+  String get authNotSignedInTitle => 'יש להתחבר כדי להפעיל תזכורות';
+
+  @override
+  String get authNotSignedInBody => 'בכדי להפעיל תזכורות, יש להתחבר לחשבון.';
+
+  @override
+  String get authNotSignedInButton => 'התחברות';
 
   @override
   String get moodMedicineTitle => 'מעקב מצב רוח ורפואה אישית';

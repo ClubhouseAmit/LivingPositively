@@ -5,12 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/util/async/locale_service.dart';
+import 'package:mazilon/features/user_settings/ui/user_settings_account_actions.dart';
 import 'package:mazilon/features/speech_dictation/ui/suffix_action.dart';
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/pages/first_page.dart';
-import 'package:mazilon/features/personal_plan/ui/share/LP_alert_dialog.dart';
-import 'package:mazilon/features/shell/ui/persistence_retry_snack_bar.dart';
+import 'package:mazilon/features/user_settings/ui/reset_confirmation_dialog.dart';
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 
 import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
@@ -562,52 +561,54 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
-  //remove log-in data and reset all data that user has filled in the app:
-  Future<void> resetData(UserInformation userInfo) async {
-    LocaleService localeService = GetIt.instance<LocaleService>();
-    final PersistentMemoryService service = userInfo.service;
-
-    // Cancel feature operations that have not reached the memory queue yet,
-    // so a delayed photo/history write cannot restore data after this reset.
-    if (GetIt.instance.isRegistered<BreathingStore>()) {
-      GetIt.instance<BreathingStore>().invalidatePendingWrites();
-    }
-    await service.reset(); // Reset the persistent memory service
-    await userInfo.reset(localeService.getLocale());
-    var enteredBeforeValue = await service.getItem(
-      "enteredBefore",
-      PersistentMemoryType.Bool,
-    );
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
-      PersistentMemoryType.Bool,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    widget.phonePageData.reset();
-    setState(() {
-      enteredBefore = enteredBeforeValue;
-      hasFilled = hasFilledValue;
-    });
-
-    await pickerService.deleteImages();
-
-    if (!mounted) {
-      return;
-    }
+  void _navigateToFirstPage(bool firsttime, bool filled) {
+    if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (context) => FirstPage(
+        builder: (_) => FirstPage(
           phonePageData: widget.phonePageData,
-          firsttime: !enteredBefore,
+          firsttime: firsttime,
           changeLocale: widget.changeLocale,
-          hasFilled: hasFilled,
+          hasFilled: filled,
         ),
       ),
-      (Route<dynamic> route) => false,
+      (_) => false,
     );
+  }
+
+  UserSettingsAccountActions get _accountActions => UserSettingsAccountActions(
+    imagePickerService: pickerService,
+    invalidatePendingWrites: () {
+      if (GetIt.instance.isRegistered<BreathingStore>()) {
+        GetIt.instance<BreathingStore>().invalidatePendingWrites();
+      }
+    },
+    resetPhoneData: widget.phonePageData.reset,
+  );
+
+  Future<void> resetData(UserInformation userInfo) async {
+    await _accountActions.resetData(userInfo);
+    enteredBefore = false;
+    hasFilled = false;
+    _navigateToFirstPage(true, false);
+  }
+
+  Future<bool> signOut(UserInformation userInfo) async {
+    final routeState = await _accountActions.signOut(userInfo);
+    if (routeState == null) {
+      _showAccountActionFailure();
+      return false;
+    }
+    final (entered, filled) = routeState;
+    _navigateToFirstPage(!entered, filled);
+    return true;
+  }
+
+  void _showAccountActionFailure() {
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
   }
 
   /// Attempts the complete reset flow and reports whether it completed.
@@ -841,6 +842,49 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     Navigator.pop(context);
   }
 
+  void _showSignOutDialog(UserInformation userInfo, String gender) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        var signingOut = false;
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) => PopScope(
+            canPop: !signingOut,
+            child: AlertDialog(
+              title: Text(appLocale.authSignOutConfirmTitle),
+              content: Text(appLocale.authSignOutConfirmBody),
+              actions: [
+                TextButton(
+                  onPressed: signingOut
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(appLocale.closeButton(gender)),
+                ),
+                TextButton(
+                  onPressed: signingOut
+                      ? null
+                      : () async {
+                          setDialogState(() => signingOut = true);
+                          final signedOut = await signOut(userInfo);
+                          if (!signedOut && dialogContext.mounted) {
+                            setDialogState(() => signingOut = false);
+                          }
+                        },
+                  child: signingOut
+                      ? const SizedBox.square(
+                          dimension: AppSpacing.xl,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(appLocale.authSignOut),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _actionSection(
     UserInformation userInfo,
     ColorScheme colorScheme,
@@ -864,6 +908,18 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             label: appLocale.confirmButton(gender),
             onPressed: () => _saveSettings(userInfo),
           ),
+          if (userInfo.loggedIn)
+            _actionButton(
+              buttonKey: const Key('userSettingsSignOutButton'),
+              background: colorScheme.surface,
+              foreground: colorScheme.onSurface,
+              side: BorderSide(
+                color: colorScheme.surfaceContainerHighest,
+                width: 1.5,
+              ),
+              label: appLocale.authSignOut,
+              onPressed: () => _showSignOutDialog(userInfo, gender),
+            ),
           _actionButton(
             buttonKey: const Key('user-settings-reset-open'),
             background: colorScheme.surface,
@@ -873,7 +929,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             onPressed: () => showDialog<void>(
               context: context,
               barrierDismissible: false,
-              builder: (_) => _ResetConfirmationDialog(
+              builder: (_) => ResetConfirmationDialog(
                 gender: gender,
                 onAttemptReset: () => _attemptResetAndReturnSuccess(userInfo),
               ),
@@ -965,87 +1021,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   fieldWidth,
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Confirmation route for the destructive settings reset flow.
-///
-/// Busy state lives with the route so its actions and system back navigation
-/// stay blocked until the reset attempt either succeeds or exposes a retry.
-class _ResetConfirmationDialog extends StatefulWidget {
-  const _ResetConfirmationDialog({
-    required this.gender,
-    required this.onAttemptReset,
-  });
-
-  final String gender;
-  final Future<bool> Function() onAttemptReset;
-
-  @override
-  State<_ResetConfirmationDialog> createState() =>
-      _ResetConfirmationDialogState();
-}
-
-class _ResetConfirmationDialogState extends State<_ResetConfirmationDialog> {
-  bool _resetInProgress = false;
-
-  Future<void> _attemptReset(BuildContext snackBarContext) async {
-    if (_resetInProgress) {
-      return;
-    }
-
-    setState(() {
-      _resetInProgress = true;
-    });
-    final bool resetSucceeded = await widget.onAttemptReset();
-    if (!mounted || !snackBarContext.mounted || resetSucceeded) {
-      return;
-    }
-
-    setState(() {
-      _resetInProgress = false;
-    });
-    showPersistenceRetrySnackBar(
-      snackBarContext,
-      () => _attemptReset(snackBarContext),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations appLocale = AppLocalizations.of(context)!;
-    return ScaffoldMessenger(
-      child: PopScope(
-        canPop: !_resetInProgress,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Builder(
-            builder: (BuildContext snackBarContext) => LPAlertDialog(
-              key: const Key('user-settings-reset-dialog'),
-              title: appLocale.confirmResetTitle,
-              actions: <Widget>[
-                TextButton(
-                  key: const Key('user-settings-reset-cancel'),
-                  onPressed: _resetInProgress
-                      ? null
-                      : () => Navigator.of(snackBarContext).pop(),
-                  child: Text(appLocale.closeButton(widget.gender)),
-                ),
-                TextButton(
-                  key: const Key('user-settings-reset-confirm'),
-                  onPressed: _resetInProgress
-                      ? null
-                      : () {
-                          unawaited(_attemptReset(snackBarContext));
-                        },
-                  child: Text(appLocale.confirmButton(widget.gender)),
-                ),
-              ],
             ),
           ),
         ),

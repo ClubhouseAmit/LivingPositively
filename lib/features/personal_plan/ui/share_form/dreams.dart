@@ -62,18 +62,19 @@ mixin _ShareFormDreams on _ShareFormCategories {
       });
     }
     try {
+      await _prepareCustomCategories(retry: retry);
       while (true) {
         final bool hadInlineStep = _dreamsAndGoalsStepKey.currentState != null;
         await _persistInlineDreamsAndGoals(userInformation, retry: retry);
         retryRevision = userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.pendingDreamsAndGoalsSave;
-        await userInformation.pendingCustomCategoriesSave;
+        await _prepareCustomCategories();
 
         final int revisionBeforeRepair =
             userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.repairDreamsAndGoalsSelectionSources();
         await userInformation.pendingDreamsAndGoalsSave;
-        await userInformation.pendingCustomCategoriesSave;
+        await _prepareCustomCategories();
 
         // If no inline editor persisted this snapshot and repair left the revision
         // unchanged, queue the save now so in-memory state is durable in storage.
@@ -83,14 +84,14 @@ mixin _ShareFormDreams on _ShareFormCategories {
                 revisionBeforeRepair) {
           await userInformation.queueDreamsAndGoalsSave();
           await userInformation.pendingDreamsAndGoalsSave;
-          await userInformation.pendingCustomCategoriesSave;
+          await _prepareCustomCategories();
         }
 
         final int expectedRevision = userInformation.dreamsAndGoalsSaveRevision;
         retryRevision = expectedRevision;
         if (userInformation.dreamsAndGoalsSaveRevision == expectedRevision) {
           await userInformation.pendingDreamsAndGoalsSave;
-          await userInformation.pendingCustomCategoriesSave;
+          await _prepareCustomCategories();
           if (mounted) {
             setState(() {
               _hideDreamsAndGoalsSummaryUntilRepair = false;

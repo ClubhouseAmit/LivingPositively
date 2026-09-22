@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page1.dart';
 import 'package:mazilon/util/appInformation.dart';

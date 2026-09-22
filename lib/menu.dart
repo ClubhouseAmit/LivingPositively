@@ -1,5 +1,3 @@
-//import 'package:mazilon/pages/schedule.dart';
-
 import 'dart:async';
 
 import 'package:auto_size_text/auto_size_text.dart';
@@ -19,13 +17,12 @@ import 'package:mazilon/pages/breathing_page.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
 import 'package:mazilon/pages/wellness_tools_page.dart';
 import 'package:mazilon/pages/notification_page.dart';
-import 'package:mazilon/features/notifications/data/notification_repository.dart';
 import 'package:mazilon/features/personal_plan/ui/retrieveInformation.dart';
 import 'package:mazilon/util/gender.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/features/shell/ui/LP_extended_state.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
-
+import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/pages/home_page.dart';
 import 'package:mazilon/pages/journal_page.dart';
 import 'package:mazilon/pages/phone_page.dart';
@@ -33,9 +30,7 @@ import 'package:mazilon/features/phone/data/sos_location_service.dart';
 import 'package:mazilon/pages/positive_page.dart';
 import 'package:mazilon/pages/my_plan_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-
 import 'package:mazilon/util/appInformation.dart';
-
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/features/home/ui/bottomNavigationItem.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -50,11 +45,6 @@ import 'package:mazilon/l10n/app_localizations.dart';
 typedef MoodMedicineViewModelFactory = MoodMedicineViewModel Function();
 
 /// Creates a model owned by one breathing page visit.
-///
-/// Production resolves the GetIt factory and its singleton breathing store.
-/// That store uses the same registered PersistentMemoryService as the default
-/// UserInformation, so confirmed app-data reset clears breathing data too.
-/// Custom factories for tests or hosts own their persistence/reset composition.
 typedef BreathingViewModelFactory = BreathingViewModel Function();
 
 class Menu extends StatefulWidget {
@@ -108,8 +98,6 @@ class _MenuState extends LPExtendedState<Menu> {
           isFullScreen == model.requiresFullscreen) {
         return;
       }
-      // Loading can notify while the child is mounting. Guard both ownership
-      // and route again after the frame, especially after an SOS departure.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted &&
             identical(_breathingModel, model) &&
@@ -136,8 +124,6 @@ class _MenuState extends LPExtendedState<Menu> {
     _breathingListener = null;
     if (model != null && listener != null) model.removeListener(listener);
     if (emergency) model?.departForEmergency();
-    // The page retains disposal ownership; queued callbacks now fail identity
-    // checks and cannot change another page's fullscreen state.
   }
 
   @override
@@ -146,13 +132,10 @@ class _MenuState extends LPExtendedState<Menu> {
     super.dispose();
   }
 
-  // Marks that the user has already opened the app before.
   Future<void> markFirstLaunchCompleted() async {
     try {
       PersistentMemoryService service =
-          GetIt.instance<
-            PersistentMemoryService
-          >(); // Get the persistent memory service instance
+          GetIt.instance<PersistentMemoryService>();
 
       await service.setItem("enteredBefore", PersistentMemoryType.Bool, true);
     } catch (error, stackTrace) {
@@ -163,9 +146,7 @@ class _MenuState extends LPExtendedState<Menu> {
   Future<void> testingChange() async {
     try {
       PersistentMemoryService service =
-          GetIt.instance<
-            PersistentMemoryService
-          >(); // Get the persistent memory service instance
+          GetIt.instance<PersistentMemoryService>();
 
       await service.setItem(
         "disclaimerConfirmed",
@@ -185,14 +166,12 @@ class _MenuState extends LPExtendedState<Menu> {
     }
   }
 
-  //Function to check if the user wants to go full screen
   void setFullScreen(bool fullScreen) {
     setState(() {
       isFullScreen = fullScreen;
     });
   }
 
-  //Function to change the current displayed page in the "home"
   void changeCurrentIndex(BuildContext context, PagesCode index) {
     if (index == PagesCode.BreathingPage) {
       _showBreathing();
@@ -206,7 +185,7 @@ class _MenuState extends LPExtendedState<Menu> {
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
 
     if (index == PagesCode.NotificationPage &&
-        !NotificationsService.supportsReminderSettings()) {
+        !FcmService.supportsReminderSettings()) {
       return;
     }
 
@@ -222,7 +201,6 @@ class _MenuState extends LPExtendedState<Menu> {
     setState(() {
       current = index;
       isFullScreen = false;
-      //adding pages to menu here:
 
       if (index == PagesCode.FullPlan) {
         mixPanelService.trackEvent("Viewed full Personal Plan");
@@ -266,9 +244,15 @@ class _MenuState extends LPExtendedState<Menu> {
     });
   }
 
-  void getVersion() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    version = packageInfo.version;
+  Future<void> getVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() {
+      version = packageInfo.version;
+      if (current == PagesCode.About) {
+        currentScreen = About(version: version);
+      }
+    });
   }
 
   Map<String, List<String>> _filterVideoByLocal(
@@ -414,7 +398,7 @@ class _MenuState extends LPExtendedState<Menu> {
         });
       },
       onNotificationsPressed: () {
-        if (!NotificationsService.supportsReminderSettings()) {
+        if (!FcmService.supportsReminderSettings()) {
           return;
         }
         _detachBreathing();
@@ -432,7 +416,7 @@ class _MenuState extends LPExtendedState<Menu> {
     required Key key,
     required VoidCallback onPressed,
     required bool selected,
-    required dynamic icon,
+    required Widget Function(Color color) iconBuilder,
     required String label,
   }) {
     return Semantics(
@@ -446,7 +430,7 @@ class _MenuState extends LPExtendedState<Menu> {
         child: ExcludeSemantics(
           child: bottomNavigationItem(
             selected,
-            icon,
+            iconBuilder,
             label,
             textGroup: _bottomNavigationLabelGroup,
           ),
@@ -455,12 +439,19 @@ class _MenuState extends LPExtendedState<Menu> {
     );
   }
 
+  Widget Function(Color) _bottomNavigationSvgIcon(String assetPath) =>
+      (color) => SvgPicture.asset(
+        assetPath,
+        width: 24,
+        height: 24,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      );
+
   @override
   void initState() {
-    unawaited(markFirstLaunchCompleted());
-    getVersion();
     super.initState();
-    //this is the initial page
+    unawaited(markFirstLaunchCompleted());
+    unawaited(getVersion());
     currentScreen = _buildHomeScreen();
     final int initialHomeSessionGeneration = _homeSessionGeneration;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -479,7 +470,6 @@ class _MenuState extends LPExtendedState<Menu> {
     unawaited(testingChange());
 
     return PopScope(
-      //this is the popscope widget that will handle the back button
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         if (didPop) {
@@ -550,7 +540,6 @@ class _MenuState extends LPExtendedState<Menu> {
         floatingActionButtonLocation: isFullScreen
             ? FloatingActionButtonLocation.endFloat
             : FloatingActionButtonLocation.centerDocked,
-        //when full screen don't show the bottom navigation bar
         bottomNavigationBar: isFullScreen
             ? null
             : BottomAppBar(
@@ -578,7 +567,9 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.Home,
-                        icon: 'assets/images/home_icons.svg',
+                        iconBuilder: _bottomNavigationSvgIcon(
+                          'assets/images/home_icons.svg',
+                        ),
                         label: appLocale.home(gender),
                       ),
                     ),
@@ -597,7 +588,9 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FullPlan,
-                        icon: 'assets/images/task_icon.svg',
+                        iconBuilder: _bottomNavigationSvgIcon(
+                          'assets/images/task_icon.svg',
+                        ),
                         label: appLocale.personalPlanPageMyPlan(gender),
                       ),
                     ),
@@ -614,7 +607,9 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FeelGoodPage,
-                        icon: 'assets/images/yin_yang_icon.svg',
+                        iconBuilder: _bottomNavigationSvgIcon(
+                          'assets/images/yin_yang_icon.svg',
+                        ),
                         label: AppLocalizations.of(
                           context,
                         )!.homePageFeelGood(gender),
@@ -628,7 +623,11 @@ class _MenuState extends LPExtendedState<Menu> {
                           _showWellnessTools(appInfoProvider);
                         },
                         selected: current == PagesCode.WellnessToolsPage,
-                        icon: Icons.local_florist_outlined,
+                        iconBuilder: (color) => Icon(
+                          Icons.local_florist_outlined,
+                          color: color,
+                          size: 24,
+                        ),
                         label: appLocale.homePageWellnessTools(gender),
                       ),
                     ),
