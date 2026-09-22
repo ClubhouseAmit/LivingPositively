@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mazilon/util/async/locale_service.dart';
@@ -45,6 +48,13 @@ void setupLocator() {
   getIt.registerLazySingleton<AnalyticsService>(() => MixPanelService());
   getIt.registerLazySingleton<PersistentMemoryService>(
     () => SharedPreferencesService(),
+  );
+  getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
+    () => GlobalKey<NavigatorState>(),
+  );
+  getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
+  getIt.registerLazySingleton<FirebaseFirestore>(
+    () => FirebaseFirestore.instance,
   );
   getIt.registerLazySingleton<MoodMedicineStore>(
     () => MoodMedicineStore(getIt<PersistentMemoryService>()),

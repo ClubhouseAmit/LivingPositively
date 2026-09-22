@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show TimeoutException, unawaited;
 
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
@@ -161,6 +161,10 @@ final class GeolocatorSosLocationService implements SosLocationService {
       return const SosLocationFailureResult(
         SosLocationFailureKind.servicesDisabled,
       );
+    } on TimeoutException {
+      return const SosLocationFailureResult(SosLocationFailureKind.unavailable);
+    } on PermissionDeniedException {
+      return const SosLocationFailureResult(SosLocationFailureKind.unavailable);
     } catch (error, stackTrace) {
       _reportUnexpectedFailure(error, stackTrace);
       return const SosLocationFailureResult(SosLocationFailureKind.unavailable);

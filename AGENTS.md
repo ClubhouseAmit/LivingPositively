@@ -21,7 +21,7 @@ ever disagree, the script is right and this table is stale.
 | # | Limit | Why it exists |
 |---|---|---|
 | 0.1 | **One public widget class per file.** Private `_LeafCard` widgets beside it are fine — they are the fix, not the bug. | A file with three screens in it cannot be read, reviewed, or changed safely. |
-| 0.2 | **A new file under `lib/` is ≤ 400 lines.** An existing file over 400 may not grow. | Ratchet. 24 files are already over; they are debt, not licence. |
+| 0.2 | **A new file under `lib/` is ≤ 400 lines.** An existing file over 400 may not grow. Generated `lib/l10n/app_localizations*.dart` files are exempt; their ARB sources are the reviewable input. | Ratchet. 24 files are already over; they are debt, not licence. |
 | 0.3 | **A method is ≤ 80 lines** — `build` methods included. | A 250-line method is not a method, it is a file that forgot to be one. |
 | 0.4 | **No function defined inside a builder callback.** Hoist it to a method or a widget. | Closures nested inside two builders are unreadable and untestable. |
 | 0.5 | **No raw number in a spacing/radius slot.** Use `AppSpacing.*`, `AppRadii.*`, or theme. `0` is allowed. | Not even a number that equals a token's value: nobody can tell `20` from `AppSpacing.xl` by reading it. |
@@ -166,17 +166,13 @@ The package that *would* cover them is `solid_lints`: `function_lines_of_code`,
 AST rules — strictly better than regex, and `avoid_returning_widgets` is a better
 fix for long `_buildX` methods than 0.3's line cap.
 
-**It cannot be installed on Flutter 3.44.9 (Dart 3.12.2).** `flutter_test` from
-the SDK pins `meta` to exactly `1.18.0`; every `analyzer` from 13.1 up requires
-`meta ^1.18.3`. `solid_lints` 1.0.0 needs `analyzer ^14.1`, and the older
-`solid_lints` 0.3.x line needs `analyzer ^8`, which collides with `mockito
-^5.7.0`'s `analyzer ^13`. There is no version of either that resolves. The
+Flutter 3.47 lifts the former dependency blocker: its `flutter_test` accepts
+`meta ^1.18.3`, allowing `mockito ^5.8.1` to resolve. `solid_lints` remains an
+option for replacing the text-based 0.3 and 0.5 checks with AST rules; it is
+not installed or configured. Adding that package requires human approval under
+0.7 and a separate migration that proves the new rules before removing the old
+checks. Keep 0.2, the git-history ratchet, which is not a lint. The
 now-unmaintained `dart_code_metrics` (last release July 2023) is not an option.
-
-**Trigger to revisit:** the next Flutter SDK upgrade. A newer SDK pins
-`meta >= 1.18.3`, which unblocks `solid_lints ^1.0.0` alongside `mockito ^5.8.0`.
-When that happens, delete 0.3 and 0.5 from `tool/check_guidelines.sh` and let the
-analyzer own them; keep only 0.2, the git-history ratchet, which is not a lint.
 
 ### 0.8 Verify block
 
@@ -378,8 +374,10 @@ individual diff was modest and reasonable.
 
 **For every `.dart` file in the diff, run `tool/check_guidelines.sh <file>`
 against the file as it now stands.** The diff is what changed. The file is what
-ships. (Bare `tool/check_guidelines.sh` already covers working-tree, staged, and
-branch changes under `lib/` — including files not yet committed.)
+ships. Generated `lib/l10n/app_localizations*.dart` files return success as the
+explicit 0.2 exception; review their ARB inputs instead. (Bare
+`tool/check_guidelines.sh` already covers working-tree, staged, and branch
+changes under `lib/` — including files not yet committed.)
 
 ### 7.3 Report what you checked, not only what failed
 

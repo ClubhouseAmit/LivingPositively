@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mazilon/design_system/widgets/button.dart';
-import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/design_system/widgets/button.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/speech_dictation/ui/suffix_action.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page2.dart';

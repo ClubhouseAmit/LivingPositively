@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mazilon/util/async/locale_service.dart';
 import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/features/personal_plan/data/personal_plan_export_snapshot.dart';
 import 'package:mazilon/features/wizard/ui/wizard_actions.dart';
 import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:mazilon/util/async/global_enums.dart';
@@ -132,6 +133,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
@@ -148,6 +150,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     shareCalls++;
@@ -344,6 +347,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   if (getIt.isRegistered<VideoPlayerPageFactory>()) {
     getIt.unregister<VideoPlayerPageFactory>();
   }
+  if (getIt.isRegistered<GlobalKey<NavigatorState>>()) {
+    getIt.unregister<GlobalKey<NavigatorState>>();
+  }
   if (getIt.isRegistered<SosLocationService>()) {
     getIt.unregister<SosLocationService>();
   }
@@ -368,6 +374,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   getIt.registerSingleton<ImagePickerService>(picker);
   getIt.registerSingleton<LocaleService>(localeService);
   getIt.registerSingleton<VideoPlayerPageFactory>(videoFactory);
+  getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
+    GlobalKey<NavigatorState>.new,
+  );
   getIt.registerSingleton<SosLocationService>(sosLocationService);
   getIt.registerSingleton<SpeechRecognitionService>(speechRecognitionService);
 

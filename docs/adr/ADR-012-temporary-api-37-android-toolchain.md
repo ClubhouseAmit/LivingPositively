@@ -16,7 +16,7 @@ independently of the application's stable notification and SOS behavior.
 The current repository configuration uses AGP 9.1.1, Gradle 9.3.1, Kotlin
 Gradle Plugin 2.4.0, and Flutter's legacy Kotlin compatibility flags:
 `android.builtInKotlin=false` and `android.newDsl=false`. Android CI validates
-this combination with Flutter 3.44.0 and JDK 17.
+this combination with Flutter 3.47.5 (Dart 3.13) and JDK 17.
 
 ## Decision
 
@@ -39,9 +39,10 @@ combination.
   location, or SMS behavior.
 - The legacy Kotlin flags remain narrowly scoped to the Flutter/Gradle
   transition and must not be copied into unrelated projects by default.
-- Flutter's built-in Kotlin migration in Flutter 3.47 or later is the exit
-  condition. Revisit this ADR after that migration is available and validated,
-  then remove the exception rather than carrying it forward indefinitely.
+- Flutter's built-in Kotlin migration is available in the validated Flutter
+  3.47.5 toolchain. Remove the legacy flags only as part of a separately
+  reviewed native-template migration; they remain necessary in the current
+  generated Android project.
 
 ## Links
 
@@ -49,3 +50,8 @@ combination.
 - `android/gradle/wrapper/gradle-wrapper.properties`
 - `android/gradle.properties`
 - `.github/workflows/main.yml`
+
+## Revision history
+
+- **2026-09-21** — Flutter 3.47.5 / Dart 3.13 replaced the former Flutter
+  3.44.0 / Dart 3.12 validation baseline.

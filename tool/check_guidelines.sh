@@ -42,7 +42,7 @@ FILES=()
 case "${1:-}" in
   --all)
     while IFS= read -r p; do FILES+=("$p"); done < <(
-      find lib -name '*.dart' ! -path '*/l10n/*' | sort)
+      find lib -name '*.dart' | sort)
     ;;
   "")
     tmpfile=$(mktemp) || {
@@ -62,7 +62,7 @@ case "${1:-}" in
     # /tmp/.cg_files.$$ with stderr suppressed: on a read-only /tmp the write
     # failed silently, FILES came back empty, and the script reported
     # "0 violations" having looked at nothing. Fail-open, again.
-    } 2>/dev/null | grep -v '/l10n/' | sort -u > "$tmpfile"
+    } 2>/dev/null | sort -u > "$tmpfile"
     while IFS= read -r p; do [ -n "$p" ] && FILES+=("$p"); done < "$tmpfile"
     ;;
   *)
@@ -78,6 +78,7 @@ esac
 
 fail=0
 scanned=0
+generated_skipped=0
 note() { echo "$1"; fail=1; }
 
 # Offending import lines on stdin, per the bad_re/allow_re pair set by 0.11.
@@ -124,6 +125,11 @@ method_offenders() {
         open=0; next }
     open && kind=="{"  && /^  \};?$/  { open=0; next }
     open && kind=="{"  && /^  \}\);?$/ { open=0; next }
+    open && kind=="{"  && /^  \}\) *(async|async\*|sync\*)? *=>/ {
+        kind="=>"; if (/;[ \t]*$/) { n=NR-start+1; if (n>lim)
+          printf "%s:%d: expression-bodied member is %d lines (max %d):%s [AGENTS.md 0.3]\n", file,start,n,lim,substr(sig,1,55)
+          open=0 }
+        next }
     open && kind=="=>" && /;[ \t]*$/  { n=NR-start+1; if (n>lim)
         printf "%s:%d: expression-bodied member is %d lines (max %d):%s [AGENTS.md 0.3]\n", file,start,n,lim,substr(sig,1,55)
         open=0; next }
@@ -164,6 +170,12 @@ fi
 
 for f in "${FILES[@]:-}"; do
   [ -n "$f" ] && [ -f "$f" ] || continue
+  # Flutter l10n output is generated from ARB files and cannot obey the
+  # hand-authored file-length ratchet. Keep other l10n Dart files in scope.
+  case "$f" in
+    lib/l10n/app_localizations*.dart|*/lib/l10n/app_localizations*.dart)
+      generated_skipped=$((generated_skipped + 1)); continue ;;
+  esac
   scanned=$((scanned + 1))
   origin=$(origin_for "$f")
 
@@ -385,5 +397,5 @@ if [ "$fail" -ne 0 ]; then
   echo "Guideline violations above. See AGENTS.md section 0."
   exit 1
 fi
-echo "check_guidelines: $scanned file(s) scanned, 0 violations" \
+echo "check_guidelines: $scanned file(s) scanned, $generated_skipped generated localization file(s) exempt, 0 violations" \
      "(limits: file ${MAX_FILE_LINES}, method ${MAX_METHOD_LINES}, closure indent ${MAX_CLOSURE_INDENT})"
