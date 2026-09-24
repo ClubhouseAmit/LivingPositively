@@ -20,6 +20,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/features/personal_plan/data/personal_plan_export_snapshot.dart';
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/util/async/service_locator.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
@@ -111,6 +112,7 @@ class _StubFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async => const ShareResult('stub', ShareResultStatus.success);
   @override
@@ -122,6 +124,7 @@ class _StubFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async => null;
   @override

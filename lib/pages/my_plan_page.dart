@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:mazilon/features/personal_plan/ui/personal_plan_custom_categories_section.dart';
 import 'package:mazilon/features/personal_plan/ui/my_plan_section.dart';
 import 'package:mazilon/features/personal_plan/ui/personal_plan_info_button.dart';
 import 'package:mazilon/features/personal_plan/ui/retrieveInformation.dart';
@@ -95,17 +96,6 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     if (!await launchUrl(url)) {
       throw 'Could not launch $url';
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final userInfo = Provider.of<UserInformation>(context, listen: false);
-        userInfo.loadCustomCategories(memoryService: widget.memoryService);
-      }
-    });
   }
 
   @override
@@ -246,12 +236,9 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
           subTitle: dreamsAndGoalsInfo['subTitle'] ?? '',
           answers: userAnswers[5],
         ),
-      ...userInfo.customCategories.map(
-        (category) => MyPlanSection(
-          title: category.key,
-          subTitle: '',
-          answers: [category.value],
-        ),
+      PersonalPlanCustomCategoriesSection(
+        userInformation: userInfo,
+        memoryService: widget.memoryService,
       ),
     ];
   }

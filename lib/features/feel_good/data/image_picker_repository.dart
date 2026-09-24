@@ -349,7 +349,6 @@ class ImagePickerServiceImpl implements ImagePickerService {
       }
     } catch (error, stackTrace) {
       await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
-      rethrow;
     }
   }
 }

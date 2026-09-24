@@ -212,6 +212,33 @@ expect 1 "0.3 expression-bodied method (was a false negative)" < "$TMP/arrow.dar
   echo '  }'; echo '}'; } > "$TMP/wrapped.dart"
 expect 1 "0.3 wrapped signature (was a false negative)" < "$TMP/wrapped.dart"
 
+{ for i in $(seq 1 401); do echo "// generated line $i"; done; } > "$TMP/long_l10n.dart"
+expect_at 0 "0.2 generated app_localizations is exempt" "l10n/app_localizations_en.dart" < "$TMP/long_l10n.dart"
+custom_l10n=lib/l10n/zz_check_guidelines_probe.dart
+cp "$TMP/long_l10n.dart" "$custom_l10n"
+"$CHECK" "$custom_l10n" >/dev/null 2>&1
+got=$?
+rm -f "$custom_l10n"
+[ "$got" -eq 1 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: hand-authored l10n still has a file limit (want 1, got $got)"; }
+
+expect 0 "0.3 short Mockito-style generic arrow member" <<'DART'
+class MockCollection {
+  CollectionReference<R> withConverter<R extends Object?>({
+    required FromFirestore<R>? fromFirestore,
+  }) =>
+      convert(fromFirestore);
+}
+DART
+
+{ echo 'class MockCollection {'
+  echo '  CollectionReference<R> withConverter<R extends Object?>({'
+  echo '    required FromFirestore<R>? fromFirestore,'
+  echo '  }) =>'
+  echo '      convert('
+  for i in $(seq 1 90); do echo "        argument$i,"; done
+  echo '      );'; echo '}'; } > "$TMP/generic_arrow.dart"
+expect 1 "0.3 long Mockito-style generic arrow member" < "$TMP/generic_arrow.dart"
+
 expect 1 "0.4 local fn in a callback, custom return type" <<'DART'
 class C {
   Widget build(c) {
@@ -368,20 +395,20 @@ DART
   "$CHECK" "$long" >/dev/null 2>&1
   got=$?
   [ "$got" -eq 1 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: new 401-line file is rejected (want 1, got $got)"; }
-  CHECK_ORIGIN=lib/pages/UserSettings.dart "$CHECK" "$long" >/dev/null 2>&1
+  CHECK_ORIGIN=lib/pages/user_settings_page.dart "$CHECK" "$long" >/dev/null 2>&1
   got=$?
   [ "$got" -eq 0 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: renamed 401-line file is parked (want 0, got $got)"; }
   rm -rf lib/features/zz_rename
 }
 
 # parked: same-or-fewer public widgets as the origin file at main
-CHECK_ORIGIN=lib/util/Phone/EmergencyPhones.dart expect_at 0 "renamed 2-widget file is parked" "features/x/ui/x_page.dart" <<'DART'
+CHECK_ORIGIN=lib/features/phone/ui/EmergencyPhones.dart expect_at 0 "renamed 2-widget file is parked" "features/x/ui/x_page.dart" <<'DART'
 class A extends StatelessWidget {}
 class B extends StatelessWidget {}
 DART
 
 # parked: same-or-fewer TextButton count as the origin file at main
-CHECK_ORIGIN=lib/pages/journal.dart expect_at 0 "renamed TextButton in ui/ is parked" "features/x/ui/x_page.dart" <<'DART'
+CHECK_ORIGIN=lib/pages/journal_page.dart expect_at 0 "renamed TextButton in ui/ is parked" "features/x/ui/x_page.dart" <<'DART'
 class C {
   Widget build(c) => TextButton(onPressed: () {}, child: const Text('Go'));
 }

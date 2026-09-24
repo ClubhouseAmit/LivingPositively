@@ -32,6 +32,9 @@ jobs:
   quality:
     uses: ./.github/workflows/_quality.yml
 
+  backend-quality:
+    uses: ./.github/workflows/_backend-quality.yml
+
   build-android:
     uses: ./.github/workflows/_android-build.yml
     secrets: inherit
@@ -89,11 +92,33 @@ jobs:
       unit-coverage-artifact-id: ${{ needs.build-android.outputs.coverage-artifact-id }}
       integration-coverage-artifact-id: ${{ needs.integration-test.outputs.coverage-artifact-id }}
 
+  notification-backend:
+    # The called workflow reads previous successful workflow runs to decide
+    # whether notification backend deployment is required.
+    permissions:
+      contents: read
+      actions: read
+    needs: [coverage-aggregate, backend-quality]
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/_notification-backend.yml
+    with:
+      coverage-result: ${{ needs.coverage-aggregate.result }}
+      backend-quality-result: ${{ needs.backend-quality.result }}
+    secrets: inherit
+
   release-android-internal:
     name: Release Android to Google Play internal testing
     # `quality` is in this list on purpose: without it a run that fails
     # `flutter analyze` or tool/check_guidelines.sh could still reach Play.
-    needs: [build-android, coverage-aggregate]
+    needs:
+      [
+        quality,
+        build-android,
+        coverage-aggregate,
+        backend-quality,
+        integration-test-ios,
+        notification-backend,
+      ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency:
       group: google-play-internal-release

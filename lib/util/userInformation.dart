@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/personal_plan/data/custom_categories_models.dart';
 import 'package:mazilon/features/personal_plan/data/custom_categories_storage.dart';
 import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
 import 'package:mazilon/util/async/logger_service.dart';
@@ -26,10 +28,10 @@ class UserInformation with ChangeNotifier {
   List<String> dreamsAndGoals;
   List<String> dreamsAndGoalsSelectionSources;
   bool loggedIn;
+  bool authDecisionMade;
   String userId;
-  int notificationMinute;
-  int notificationHour;
-  String notificationMessage;
+  String email;
+  String displayName;
   DarkModePreference darkModePreference;
   int darkModeStartHour;
   int darkModeStartMinute;
@@ -39,30 +41,33 @@ class UserInformation with ChangeNotifier {
   List<MapEntry<String, String>> customCategories;
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
-  Future<void> _pendingCustomCategoriesSave = Future<void>.value();
-  List<MapEntry<String, String>> _pendingCustomCategoriesSnapshot = const [];
-  bool _customCategoriesSaveInProgress = false;
+  final CustomCategoriesSaveQueue _customCategoriesWrites =
+      CustomCategoriesSaveQueue();
   int _dreamsAndGoalsSaveRevision = 0;
-  int _customCategoriesSaveRevision = 0;
   int _activeDreamsAndGoalsSavesCount = 0;
 
   /// Whether a Dreams and Goals persistence operation is currently pending.
   bool get isDreamsAndGoalsSavePending => _activeDreamsAndGoalsSavesCount > 0;
 
-  /// In-flight custom categories persistence future.
-  Future<void> get pendingCustomCategoriesSave => _pendingCustomCategoriesSave;
+  /// Whether every Dreams and Goals selection has normalized source metadata.
+  bool get dreamsAndGoalsSourcesAreAligned => listEquals(
+    dreamsAndGoalsSelectionSources,
+    normalizeDreamsAndGoalsSelectionSources(
+      dreamsAndGoals,
+      dreamsAndGoalsSelectionSources,
+    ),
+  );
 
-  /// Revision of the latest custom-category snapshot held by the model.
-  int get customCategoriesSaveRevision => _customCategoriesSaveRevision;
+  Future<void> get pendingCustomCategoriesSave =>
+      _customCategoriesWrites.pending;
+
+  int get customCategoriesSaveRevision => _customCategoriesWrites.revision;
 
   UserInformation({
     this.location = '',
     this.thanks = const <String, List<String>>{},
     this.positiveTraits = const [],
     this.localeName = '',
-    this.notificationHour = 12,
-    this.notificationMinute = 0,
-    this.notificationMessage = '',
     this.darkModePreference = DarkModePreference.alwaysLight,
     this.darkModeStartHour = 22,
     this.darkModeStartMinute = 0,
@@ -82,23 +87,36 @@ class UserInformation with ChangeNotifier {
     this.customCategories = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
+    this.authDecisionMade = false,
     this.userId = '',
+    this.email = '',
+    this.displayName = '',
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
 
-  /// Hydrates custom categories from [memoryService] (or the default [service]).
-  ///
-  /// The read is revision-fenced: a save or reset that happens while storage
-  /// is being read wins over the older snapshot.
+  /// Reads categories, publishing them only when reading this model's [service].
   Future<List<MapEntry<String, String>>> loadCustomCategories({
     PersistentMemoryService? memoryService,
-  }) async {
-    final effectiveMemoryService = memoryService ?? service;
-    final loadRevision = _customCategoriesSaveRevision;
+  }) => _loadCustomCategories(memoryService ?? service);
+
+  Future<List<MapEntry<String, String>>> _loadCustomCategories(
+    PersistentMemoryService effectiveMemoryService,
+  ) async {
+    final int revisionAtLoadStart = customCategoriesSaveRevision;
     final loaded = await loadCustomCategoriesFromStorage(
       memoryService: effectiveMemoryService,
     );
-    hydrateCustomCategoriesIfRevision(loaded, loadRevision);
+    if (!identical(effectiveMemoryService, service)) {
+      return List<MapEntry<String, String>>.unmodifiable(loaded);
+    }
+    // A load begun during initialization may complete after an interactive
+    // save has started. That response reflects the old storage snapshot and
+    // must not replace the newer in-memory categories.
+    if (revisionAtLoadStart != customCategoriesSaveRevision) {
+      return customCategories;
+    }
+    customCategories = List<MapEntry<String, String>>.unmodifiable(loaded);
+    notifyListeners();
     return customCategories;
   }
 
@@ -111,127 +129,69 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Hydrates [categories] only when no newer custom-category mutation has
-  /// happened since [expectedRevision] was captured.
-  ///
-  /// Returns `true` when the snapshot was applied and `false` when it was
-  /// stale. A stale asynchronous read never overwrites a newer save or reset.
+  /// Applies [categories] only if no newer save or reset has occurred.
   bool hydrateCustomCategoriesIfRevision(
     List<MapEntry<String, String>> categories,
     int expectedRevision,
   ) {
-    if (expectedRevision != _customCategoriesSaveRevision) {
+    if (expectedRevision != customCategoriesSaveRevision) {
       return false;
     }
     hydrateCustomCategories(categories);
     return true;
   }
 
-  /// Persists [categories] (or current [customCategories]) into [memoryService]
-  /// (or the default [service]). Saves are queued in order and the latest
-  /// revision remains retryable if an earlier mirror write fails. The model is
-  /// updated only after the complete queued snapshot succeeds.
+  /// Persists [categories] in order and updates the model after a full save.
   Future<void> saveCustomCategories({
     List<MapEntry<String, String>>? categories,
     PersistentMemoryService? memoryService,
   }) async {
     final effectiveMemoryService = memoryService ?? service;
+    if (!identical(effectiveMemoryService, service) && categories == null) {
+      throw ArgumentError(
+        'Saving to an alternate source requires explicit categories.',
+      );
+    }
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
-    _customCategoriesSaveRevision++;
-    final saveRevision = _customCategoriesSaveRevision;
-
-    final nextSave = _queueCustomCategoriesSave(
+    if (!identical(effectiveMemoryService, service)) {
+      // An explicit alternate store owns its own data; it must not replace
+      // this model's categories, revisions, or retry state.
+      await saveCustomCategoriesToStorage(
+        sanitized,
+        memoryService: effectiveMemoryService,
+      );
+      return;
+    }
+    final queued = _customCategoriesWrites.queue(
       sanitized,
-      memoryService: effectiveMemoryService,
+      effectiveMemoryService,
     );
-    await nextSave;
-    if (saveRevision != _customCategoriesSaveRevision) {
+    await queued.save;
+    if (queued.revision != customCategoriesSaveRevision) {
+      return;
+    }
+    if (customCategoriesMatch(customCategories, sanitized)) {
       return;
     }
     customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
     notifyListeners();
   }
 
-  Future<void> _queueCustomCategoriesSave(
-    List<MapEntry<String, String>> categories, {
-    required PersistentMemoryService memoryService,
-  }) {
-    final snapshot = List<MapEntry<String, String>>.unmodifiable(
-      sanitizeAndFilterCustomCategoryEntries(categories),
-    );
-    _pendingCustomCategoriesSnapshot = snapshot;
-    if (!_customCategoriesSaveInProgress) {
-      _customCategoriesSaveInProgress = true;
-      final nextSave = _writeCustomCategoriesSnapshot(
-        snapshot,
-        memoryService: memoryService,
-      );
-      _pendingCustomCategoriesSave = nextSave;
-      _markCustomCategoriesSaveFinished(nextSave);
-      return nextSave;
-    }
-
-    // Keep a newer snapshot runnable after an older write fails.
-    final nextSave = _pendingCustomCategoriesSave
-        .catchError((Object _) {})
-        .then(
-          (_) => _writeCustomCategoriesSnapshot(
-            snapshot,
-            memoryService: memoryService,
-          ),
-        );
-    _pendingCustomCategoriesSave = nextSave;
-    _markCustomCategoriesSaveFinished(nextSave);
-    return nextSave;
-  }
-
-  void _markCustomCategoriesSaveFinished(Future<void> save) {
-    unawaited(
-      save.then<void>(
-        (_) {
-          if (identical(_pendingCustomCategoriesSave, save)) {
-            _customCategoriesSaveInProgress = false;
-          }
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          if (identical(_pendingCustomCategoriesSave, save)) {
-            _customCategoriesSaveInProgress = false;
-          }
-        },
-      ),
-    );
-  }
-
-  Future<void> _writeCustomCategoriesSnapshot(
-    List<MapEntry<String, String>> categories, {
-    required PersistentMemoryService memoryService,
-  }) async {
-    await saveCustomCategoriesToStorage(
-      categories,
-      memoryService: memoryService,
-    );
-  }
-
-  /// Retries a failed save only when it still represents the current model
-  /// revision. A newer mutation already has its own queued snapshot.
+  /// Retries the latest model-owned snapshot without replaying a stale revision.
   Future<void> retryCustomCategoriesSave(
     int revision, {
     PersistentMemoryService? memoryService,
   }) {
-    if (revision != _customCategoriesSaveRevision) {
-      return _pendingCustomCategoriesSave;
-    }
-    return _queueCustomCategoriesSave(
-      _pendingCustomCategoriesSnapshot,
-      memoryService: memoryService ?? service,
-    ).then((_) {
-      if (revision != _customCategoriesSaveRevision) return;
-      customCategories = List<MapEntry<String, String>>.unmodifiable(
-        _pendingCustomCategoriesSnapshot,
+    if (memoryService != null && !identical(memoryService, service)) {
+      throw ArgumentError(
+        'Alternate-source retries belong to their save owner.',
       );
-      notifyListeners();
-    });
+    }
+    return _customCategoriesWrites.retry(
+      revision,
+      (snapshot) => saveCustomCategories(categories: snapshot),
+    );
   }
 
   /// Clears user state and persists the empty Dreams and Goals snapshot.
@@ -240,9 +200,6 @@ class UserInformation with ChangeNotifier {
   /// returned future completes only after the queued Dreams snapshot succeeds.
   Future<void> reset(String locale) async {
     location = '';
-    notificationHour = 12;
-    notificationMinute = 0;
-    notificationMessage = '';
     darkModePreference = DarkModePreference.alwaysLight;
     darkModeStartHour = 22;
     darkModeStartMinute = 0;
@@ -261,12 +218,15 @@ class UserInformation with ChangeNotifier {
     dreamsAndGoals = [];
     dreamsAndGoalsSelectionSources = [];
     customCategories = [];
-    _customCategoriesSaveRevision++;
+    _customCategoriesWrites.invalidate();
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
-    // snapshot behind it so reset is always the final local Dreams state.
+    // snapshots behind them so reset is always the final local state.
     _dreamsAndGoalsSaveRevision++;
     loggedIn = false;
+    authDecisionMade = false;
     userId = '';
+    email = '';
+    displayName = '';
     thanks = {};
     positiveTraits = [];
     localeName = locale;
@@ -274,7 +234,7 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
     await Future.wait([
       queueDreamsAndGoalsSave(),
-      _queueCustomCategoriesSave(const [], memoryService: service),
+      saveCustomCategories(categories: const <MapEntry<String, String>>[]),
     ]);
   }
 
@@ -437,6 +397,9 @@ class UserInformation with ChangeNotifier {
             _activeDreamsAndGoalsSavesCount--;
           }
         });
+    // Keep the queue usable after a failed snapshot. A later save continues
+    // through catchError above, while this tail retains the current write's
+    // error for callers that must block navigation and offer a retry.
     _pendingDreamsAndGoalsSave = nextSave;
     return nextSave;
   }
@@ -583,10 +546,18 @@ class UserInformation with ChangeNotifier {
     );
   }
 
-  /// Awaits all pending saves and repairs Dreams and Goals selection sources
-  /// until storage has a stable, normalized snapshot for Personal Plan export.
-  Future<void> prepareForPersonalPlanExport() async {
-    await _pendingCustomCategoriesSave;
+  /// Awaits pending model saves for exports from this model's own store.
+  ///
+  /// An alternate [memoryService] is an independent source, never a staging
+  /// destination. Its read barrier handles its writes without using this model.
+  Future<void> prepareForPersonalPlanExport({
+    PersistentMemoryService? memoryService,
+  }) async {
+    final PersistentMemoryService effectiveMemoryService =
+        memoryService ?? service;
+    if (!identical(effectiveMemoryService, service)) return;
+    await _awaitOrRetryCustomCategoriesSave();
+    await _awaitOrRetryDreamsAndGoalsSave();
     final bool needsRepair = !listEquals(
       dreamsAndGoalsSelectionSources,
       normalizeDreamsAndGoalsSelectionSources(
@@ -595,37 +566,52 @@ class UserInformation with ChangeNotifier {
       ),
     );
     if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
-      await _pendingCustomCategoriesSave;
       return;
     }
-    while (true) {
-      await _pendingDreamsAndGoalsSave;
+    for (var attempt = 0; attempt < 8; attempt++) {
+      await _awaitOrRetryDreamsAndGoalsSave();
       final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;
       await repairDreamsAndGoalsSelectionSources();
-      await _pendingDreamsAndGoalsSave;
+      await _awaitOrRetryDreamsAndGoalsSave();
       if (_dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
-        await _pendingDreamsAndGoalsSave;
-        break;
+        await _awaitOrRetryCustomCategoriesSave();
+        return;
       }
     }
-    await _pendingCustomCategoriesSave;
+    throw StateError(
+      'Dreams and Goals kept changing during export preparation.',
+    );
+  }
+
+  Future<void> _awaitOrRetryCustomCategoriesSave() async {
+    await _customCategoriesWrites.awaitOrRetry(
+      (snapshot, source) => saveCustomCategories(
+        categories: snapshot,
+        memoryService: source,
+      ),
+    );
+  }
+
+  Future<void> _awaitOrRetryDreamsAndGoalsSave() async {
+    try {
+      await _pendingDreamsAndGoalsSave;
+    } catch (_) {
+      await queueDreamsAndGoalsSave();
+    }
   }
 
   /// Persists the form completion disclaimer using this model's injected
   /// storage service.
-  Future<void> persistDisclaimerConfirmed() {
-    return service.setItem(
-      'disclaimerConfirmed',
-      PersistentMemoryType.Bool,
-      true,
-    );
-  }
+  Future<void> persistDisclaimerConfirmed() => service.setItem(
+    'disclaimerConfirmed',
+    PersistentMemoryType.Bool,
+    true,
+  );
 
   /// Persists the completed-form marker using this model's injected storage
   /// service.
-  Future<void> persistHasFilled() {
-    return service.setItem('hasFilled', PersistentMemoryType.Bool, true);
-  }
+  Future<void> persistHasFilled() =>
+      service.setItem('hasFilled', PersistentMemoryType.Bool, true);
 
   void updateDisclaimerSigned(bool value) {
     disclaimerSigned = value;
@@ -634,52 +620,35 @@ class UserInformation with ChangeNotifier {
 
   void updateLoggedIn(bool value) {
     loggedIn = value;
+    _savePersistedValue(
+      () => service.setItem('loggedIn', PersistentMemoryType.Bool, value),
+    );
+    notifyListeners();
+  }
+
+  void updateAuthDecisionMade(bool value) {
+    authDecisionMade = value;
+    _savePersistedValue(
+      () =>
+          service.setItem('authDecisionMade', PersistentMemoryType.Bool, value),
+    );
+    notifyListeners();
+  }
+
+  void updateEmail(String value) {
+    email = value;
+    notifyListeners();
+  }
+
+  void updateDisplayName(String value) {
+    displayName = value;
     notifyListeners();
   }
 
   void updateUserId(String value) {
     userId = value;
-    notifyListeners();
-  }
-
-  void updateNotificationHour(int value) {
-    notificationHour = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationHour',
-          PersistentMemoryType.Int,
-          value,
-        ),
-      ),
-    );
-    notifyListeners();
-  }
-
-  void updateNotificationMinute(int value) {
-    notificationMinute = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationMinute',
-          PersistentMemoryType.Int,
-          value,
-        ),
-      ),
-    );
-    notifyListeners();
-  }
-
-  void updateNotificationMessage(String value) {
-    notificationMessage = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationMessage',
-          PersistentMemoryType.String,
-          value,
-        ),
-      ),
+    _savePersistedValue(
+      () => service.setItem('userId', PersistentMemoryType.String, value),
     );
     notifyListeners();
   }
@@ -911,5 +880,35 @@ class UserInformation with ChangeNotifier {
       ),
     );
     notifyListeners();
+  }
+
+  void _savePersistedValue(Future<void> Function() write) {
+    unawaited(
+      Future<void>.sync(write).catchError((
+        Object error,
+        StackTrace stackTrace,
+      ) {
+        _reportPersistenceFailure(error, stackTrace);
+      }),
+    );
+  }
+
+  void _reportPersistenceFailure(Object error, StackTrace stackTrace) {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      debugPrint('Persistent user state write failed: $error');
+      return;
+    }
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        ),
+      ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+        debugPrint(
+          'Persistent user state failure reporting failed: $loggerError',
+        );
+      }),
+    );
   }
 }
