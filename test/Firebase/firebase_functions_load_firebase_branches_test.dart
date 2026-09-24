@@ -138,8 +138,9 @@ Future<void> _addDoc(
   FakeFirebaseFirestore fake,
   Map<String, dynamic> data,
 ) async {
+  await fake.collection('AllFormData').doc('parent').set({});
   await fake
-      .collection('_pageGroups')
+      .collection('AllFormData')
       .doc('parent')
       .collection('subgroup')
       .add(data);

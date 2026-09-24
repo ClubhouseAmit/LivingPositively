@@ -499,15 +499,10 @@ Future<void> loadAppFromFirebase(
   FirebaseFirestore? firestore,
 }) async {
   final fs = firestore ?? FirebaseFirestore.instance;
-  //InitialFormFirstPage
   Map<String, String> IFFP = {};
-  //InitialFormSecondPage
   Map<String, String> IFSP = {};
-  //InitialFormThirdPage
   Map<String, String> IFTP = {};
-  //UserSettingsPage
   Map<String, String> userSettingsPage = {};
-  //FormDifficultEvents
   Map<String, String> FPDE = {};
   //FormDistractions
   Map<String, String> FPD = {};
@@ -545,8 +540,13 @@ Future<void> loadAppFromFirebase(
   Map<String, String> PPPU = {};
   Map<String, String> BT = {};
   Map<String, String> OS = {};
-  var doc = await fs.collectionGroup('subgroup').get();
-  for (var element in doc.docs) {
+  final parentDocs = await fs.collection('AllFormData').get();
+  final subgroups = await Future.wait(
+    parentDocs.docs.map(
+      (parent) => parent.reference.collection('subgroup').get(),
+    ),
+  );
+  for (final element in subgroups.expand((subgroup) => subgroup.docs)) {
     Map<String, dynamic> data = element.data();
 
     if (data.containsKey('page')) {
