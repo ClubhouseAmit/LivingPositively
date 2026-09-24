@@ -18,7 +18,6 @@ touch "$config_file"
   env -u GOOGLE_SIGN_IN_SERVER_CLIENT_ID \
     -u GOOGLE_SIGN_IN_IOS_CLIENT_ID \
     -u GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID \
-    -u GOOGLE_SIGN_IN_WEB_CLIENT_ID \
     bash scripts/prepare_ios_google_sign_in_config.sh
 )
 [[ ! -e "$config_file" ]]
@@ -37,7 +36,6 @@ fi
 (
   cd "$temporary_root"
   GOOGLE_SIGN_IN_SERVER_CLIENT_ID='123-web.apps.googleusercontent.com' \
-  GOOGLE_SIGN_IN_WEB_CLIENT_ID='123-web.apps.googleusercontent.com' \
   GOOGLE_SIGN_IN_IOS_CLIENT_ID='456-ios.apps.googleusercontent.com' \
   GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID='com.googleusercontent.apps.456-ios' \
     bash scripts/prepare_ios_google_sign_in_config.sh
