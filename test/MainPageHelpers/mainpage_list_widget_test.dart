@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_widget.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 

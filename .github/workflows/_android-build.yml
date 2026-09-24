@@ -61,7 +61,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.44.0"
+          flutter-version: "3.47.5"
           cache: true
       - name: Install dependencies
         shell: bash
@@ -86,6 +86,10 @@ jobs:
         run: |
           rm -f coverage/lcov.info coverage/lcov.base.info coverage/lcov.token.info
           flutter test --coverage --reporter=expanded
+      - name: Test iOS VM-service recovery guards
+        run: |
+          bash scripts/tests/recover_ios_vm_service_test.sh
+          python3 scripts/tests/recover_ios_vm_service_cli_test.py
       - name: Snapshot base lcov before dart-define run
         # The next `flutter test` invocation overwrites coverage/lcov.info;
         # snapshot the full-suite lcov so we can merge the dart-define
@@ -149,12 +153,18 @@ jobs:
           APPSIGNINGKEYSTOREPASSWORD: ${{ secrets.APPSIGNINGKEYSTOREPASSWORD }}
           MIXPANEL_PROJECT_TOKEN: ${{ secrets.MIXPANEL_PROJECT_TOKEN }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          GOOGLE_SIGN_IN_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SIGN_IN_SERVER_CLIENT_ID }}
         run: |
+          if [ -z "$(printf '%s' "$GOOGLE_SIGN_IN_SERVER_CLIENT_ID" | tr -d '[:space:]')" ]; then
+            echo "::error title=Missing Google Sign-In configuration::Set the GOOGLE_SIGN_IN_SERVER_CLIENT_ID repository secret before releasing from main."
+            exit 1
+          fi
           flutter build appbundle --release \
             --build-name="${BUILD_NAME}" \
             --build-number="${BUILD_NUMBER}" \
             --dart-define=MIXPANEL_PROJECT_TOKEN="$MIXPANEL_PROJECT_TOKEN" \
-            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID="$GOOGLE_SIGN_IN_SERVER_CLIENT_ID"
 
       - name: Upload App Bundle
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

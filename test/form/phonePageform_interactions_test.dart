@@ -1,12 +1,11 @@
-// Drives the ConfirmationButton onPressed inside PhonePageForm
-// (lines 181-185 of lib/form/phonePageform.dart) — saves prefs and
-// invokes widget.next.
+// Drives the wizard primary action for PhonePageForm — saves prefs
+// and invokes widget.next.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/form/wizard_step.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/form.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -66,10 +65,10 @@ void main() {
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    final buttons = find.byType(TextButton);
-    expect(buttons, findsWidgets);
-    await tester.ensureVisible(buttons.last);
-    await tester.tap(buttons.last, warnIfMissed: false);
+    final button = find.byKey(const Key('wizard-primary-action'));
+    expect(button, findsOneWidget);
+    await tester.ensureVisible(button);
+    await tester.tap(button, warnIfMissed: false);
     await tester.pump();
     // Drain microtasks for the chained async helpers.
     await tester.pump(const Duration(milliseconds: 50));

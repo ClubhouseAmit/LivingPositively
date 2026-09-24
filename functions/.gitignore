@@ -1,0 +1,15 @@
+# Compiled JavaScript files
+lib/**/*.js
+lib/**/*.js.map
+
+# TypeScript v1 declaration files
+typings/
+
+# Node.js dependency directory
+node_modules/
+*.local
+
+# Local dotenv configuration: never commit it and never let a deployment
+# upload it. Cloud Functions configuration comes from deployment secrets.
+.env
+.env.*

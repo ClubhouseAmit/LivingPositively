@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_body_widget.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_item_number_widget.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_item_widget.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
-import 'package:mazilon/MainPageHelpers/show_all_button.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart';
-import 'package:mazilon/util/Thanks/thanksItemSug.dart';
-import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
-import 'package:mazilon/util/suggestion_add_button.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_body_widget.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_item_number_widget.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_item_widget.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_widget.dart';
+import 'package:mazilon/features/home/ui/show_all_button.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/journal/ui/AddForm.dart';
+import 'package:mazilon/features/journal/ui/thanksItemSug.dart';
+import 'package:mazilon/features/positive/ui/positiveTraitItemSug.dart';
+import 'package:mazilon/features/shell/ui/suggestion_add_button.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -138,6 +138,27 @@ void main() {
     expect(rows.map((row) => row.item), ['newer today', 'older today']);
     expect(_thanksSuggestions(tester), hasLength(3));
     expect(_refreshButton(), findsOneWidget);
+  });
+
+  testWidgets('should label the gratitude journal with its full entry count', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+    final testUser = user(
+      thanks: {
+        'thanks': ['historic', 'today'],
+        'dates': [_date(yesterday, '09:00'), _date(now, '10:00')],
+      },
+    );
+
+    await _pumpListWidget(
+      tester,
+      user: testUser,
+      pageCode: PagesCode.GratitudeJournal,
+    );
+
+    expect(tester.widget<ShowAllButton>(find.byType(ShowAllButton)).count, 2);
   });
 
   testWidgets(

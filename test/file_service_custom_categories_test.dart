@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/file_service.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/iFx/service_locator.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/service_locator.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 import '../test_support/contract_persistent_memory_service.dart';
 

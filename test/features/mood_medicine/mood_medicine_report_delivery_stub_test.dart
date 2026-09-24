@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_stub.dart'
     as stub;
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 
 void main() {
   group('deliverMoodMedicineReport', () {

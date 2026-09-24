@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_io.dart'
     as report_io;
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 import 'package:share_plus/share_plus.dart';
 
 void main() {

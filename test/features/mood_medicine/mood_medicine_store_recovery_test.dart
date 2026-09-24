@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 import '../../../test_support/contract_persistent_memory_service.dart';
 
@@ -14,6 +14,11 @@ final class _ValueMemoryService implements PersistentMemoryService {
   _ValueMemoryService(this.value);
 
   final Object? value;
+
+  @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) => throw StateError('Unexpected export snapshot read in this test.');
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {

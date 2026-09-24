@@ -3,11 +3,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/MainPageHelpers/components/warning_signs_section.dart';
+import 'package:mazilon/features/personal_plan/ui/warning_signs_section.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/layout/directional_widgets.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
-import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/features/shell/ui/directional_widgets.dart';
+import 'package:mazilon/util/async/app_theme.dart';
+import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 

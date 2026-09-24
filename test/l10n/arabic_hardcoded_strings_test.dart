@@ -4,10 +4,10 @@ import 'package:get_it/get_it.dart';
 import 'dart:io';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
-import 'package:mazilon/pages/about.dart';
-import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
+import 'package:mazilon/features/wellness_tools/ui/video_player_page_factory.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
+import 'package:mazilon/pages/about_page.dart';
+import 'package:mazilon/pages/wellness_tools_page.dart';
 import 'package:image_picker/image_picker.dart';
 
 class _FakeImagePickerService implements ImagePickerService {

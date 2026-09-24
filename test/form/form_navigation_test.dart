@@ -9,15 +9,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/form/custom_category_step.dart';
-import 'package:mazilon/form/form.dart';
-import 'package:mazilon/form/formpagetemplate.dart';
-import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/design_system/widgets/button.dart';
+import 'package:mazilon/features/personal_plan/ui/custom_category/add_step.dart';
+import 'package:mazilon/features/personal_plan/ui/custom_category/step.dart';
+import 'package:mazilon/pages/personal_plan_editor_page.dart';
+import 'package:mazilon/features/personal_plan/ui/form_page_template/form_page_template.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/form.dart';
+import 'package:mazilon/features/personal_plan/ui/share_form/share_form.dart';
 import 'package:mazilon/menu.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -241,10 +243,10 @@ Future<void> _addShareDreamAndHoldSave(
 }
 
 void _pressSaveAndQuit(WidgetTester tester) {
-  final button = tester.widget<TextButton>(
-    find.ancestor(of: find.text('To menu'), matching: find.byType(TextButton)),
+  final button = tester.widget<InkWell>(
+    find.byKey(const Key('plan-save-and-quit')),
   );
-  button.onPressed!();
+  button.onTap!();
 }
 
 void _pressHeaderBack(WidgetTester tester) {
@@ -258,7 +260,7 @@ void _pressHeaderBack(WidgetTester tester) {
 }
 
 void _pressWizardPrimaryAction(WidgetTester tester) {
-  final button = tester.widget<TextButton>(
+  final button = tester.widget<Button>(
     find.byKey(const Key('wizard-primary-action')),
   );
   button.onPressed!();
@@ -364,9 +366,6 @@ void main() {
     (tester) async {
       await _pumpForm(tester);
 
-      // Located by its label rather than by widget type: it is a TextButton,
-      // not an IconButton (an IconButton sizes its tap target for a square
-      // glyph, which wrapped this multi-word label onto two lines).
       await tester.tap(find.text('To menu'), warnIfMissed: false);
       await tester.pumpAndSettle();
 
@@ -374,6 +373,27 @@ void main() {
       expect(find.byType(Menu), findsOneWidget);
     },
   );
+
+  testWidgets('shows an error and remains on the form when name saving fails', (
+    tester,
+  ) async {
+    await _pumpForm(tester);
+    final state = tester.state<FormProgressIndicatorState>(
+      find.byType(FormProgressIndicator),
+    );
+    state.updateName('Ada');
+    GetIt.instance.unregister<PersistentMemoryService>();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      _FailingNameMemoryService(),
+    );
+
+    await state.submitForm(tester.element(find.byType(FormProgressIndicator)));
+    await tester.pump();
+
+    expect(find.byType(Menu), findsNothing);
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Something went wrong.'), findsOneWidget);
+  });
 
   testWidgets(
     'should not navigate when the submit caller context is disposed',

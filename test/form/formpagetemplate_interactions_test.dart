@@ -15,14 +15,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/form/formpagetemplate.dart';
-import 'package:mazilon/form/wizard_step.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
+import 'package:mazilon/features/personal_plan/ui/form_page_template/form_page_template.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -398,10 +398,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Dismissible), findsNWidgets(2));
-    expect(pm.store['userSelectionPersonalPlan-DifficultEvents'], [
-      'same answer',
-      'other answer',
-    ], reason: 'removal is by row, not by matching text');
+    expect(
+      pm.store['userSelectionPersonalPlan-DifficultEvents'],
+      [
+        'same answer',
+        'other answer',
+      ],
+      reason: 'removal is by row, not by matching text',
+    );
   });
 
   testWidgets('a whitespace-only answer is rejected', (tester) async {
@@ -1214,11 +1218,13 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          injectedMemoryService.store['userSelectionPersonalPlan-DreamsAndGoals'],
+          injectedMemoryService
+              .store['userSelectionPersonalPlan-DreamsAndGoals'],
           contains('Run a Marathon'),
         );
         expect(
-          injectedMemoryService.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+          injectedMemoryService
+              .store['selectionSourcesPersonalPlan-DreamsAndGoals'],
           contains('custom'),
         );
       },

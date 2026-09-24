@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -484,12 +485,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'This is how to strengthen your positive happiness muscle.\nThe recommendation is to be thankful for at least 5 things every day.\nKeep up the good work, and we’ll meet again tomorrow.',
-        'female':
-            'This is how to strengthen your positive happiness muscle.\nThe recommendation is to be thankful for at least 5 things every day.\nKeep up the good work, and we’ll meet again tomorrow.',
-        'other':
-            'This is how to strengthen your positive happiness muscle.\nThe recommendation is to be thankful for at least 5 things every day.\nKeep up the good work, and we’ll meet again tomorrow.',
+        'male': 'This is how to strengthen your positive happiness muscle.\nThe recommendation is to be thankful for at least 5 things every day.\nKeep up the good work, and we’ll meet again tomorrow.',
+        'female': 'This is how to strengthen your positive happiness muscle.\nThe recommendation is to be thankful for at least 5 things every day.\nKeep up the good work, and we’ll meet again tomorrow.',
+        'other': 'This is how to strengthen your positive happiness muscle.\nThe recommendation is to be thankful for at least 5 things every day.\nKeep up the good work, and we’ll meet again tomorrow.',
       },
     );
     return '$_temp0';
@@ -500,12 +498,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Check out your list of virtues everyday.\nFeel free to add more, don’t be shy - add more with a full heart.',
-        'female':
-            'Check out your list of virtues everyday.\nFeel free to add more, don’t be shy - add more with a full heart.',
-        'other':
-            'Check out your list of virtues everyday.\nFeel free to add more, don’t be shy - add more with a full heart.',
+        'male': 'Check out your list of virtues everyday.\nFeel free to add more, don’t be shy - add more with a full heart.',
+        'female': 'Check out your list of virtues everyday.\nFeel free to add more, don’t be shy - add more with a full heart.',
+        'other': 'Check out your list of virtues everyday.\nFeel free to add more, don’t be shy - add more with a full heart.',
       },
     );
     return '$_temp0';
@@ -607,12 +602,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'You\'ve created a guide that will help you during moments of crisis!\nLet\'s explore more tools for self-help and mental resilience',
-        'female':
-            'You\'ve created a guide that will help you during moments of crisis!\nLet\'s explore more tools for self-help and mental resilience',
-        'other':
-            'You\'ve created a guide that will help you during moments of crisis!\nLet\'s explore more tools for self-help and mental resilience',
+        'male': 'You\'ve created a guide that will help you during moments of crisis!\nLet\'s explore more tools for self-help and mental resilience',
+        'female': 'You\'ve created a guide that will help you during moments of crisis!\nLet\'s explore more tools for self-help and mental resilience',
+        'other': 'You\'ve created a guide that will help you during moments of crisis!\nLet\'s explore more tools for self-help and mental resilience',
       },
     );
     return '$_temp0';
@@ -623,12 +615,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Now you can share your plan with the people close to you, or download it to your phone',
-        'female':
-            'Now you can share your plan with the people close to you, or download it to your phone',
-        'other':
-            'Now you can share your plan with the people close to you, or download it to your phone',
+        'male': 'Now you can share your plan with the people close to you, or download it to your phone',
+        'female': 'Now you can share your plan with the people close to you, or download it to your phone',
+        'other': 'Now you can share your plan with the people close to you, or download it to your phone',
       },
     );
     return '$_temp0';
@@ -845,12 +834,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Living Positively - for happiness, increasing resilience, and improving quality of life',
-        'female':
-            'Living Positively - for happiness, increasing resilience, and improving quality of life',
-        'other':
-            'Living Positively - for happiness, increasing resilience, and improving quality of life',
+        'male': 'Living Positively - for happiness, increasing resilience, and improving quality of life',
+        'female': 'Living Positively - for happiness, increasing resilience, and improving quality of life',
+        'other': 'Living Positively - for happiness, increasing resilience, and improving quality of life',
       },
     );
     return '$_temp0';
@@ -916,12 +902,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.',
-        'female':
-            'You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.',
-        'other':
-            'You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.',
+        'male': 'You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.',
+        'female': 'You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.',
+        'other': 'You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.',
       },
     );
     return '$_temp0';
@@ -932,12 +915,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'It\'s recommended to spend a few minutes now to better handle future crises.',
-        'female':
-            'It\'s recommended to spend a few minutes now to better handle future crises.',
-        'other':
-            'It\'s recommended to spend a few minutes now to better handle future crises.',
+        'male': 'It\'s recommended to spend a few minutes now to better handle future crises.',
+        'female': 'It\'s recommended to spend a few minutes now to better handle future crises.',
+        'other': 'It\'s recommended to spend a few minutes now to better handle future crises.',
       },
     );
     return '$_temp0';
@@ -961,12 +941,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Hi! So good you’re here!\nWe want to get to know you better so we can support you.',
-        'female':
-            'Hi! So good you’re here!\nWe want to get to know you better so we can support you.',
-        'other':
-            'Hi! So good you’re here!\nWe want to get to know you better so we can support you.',
+        'male': 'Hi! So good you’re here!\nWe want to get to know you better so we can support you.',
+        'female': 'Hi! So good you’re here!\nWe want to get to know you better so we can support you.',
+        'other': 'Hi! So good you’re here!\nWe want to get to know you better so we can support you.',
       },
     );
     return '$_temp0';
@@ -1045,12 +1022,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Reminders of things that have appeared personally for me in the past',
-        'female':
-            'Reminders of things that have appeared personally for me in the past',
-        'other':
-            'Reminders of things that have appeared personally for me in the past',
+        'male': 'Reminders of things that have appeared personally for me in the past',
+        'female': 'Reminders of things that have appeared personally for me in the past',
+        'other': 'Reminders of things that have appeared personally for me in the past',
       },
     );
     return '$_temp0';
@@ -1087,12 +1061,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
-        'female':
-            'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
-        'other':
-            'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
+        'male': 'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
+        'female': 'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
+        'other': 'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
       },
     );
     return '$_temp0';
@@ -1103,12 +1074,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'What helps me improve my mood, relax and feel less stressed?\nMethods for preventative maintenance, and even increase dosages - in emergency situations.',
-        'female':
-            'What helps me improve my mood, relax and feel less stressed?\nMethods for preventative maintenance, and even increase dosages - in emergency situations.',
-        'other':
-            'What helps me improve my mood, relax and feel less stressed?\nMethods for preventative maintenance, and even increase dosages - in emergency situations.',
+        'male': 'What helps me improve my mood, relax and feel less stressed?\nMethods for preventative maintenance, and even increase dosages - in emergency situations.',
+        'female': 'What helps me improve my mood, relax and feel less stressed?\nMethods for preventative maintenance, and even increase dosages - in emergency situations.',
+        'other': 'What helps me improve my mood, relax and feel less stressed?\nMethods for preventative maintenance, and even increase dosages - in emergency situations.',
       },
     );
     return '$_temp0';
@@ -1145,12 +1113,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Support and help from the environment when I experience early warning signs, how I would like to be helped',
-        'female':
-            'Support and help from the environment when I experience early warning signs, how I would like to be helped',
-        'other':
-            'Support and help from the environment when I experience early warning signs, how I would like to be helped',
+        'male': 'Support and help from the environment when I experience early warning signs, how I would like to be helped',
+        'female': 'Support and help from the environment when I experience early warning signs, how I would like to be helped',
+        'other': 'Support and help from the environment when I experience early warning signs, how I would like to be helped',
       },
     );
     return '$_temp0';
@@ -1736,12 +1701,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
-        'female':
-            'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
-        'other':
-            'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
+        'male': 'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
+        'female': 'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
+        'other': 'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
       },
     );
     return '$_temp0';
@@ -1752,12 +1714,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'The people who love me and will help me get through the tough moments are:',
-        'female':
-            'The people who love me and will help me get through the tough moments are:',
-        'other':
-            'The people who love me and will help me get through the tough moments are:',
+        'male': 'The people who love me and will help me get through the tough moments are:',
+        'female': 'The people who love me and will help me get through the tough moments are:',
+        'other': 'The people who love me and will help me get through the tough moments are:',
       },
     );
     return '$_temp0';
@@ -2091,12 +2050,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'You are not alone! If you are in distress right now, please reach out to one of the contacts listed here',
-        'female':
-            'You are not alone! If you are in distress right now, please reach out to one of the contacts listed here',
-        'other':
-            'You are not alone! If you are in distress right now, please reach out to one of the contacts listed here',
+        'male': 'You are not alone! If you are in distress right now, please reach out to one of the contacts listed here',
+        'female': 'You are not alone! If you are in distress right now, please reach out to one of the contacts listed here',
+        'other': 'You are not alone! If you are in distress right now, please reach out to one of the contacts listed here',
       },
     );
     return '$_temp0';
@@ -2164,12 +2120,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'It is recommended to add encouraging, uplifting, and joyful images. Smiling pictures of family, friends, hobbies, successful trips, and more',
-        'female':
-            'It is recommended to add encouraging, uplifting, and joyful images. Smiling pictures of family, friends, hobbies, successful trips, and more',
-        'other':
-            'It is recommended to add encouraging, uplifting, and joyful images. Smiling pictures of family, friends, hobbies, successful trips, and more',
+        'male': 'It is recommended to add encouraging, uplifting, and joyful images. Smiling pictures of family, friends, hobbies, successful trips, and more',
+        'female': 'It is recommended to add encouraging, uplifting, and joyful images. Smiling pictures of family, friends, hobbies, successful trips, and more',
+        'other': 'It is recommended to add encouraging, uplifting, and joyful images. Smiling pictures of family, friends, hobbies, successful trips, and more',
       },
     );
     return '$_temp0';
@@ -3598,12 +3551,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'To find out what\'s happening to me and think with me about a way to cope',
-        'female':
-            'To find out what\'s happening to me and think with me about a way to cope',
-        'other':
-            'To find out what\'s happening to me and think with me about a way to cope',
+        'male': 'To find out what\'s happening to me and think with me about a way to cope',
+        'female': 'To find out what\'s happening to me and think with me about a way to cope',
+        'other': 'To find out what\'s happening to me and think with me about a way to cope',
       },
     );
     return '$_temp0';
@@ -3783,12 +3733,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'To ask someone else to remove things from me that could be used to harm myself',
-        'female':
-            'To ask someone else to remove things from me that could be used to harm myself',
-        'other':
-            'To ask someone else to remove things from me that could be used to harm myself',
+        'male': 'To ask someone else to remove things from me that could be used to harm myself',
+        'female': 'To ask someone else to remove things from me that could be used to harm myself',
+        'other': 'To ask someone else to remove things from me that could be used to harm myself',
       },
     );
     return '$_temp0';
@@ -4085,12 +4032,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Taking a break by changing my location (e.g., moving to another room in the house)',
-        'female':
-            'Taking a break by changing my location (e.g., moving to another room in the house)',
-        'other':
-            'Taking a break by changing my location (e.g., moving to another room in the house)',
+        'male': 'Taking a break by changing my location (e.g., moving to another room in the house)',
+        'female': 'Taking a break by changing my location (e.g., moving to another room in the house)',
+        'other': 'Taking a break by changing my location (e.g., moving to another room in the house)',
       },
     );
     return '$_temp0';
@@ -4114,12 +4058,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Go outside for some fresh air (outside the house or even from the balcony)',
-        'female':
-            'Go outside for some fresh air (outside the house or even from the balcony)',
-        'other':
-            'Go outside for some fresh air (outside the house or even from the balcony)',
+        'male': 'Go outside for some fresh air (outside the house or even from the balcony)',
+        'female': 'Go outside for some fresh air (outside the house or even from the balcony)',
+        'other': 'Go outside for some fresh air (outside the house or even from the balcony)',
       },
     );
     return '$_temp0';
@@ -4338,12 +4279,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'To do the minimum of the minimum - and even that with great effort',
-        'female':
-            'To do the minimum of the minimum - and even that with great effort',
-        'other':
-            'To do the minimum of the minimum - and even that with great effort',
+        'male': 'To do the minimum of the minimum - and even that with great effort',
+        'female': 'To do the minimum of the minimum - and even that with great effort',
+        'other': 'To do the minimum of the minimum - and even that with great effort',
       },
     );
     return '$_temp0';
@@ -4634,12 +4572,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(
       gender,
       {
-        'male':
-            'Your location is only used in order to tailor the SOS numbers to your country.',
-        'female':
-            'Your location is only used in order to tailor the SOS numbers to your country.',
-        'other':
-            'Your location is only used in order to tailor the SOS numbers to your country.',
+        'male': 'Your location is only used in order to tailor the SOS numbers to your country.',
+        'female': 'Your location is only used in order to tailor the SOS numbers to your country.',
+        'other': 'Your location is only used in order to tailor the SOS numbers to your country.',
       },
     );
     return '$_temp0';
@@ -4998,6 +4933,128 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get speechDictationPhoneInvalid =>
       'The dictated phone number is not valid for the selected country.';
+
+  @override
+  String get notificationsPermissionDeniedTitle => 'Notifications Blocked';
+
+  @override
+  String get notificationsPermissionDeniedBody =>
+      'To receive reminders, allow notifications in your device settings';
+
+  @override
+  String get notificationsOpenSettings => 'Open Settings';
+
+  @override
+  String get notificationsEnable => 'Enable Notifications';
+
+  @override
+  String get notificationsSetTime => 'Set time';
+
+  @override
+  String get notificationsDebugPanelEnabled => 'Reminder debug panel enabled';
+
+  @override
+  String get notificationsDebugPanelHidden => 'Reminder debug panel hidden';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'Couldn\'t cancel the reminder. Your data has not been reset.';
+
+  @override
+  String get resetDataFailed => 'Couldn\'t reset your data. Please try again.';
+
+  @override
+  String get authWelcomeTitle => 'Welcome';
+
+  @override
+  String get authLoginTab => 'Sign In';
+
+  @override
+  String get authSignupTab => 'Sign Up';
+
+  @override
+  String get authSkip => 'Skip for now';
+
+  @override
+  String get authEmailHint => 'Email address';
+
+  @override
+  String get authPasswordHint => 'Password';
+
+  @override
+  String get authConfirmPasswordHint => 'Confirm password';
+
+  @override
+  String get authNameHint => 'Full name';
+
+  @override
+  String get authLoginButton => 'Sign In';
+
+  @override
+  String get authSignupButton => 'Create Account';
+
+  @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authOr => 'or';
+
+  @override
+  String get authGoogleButton => 'Continue with Google';
+
+  @override
+  String get authAppleButton => 'Continue with Apple';
+
+  @override
+  String get authErrorInvalidEmail => 'Invalid email address';
+
+  @override
+  String get authErrorWeakPassword => 'Password must be at least 6 characters';
+
+  @override
+  String get authErrorPasswordMismatch => 'Passwords don\'t match';
+
+  @override
+  String get authErrorUserNotFound =>
+      'The email/password combination is incorrect';
+
+  @override
+  String get authErrorEmailInUse => 'An account with this email already exists';
+
+  @override
+  String get authErrorGeneric => 'An error occurred. Please try again.';
+
+  @override
+  String get authForgotPasswordTitle => 'Reset Password';
+
+  @override
+  String get authForgotPasswordHint => 'Enter your email address';
+
+  @override
+  String get authForgotPasswordButton => 'Send Reset Link';
+
+  @override
+  String get authForgotPasswordSuccess => 'Check your email for a reset link';
+
+  @override
+  String get authSignOut => 'Sign Out';
+
+  @override
+  String get authSignOutConfirmTitle => 'Sign Out?';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'You will need to sign in again to access all features.';
+
+  @override
+  String get authNotSignedInTitle => 'Sign In to Enable Notifications';
+
+  @override
+  String get authNotSignedInBody =>
+      'Create an account or sign in to set up daily reminders.';
+
+  @override
+  String get authNotSignedInButton => 'Sign In';
 
   @override
   String get moodMedicineTitle => 'Mood Tracker & Personal Medicine';

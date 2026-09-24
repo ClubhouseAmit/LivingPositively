@@ -18,8 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mazilon/pages/FeelGood/feelGood.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
+import 'package:mazilon/pages/feel_good_page.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
 
 import '../../helpers/widget_test_scaffold.dart';
 

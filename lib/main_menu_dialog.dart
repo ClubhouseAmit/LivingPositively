@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/UserSettings.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/pages/user_settings_page.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -63,7 +63,7 @@ List<Widget> buildMainMenuItems({
       },
       child: Text(appLocale.homePageAbout(gender)),
     ),
-    if (NotificationsService.supportsReminderSettings(isWebOverride: isWeb))
+    if (FcmService.supportsReminderSettings(isWebOverride: isWeb))
       MenuItemButton(
         leadingIcon: const Icon(Icons.notification_add),
         onPressed: () {

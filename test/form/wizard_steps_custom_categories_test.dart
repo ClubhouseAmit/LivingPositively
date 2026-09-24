@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/form/custom_category_step.dart';
-import 'package:mazilon/form/formpagetemplate.dart';
-import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/form/shareform.dart';
-import 'package:mazilon/form/wizard_steps.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/personal_plan/ui/custom_category/add_step.dart';
+import 'package:mazilon/features/personal_plan/ui/custom_category/step.dart';
+import 'package:mazilon/features/personal_plan/ui/form_page_template/form_page_template.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/form.dart';
+import 'package:mazilon/features/personal_plan/ui/share_form/share_form.dart';
+import 'package:mazilon/features/personal_plan/ui/wizard_steps.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 

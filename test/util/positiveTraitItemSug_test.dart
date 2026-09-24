@@ -10,9 +10,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
-import 'package:mazilon/util/suggestion_add_button.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/positive/ui/positiveTraitItemSug.dart';
+import 'package:mazilon/features/shell/ui/suggestion_add_button.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

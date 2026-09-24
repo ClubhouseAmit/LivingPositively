@@ -3,7 +3,7 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/l10n/app_localizations_ar.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/l10n/app_localizations_he.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
 
 void main() {
   group('Dreams and Goals selection helpers', () {

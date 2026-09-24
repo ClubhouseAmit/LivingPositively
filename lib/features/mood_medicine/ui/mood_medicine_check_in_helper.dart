@@ -1,4 +1,4 @@
-part of 'mood_medicine_page.dart';
+part of 'package:mazilon/pages/mood_medicine_page.dart';
 
 Widget buildMoodMedicineCheckIn(
   _MoodMedicinePageState state,
@@ -33,24 +33,13 @@ Widget buildMoodMedicineCheckIn(
       ),
     ),
   ];
-  return ListView(
+  return Column(
     key: const Key('moodMedicineCheckIn'),
-    padding: const EdgeInsets.fromLTRB(
-      AppSpacing.xl,
-      AppSpacing.md,
-      AppSpacing.xl,
-      AppSpacing.xxxl,
-    ),
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
       _PageHeading(
         title: l10n.moodMedicineCheckIn,
         subtitle: l10n.moodMedicineHowFeel,
-        trailing: IconButton(
-          tooltip: l10n.moodMedicineViewInsights,
-          onPressed: () =>
-              viewModel.selectView(MoodMedicineInitialView.insights),
-          icon: const Icon(Icons.insights_outlined),
-        ),
       ),
       const SizedBox(height: AppSpacing.lg),
       _FeatureCard(
@@ -136,11 +125,13 @@ Widget buildMoodMedicineCheckIn(
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  TextButton(
+                  Button(
+                    label: l10n.moodMedicineManageActivities,
+                    variant: ButtonVariant.secondary,
+                    fullWidth: false,
                     onPressed: ready.writesBlocked
                         ? null
                         : state._openActivityManager,
-                    child: Text(l10n.moodMedicineManageActivities),
                   ),
                 ],
               ),
@@ -235,7 +226,12 @@ Widget buildMoodMedicineCheckIn(
           key: const Key('moodMedicineSaveCheckIn'),
           onPressed: ready.writesBlocked || !form.canSave
               ? null
-              : () => viewModel.saveCheckIn(),
+              : () async {
+                  final bool saved = await viewModel.saveCheckIn();
+                  if (saved) {
+                    state._popCheckInSheet();
+                  }
+                },
           icon: ready.persistence.isSaving
               ? const SizedBox(
                   width: 18,

@@ -3,9 +3,10 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/custom_categories_storage.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/personal_plan/data/custom_categories_storage.dart';
+import 'package:mazilon/features/personal_plan/data/custom_categories_models.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 List<List<String>> _toPairs(List<MapEntry<String, String>> entries) =>
@@ -53,6 +54,11 @@ class _FakeMemoryService implements PersistentMemoryService {
     this.allowedKeys,
     this.failKey,
   }) : store = initialStore != null ? Map.from(initialStore) : {};
+
+  @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) => throw StateError('Unexpected export snapshot read in this test.');
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {

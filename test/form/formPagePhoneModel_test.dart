@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';
@@ -208,6 +208,11 @@ void main() {
       }
     });
 
+    test('preserves local emergency and service short codes', () {
+      expect(PhonePageData.canonicalizePhoneNumber('100', '+972'), '100');
+      expect(PhonePageData.canonicalizePhoneNumber('1201', '+972'), '1201');
+    });
+
     test('addItem preserves unmatched legacy entries', () {
       final p = _make();
       p.savedPhoneNames = <String>['Paired', 'Name only'];
@@ -394,6 +399,25 @@ void main() {
   });
 
   group('PhonePageData persistence', () {
+    test('should rethrow an awaited contact persistence failure', () async {
+      final failingMemory = ContractPersistentMemoryService()
+        ..onPersist = (_, _, _) {
+          throw StateError('intentional contact persistence failure');
+        };
+      GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(failingMemory);
+
+      final phonePageData = _make(key: 'awaitedFailingPersistKey');
+      await Future<void>.delayed(Duration.zero);
+      phonePageData.savedPhoneNames = <String>['A'];
+      phonePageData.savedPhoneNumbers = <String>['111'];
+
+      await expectLater(
+        phonePageData.saveItemsToPrefs(),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('should contain background contact persistence failures', () async {
       final failingMemory = ContractPersistentMemoryService()
         ..onPersist = (_, _, _) {

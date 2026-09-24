@@ -1,5 +1,12 @@
 # Phase 10 Coverage Plan
 
+> **Superseded for the active workflow on 2026-08-05.** This document records
+> the original Phase 10 plan. The current `integration-test-ios` job runs
+> `integration_test/fcm_initialization_ios_test.dart` as a blocking simulator
+> test without coverage. The retired iOS-only coverage suite, its checker, its
+> lcov input, and its artifact are no longer active. Historical details below
+> are retained to explain the earlier coverage design.
+
 Generated: 2026-05-24 — continuation of `docs/coverage-status.md` (Rounds 1–9)
 and the ADR-001 / ADR-002 / ADR-003 / ADR-004 sequence.
 
@@ -39,7 +46,7 @@ multi-platform app.
 | `callbackDispatcher` (Workmanager background entry-point), `lib/main.dart` lines 42-89 | ~45 | Patrol-style background harness | Yes — separate ADR, beyond coverage | **Hard skip** in Phase 10 |
 | `lib/util/Firebase/firebase_functions.dart` `?? FirebaseFirestore.instance` fallback right-hand-sides | ~43 (1 line × 43 helpers) | Structurally unreachable under injection pattern | Yes — accept-as-dead or rewrite, separate ADR | **Hard skip** — accept as dead |
 
-## Phase 10A — iOS notification paths via macOS runner (ADR-005 § A)
+## Phase 10A — Retired iOS notification coverage design (ADR-005 § A)
 
 **Goal:** close the iOS-specific arms of
 `lib/pages/notifications/notification_service.dart` that the
@@ -59,11 +66,10 @@ ADR-002 macOS-cost framing deferred.
   `--dart-define=SENTRY_DSN=https://test@dsn.example.local/0` from the
   Android job for symmetry.
 
-**Test files:**
+**Test design:**
 
-- `integration_test/notifications_schedule_ios_test.dart` — mirror of
-  `notifications_schedule_test.dart` but exercises the **iOS-specific
-  branches** that the Android job cannot reach:
+- The retired iOS-only suite mirrored the Android schedule test and exercised
+  the **iOS-specific branches** that the Android job cannot reach:
   - `IOSFlutterLocalNotificationsPlugin.requestPermissions` happy path +
     denied path (the Android job uses the Android plugin variant).
   - `DarwinInitializationSettings` permission flags (`requestAlertPermission`,
@@ -71,8 +77,8 @@ ADR-002 macOS-cost framing deferred.
   - The `Platform.isIOS` arm of `supportsReminderSettings()` (the Android job
     only hits the `Platform.isAndroid` arm).
 
-**Gate:** new `scripts/check_ios_integration_coverage.dart` sibling of
-`scripts/check_integration_coverage.dart`. Single per-file floor:
+**Gate:** the retired per-file iOS coverage checker was a sibling of
+`scripts/check_integration_coverage.dart`. Its single per-file floor was:
 `lib/pages/notifications/notification_service.dart` ≥ 75% under the iOS
 invocation alone (will exceed 95% post-merge with Android intg lcov).
 
@@ -225,10 +231,9 @@ Three small PRs against `tests/phase101-2026`, matching the cadence of
 phases 6→9 (one PR per ADR sub-decision):
 
 1. **PR 10A — iOS notification paths**
-   - `docs/adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md` (§ A only initially)
-   - `integration_test/notifications_schedule_ios_test.dart`
-   - `scripts/check_ios_integration_coverage.dart`
-   - `.github/workflows/main.yml` — new `integration-test-ios` job + aggregate merge update
+    - `docs/adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md` (§ A only initially)
+    - the retired iOS-only coverage suite and checker
+    - `.github/workflows/main.yml` — the original iOS job and aggregate merge update
 
 2. **PR 10B — bootstrapApp extraction**
    - ADR-005 § B addendum

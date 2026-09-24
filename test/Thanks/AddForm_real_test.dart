@@ -17,8 +17,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart' as real;
+import 'package:mazilon/features/speech_dictation/ui/suffix_action.dart';
+import 'package:mazilon/features/journal/ui/AddForm.dart' as real;
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

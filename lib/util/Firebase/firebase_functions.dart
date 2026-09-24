@@ -2,90 +2,25 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/auth/data/auth_session_restoration.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
+import 'package:mazilon/features/notifications/data/notification_repository.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'dart:math';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
-import 'package:mazilon/util/custom_categories_storage.dart';
+import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
+import 'package:mazilon/features/personal_plan/data/custom_categories_storage.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
-
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 int? _storedIntOrNull(Object? value) => value is int ? value : null;
 
-//This is where we handle all of the data fetching for the app
-//be it from the server or from the local storage
-class FirebaseAuthService {
-  final FirebaseAuth _auth;
-
-  FirebaseAuthService(FirebaseApp app, {FirebaseAuth? auth})
-    : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
-
-  /// Test-only constructor that accepts a [FirebaseAuth] directly without
-  /// going through a [FirebaseApp]. Production code should use the primary
-  /// constructor; this is here purely so unit tests can inject a Mockito
-  /// double for [FirebaseAuth.createUserWithEmailAndPassword] and
-  /// [FirebaseAuth.signInWithEmailAndPassword].
-  @visibleForTesting
-  FirebaseAuthService.withAuth(FirebaseAuth auth) : _auth = auth;
-
-  Future<User?> signUpWithEmailAndPassword(
-    String email,
-    String password,
-  ) async {
-    try {
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return credential.user;
-    } on FirebaseAuthException catch (error, stackTrace) {
-      if (error.code == 'email-already-in-use') {
-        showToast(message: 'The email address is already in use.');
-      } else {
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-        showToast(message: 'An error occurred');
-      }
-    }
-    return null;
-  }
-
-  Future<User?> signInWithEmailAndPassword(
-    String email,
-    String password,
-  ) async {
-    try {
-      UserCredential credential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      return credential.user;
-    } on FirebaseAuthException catch (error, stackTrace) {
-      if (error.code == 'user-not-found' || error.code == 'wrong-password') {
-        showToast(message: 'Invalid email or password.');
-      } else {
-        showToast(message: 'An error occurred');
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      }
-    }
-    return null;
-  }
-}
+const Duration _initialAuthStateTimeout = Duration(seconds: 5);
 
 class Warning {
   final String text;
@@ -94,12 +29,25 @@ class Warning {
   Warning({required this.text, required this.warnings});
 }
 
-//upon adding user information, the load function will need to be updated
-//use or create functions in userinfo class to update the user information:
+/// Loads persisted user information after a bounded Firebase Auth restoration.
+///
+/// When `FirebaseAuth.currentUser` is initially null, [authStateTimeout] bounds
+/// the wait for the first `authStateChanges()` event. A timeout or restoration
+/// error keeps authenticated UI disabled without overwriting persisted sign-in
+/// evidence, allowing a later startup to retry restoration safely.
+///
+/// After the initial auth stream restores a signed-in user,
+/// [onAuthenticatedSessionRestored] (or FCM token synchronization by default)
+/// is dispatched without awaiting it. Completion of this method does not imply
+/// completion of that callback. Synchronous and asynchronous callback failures
+/// are reported through the auth-restoration logger, not propagated to callers.
+/// This keeps token/network initialization from blocking application startup.
 Future<void> loadUserInformation(
   UserInformation userInfo,
-  String locale,
-) async {
+  String locale, {
+  Duration authStateTimeout = _initialAuthStateTimeout,
+  Future<void> Function()? onAuthenticatedSessionRestored,
+}) async {
   PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
   final customCategoriesLoadRevision = userInfo.customCategoriesSaveRevision;
   final futures = <String, Future>{
@@ -107,6 +55,10 @@ Future<void> loadUserInformation(
     'gender': service.getItem("gender", PersistentMemoryType.String),
     'binary': service.getItem("binary", PersistentMemoryType.Bool),
     'loggedIn': service.getItem("loggedIn", PersistentMemoryType.Bool),
+    'authDecisionMade': service.getItem(
+      "authDecisionMade",
+      PersistentMemoryType.Bool,
+    ),
     'age': service.getItem("age", PersistentMemoryType.String),
     'userId': service.getItem("userId", PersistentMemoryType.String),
     'difficultEvents': service.getItem(
@@ -147,17 +99,17 @@ Future<void> loadUserInformation(
       "disclaimerConfirmed",
       PersistentMemoryType.Bool,
     ),
-    'notificationMinute': service.getItem(
-      "notificationMinute",
-      PersistentMemoryType.Int,
+    'notificationPreferences': service.getItem(
+      "notificationPreferences",
+      PersistentMemoryType.String,
     ),
     'notificationHour': service.getItem(
       "notificationHour",
       PersistentMemoryType.Int,
     ),
-    'notificationMessage': service.getItem(
-      "notificationMessage",
-      PersistentMemoryType.String,
+    'notificationMinute': service.getItem(
+      "notificationMinute",
+      PersistentMemoryType.Int,
     ),
     'darkModePreference': service.getItem(
       'darkModePreference',
@@ -194,9 +146,17 @@ Future<void> loadUserInformation(
   userInfo.updateName(data['name'] ?? '');
   userInfo.updateGender(data['gender'] ?? '');
   userInfo.updateBinary(data['binary'] ?? false);
-  userInfo.updateLoggedIn(data['loggedIn'] ?? false);
   userInfo.updateAge(data['age'] ?? '');
-  userInfo.updateUserId(data['userId'] ?? '');
+
+  final wasPersistedAsSignedIn = data['loggedIn'] == true;
+  final hadMadeGuestDecision =
+      !wasPersistedAsSignedIn && data['authDecisionMade'] == true;
+  await restoreAuthenticatedSession(
+    userInfo,
+    hadMadeGuestDecision: hadMadeGuestDecision,
+    authStateTimeout: authStateTimeout,
+    onAuthenticatedSessionRestored: onAuthenticatedSessionRestored,
+  );
   final loadedCustomCategories = data['customCategories'];
   if (loadedCustomCategories is List<MapEntry<String, String>>) {
     userInfo.hydrateCustomCategoriesIfRevision(
@@ -245,9 +205,13 @@ Future<void> loadUserInformation(
   }
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
-  userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
-  userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
-  userInfo.updateNotificationMessage(data['notificationMessage'] ?? '');
+  try {
+    NotificationRepository.forService(
+      service,
+    ).restoreJson(data['notificationPreferences'] as String?);
+  } on FormatException {
+    NotificationRepository.forService(service).restorePreferences(const {});
+  }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,
   );
@@ -535,15 +499,10 @@ Future<void> loadAppFromFirebase(
   FirebaseFirestore? firestore,
 }) async {
   final fs = firestore ?? FirebaseFirestore.instance;
-  //InitialFormFirstPage
   Map<String, String> IFFP = {};
-  //InitialFormSecondPage
   Map<String, String> IFSP = {};
-  //InitialFormThirdPage
   Map<String, String> IFTP = {};
-  //UserSettingsPage
   Map<String, String> userSettingsPage = {};
-  //FormDifficultEvents
   Map<String, String> FPDE = {};
   //FormDistractions
   Map<String, String> FPD = {};
@@ -581,8 +540,13 @@ Future<void> loadAppFromFirebase(
   Map<String, String> PPPU = {};
   Map<String, String> BT = {};
   Map<String, String> OS = {};
-  var doc = await fs.collectionGroup('subgroup').get();
-  for (var element in doc.docs) {
+  final parentDocs = await fs.collection('AllFormData').get();
+  final subgroups = await Future.wait(
+    parentDocs.docs.map(
+      (parent) => parent.reference.collection('subgroup').get(),
+    ),
+  );
+  for (final element in subgroups.expand((subgroup) => subgroup.docs)) {
     Map<String, dynamic> data = element.data();
 
     if (data.containsKey('page')) {

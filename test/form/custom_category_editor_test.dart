@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/custom_category_editor.dart';
+import 'package:mazilon/features/personal_plan/ui/custom_category/editor.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 
 void main() {

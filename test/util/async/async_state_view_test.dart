@@ -11,7 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/async/async_state_view.dart';
+import 'package:mazilon/features/shell/ui/async_state_view.dart';
 
 import '../../helpers/widget_test_scaffold.dart';
 

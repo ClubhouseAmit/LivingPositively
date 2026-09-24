@@ -1,7 +1,7 @@
 // MixPanelService coverage for the token-present branches.
 //
 // The init() body and the post-init trackEvent() branches in
-// lib/AnalyticsService.dart are gated on a non-empty
+// lib/util/async/analytics_service.dart are gated on a non-empty
 // `String.fromEnvironment('MIXPANEL_PROJECT_TOKEN')`. Under a plain
 // `flutter test` run that constant is the empty string so those branches
 // are unreachable.
@@ -23,7 +23,7 @@
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mixpanel_flutter/codec/mixpanel_message_codec.dart';
 
 const _kToken = String.fromEnvironment('MIXPANEL_PROJECT_TOKEN');

@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/SignIn/popup_toast.dart';
+import 'package:mazilon/features/shell/ui/popup_toast.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

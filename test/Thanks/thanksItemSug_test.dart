@@ -14,8 +14,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/Thanks/thanksItemSug.dart';
-import 'package:mazilon/util/suggestion_add_button.dart';
+import 'package:mazilon/features/journal/ui/thanksItemSug.dart';
+import 'package:mazilon/features/shell/ui/suggestion_add_button.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

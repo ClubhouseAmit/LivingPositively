@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fluttericon/font_awesome5_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/list_utils.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
+import 'package:mazilon/features/home/ui/list/list_utils.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';

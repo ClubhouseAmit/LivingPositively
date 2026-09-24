@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/disclaimerLanguageSelect.dart';
+import 'package:mazilon/features/shell/ui/disclaimerLanguageSelect.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
 
 void main() {

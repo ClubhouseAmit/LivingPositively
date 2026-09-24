@@ -10,11 +10,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/disclaimerPage.dart';
-import 'package:mazilon/initialForm/form.dart';
+import 'package:mazilon/pages/disclaimer_page.dart';
+import 'package:mazilon/pages/onboarding_page.dart';
 import 'package:mazilon/menu.dart';
-import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/pages/first_page.dart';
+import 'package:mazilon/pages/auth_page.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -76,6 +77,7 @@ void main() {
     'disclaimerSigned=true + firsttime=true → InitialFormProgressIndicator',
     (tester) async {
       userInformation.disclaimerSigned = true;
+      userInformation.authDecisionMade = true;
 
       await pumpWithProviders(
         tester,
@@ -97,6 +99,7 @@ void main() {
 
   testWidgets('disclaimerSigned=true + firsttime=false → Menu', (tester) async {
     userInformation.disclaimerSigned = true;
+    userInformation.authDecisionMade = true;
 
     await pumpWithProviders(
       tester,
@@ -113,5 +116,27 @@ void main() {
     expect(find.byType(Menu), findsOneWidget);
     expect(find.byType(InitialFormProgressIndicator), findsNothing);
     expect(find.byType(DisclaimerPage), findsNothing);
+  });
+
+  testWidgets('disclaimer signed without an auth decision renders AuthPage', (
+    tester,
+  ) async {
+    userInformation.disclaimerSigned = true;
+    userInformation.authDecisionMade = false;
+
+    await pumpWithProviders(
+      tester,
+      FirstPage(
+        firsttime: false,
+        hasFilled: true,
+        changeLocale: (_) {},
+        phonePageData: _phoneData(),
+      ),
+      userInformation: userInformation,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    expect(find.byType(AuthPage), findsOneWidget);
+    expect(find.byType(Menu), findsNothing);
   });
 }

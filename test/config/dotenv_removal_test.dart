@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('ADR-0001 dotenv removal', () {
     test('Flutter source no longer imports or loads flutter_dotenv', () async {
-      final analyticsService = await _readRepoFile('lib/AnalyticsService.dart');
+      final analyticsService = await _readRepoFile('lib/util/async/analytics_service.dart');
       final mainFile = await _readRepoFile('lib/main.dart');
-      final loggerService = await _readRepoFile('lib/util/logger_service.dart');
+      final loggerService = await _readRepoFile('lib/util/async/logger_service.dart');
 
       expect(analyticsService, isNot(contains('package:flutter_dotenv/')));
       expect(analyticsService, isNot(contains('dotenv.load(')));

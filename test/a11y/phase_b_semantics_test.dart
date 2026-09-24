@@ -12,19 +12,20 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
-import 'package:mazilon/util/HomePage/quote_card_widget.dart';
+import 'package:mazilon/features/phone/ui/phoneTextAndIcon.dart';
+import 'package:mazilon/features/home/ui/quote_card_widget.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/file_service.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/features/personal_plan/data/personal_plan_export_snapshot.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/service_locator.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
@@ -111,6 +112,7 @@ class _StubFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async => const ShareResult('stub', ShareResultStatus.success);
   @override
@@ -122,6 +124,7 @@ class _StubFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async => null;
   @override
