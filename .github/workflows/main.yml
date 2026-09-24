@@ -93,6 +93,11 @@ jobs:
       integration-coverage-artifact-id: ${{ needs.integration-test.outputs.coverage-artifact-id }}
 
   notification-backend:
+    # The called workflow reads previous successful workflow runs to decide
+    # whether notification backend deployment is required.
+    permissions:
+      contents: read
+      actions: read
     needs: [coverage-aggregate, backend-quality]
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/_notification-backend.yml
