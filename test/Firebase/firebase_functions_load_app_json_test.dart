@@ -141,6 +141,37 @@ void main() {
       );
     });
 
+    test('should reject missing or conflicting online versions', () async {
+      final tempDir = await Directory.systemTemp.createTemp('maz_test_');
+      addTearDown(() => tempDir.delete(recursive: true));
+      final file = await _writeJsonFile(tempDir, _buildValidJson('1.0.0'));
+      final versionCases = <List<Object?>>[
+        [],
+        [null],
+        [' '],
+        ['1.0.0', null],
+        ['1.0.0', '2.0.0'],
+      ];
+
+      for (final versions in versionCases) {
+        final firestore = FakeFirebaseFirestore();
+        for (final (index, version) in versions.indexed) {
+          await firestore.collection('VersionManager').doc('$index').set({
+            'version': version,
+          });
+        }
+
+        final appInfo = AppInformation();
+        final loaded = await loadAppInfoFromJson(
+          appInfo,
+          file.path,
+          firestore: firestore,
+        );
+        expect(loaded, isFalse, reason: 'versions: $versions');
+        expect(appInfo.homeTitleGreeting, isEmpty);
+      }
+    });
+
     test('returns false when file does not exist', () async {
       final tempDir = await Directory.systemTemp.createTemp('maz_test_');
       final fakePath = '${tempDir.path}/nonexistent.json';

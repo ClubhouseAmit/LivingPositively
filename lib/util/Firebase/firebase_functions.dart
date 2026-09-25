@@ -304,9 +304,6 @@ Map<String, dynamic> createJson(AppInformation appInfo) {
   return json;
 }
 
-//upon adding CMS(rowy) texts, this will need to be updated:
-//1. add the new variable to the appInfo class
-//2. add the new variable to the createJson function
 Future<bool> loadAppInfoFromJson(
   AppInformation appInfo,
   String path, {
@@ -318,10 +315,12 @@ Future<bool> loadAppInfoFromJson(
     try {
       final fs = firestore ?? FirebaseFirestore.instance;
       QuerySnapshot snapshot = await fs.collection('VersionManager').get();
-      appVersion = '';
+      if (snapshot.docs.isEmpty) return false;
       for (var doc in snapshot.docs) {
-        Map<String, dynamic> d = doc.data() as Map<String, dynamic>? ?? {};
-        appVersion = d['version'];
+        final version = (doc.data() as Map<String, dynamic>? ?? {})['version'];
+        if (version is! String || version.trim().isEmpty) return false;
+        if (appVersion != null && appVersion != version) return false;
+        appVersion = version;
       }
     } on FirebaseException catch (error) {
       if (error.code != 'unavailable') rethrow;
