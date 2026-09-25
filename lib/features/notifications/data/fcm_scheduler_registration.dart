@@ -94,7 +94,8 @@ Future<bool> _registerNotification({
       _reportNotificationFailure(
         'registerNotification HTTP failure',
         StateError(
-          'Notification registration returned HTTP ${response.statusCode}.',
+          'Notification registration returned '
+          '${_notificationHttpFailureDescription(response)}.',
         ),
         StackTrace.current,
       );

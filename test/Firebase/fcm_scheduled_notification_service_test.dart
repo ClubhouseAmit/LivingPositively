@@ -538,13 +538,17 @@ void main() {
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
             ? http.Response('{"mutationVersion":0}', 200)
-            : http.Response('Conflict', 409),
+            : http.Response('Stale notification mutation', 409),
       ),
     );
 
     expect(registered, isFalse);
     expect(logger.capturedError, isA<StateError>());
     expect(logger.capturedError.toString(), contains('HTTP 409'));
+    expect(
+      logger.capturedError.toString(),
+      contains('Stale notification mutation'),
+    );
     expect(logger.capturedStackTrace, isNotNull);
     expect(
       NotificationRepository.forService(user.service)
@@ -553,6 +557,35 @@ void main() {
       previous.toJson(),
     );
   });
+
+  test(
+    'reports the server reason when notification version lookup fails',
+    () async {
+      final logger = _RecordingIncidentLogger();
+      GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+
+      final registered = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.registerNotification(
+          userInformation: user,
+          typeId: 'default',
+          hour: 10,
+          minute: 45,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async =>
+              http.Response('Invalid typeId', 400),
+        ),
+      );
+
+      expect(registered, isFalse);
+      expect(logger.capturedError, isA<StateError>());
+      expect(
+        logger.capturedError.toString(),
+        contains('HTTP 400: Invalid typeId'),
+      );
+      expect(logger.capturedStackTrace, isNotNull);
+    },
+  );
 
   test(
     'register compensates the remote schedule when local preference persistence fails',

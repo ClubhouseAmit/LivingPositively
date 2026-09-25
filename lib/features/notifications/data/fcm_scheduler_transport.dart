@@ -3,6 +3,17 @@ part of 'fcm_scheduled_notification_service.dart';
 void _log(String message) =>
     debugPrint('[FcmScheduledNotificationService] $message');
 
+String _notificationHttpFailureDescription(http.Response response) {
+  final reason = response.body
+      .replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ' ')
+      .trim();
+  if (reason.isEmpty) return 'HTTP ${response.statusCode}';
+  final boundedReason = reason.length > 200
+      ? '${reason.substring(0, 200)}...'
+      : reason;
+  return 'HTTP ${response.statusCode}: $boundedReason';
+}
+
 void _reportNotificationFailure(
   String operation,
   Object error,
@@ -119,7 +130,8 @@ Future<int?> _getNotificationMutationVersion({
       _reportNotificationFailure(
         'getNotificationMutationVersion HTTP failure',
         StateError(
-          'Notification version lookup returned HTTP ${response.statusCode}.',
+          'Notification version lookup returned '
+          '${_notificationHttpFailureDescription(response)}.',
         ),
         StackTrace.current,
       );
