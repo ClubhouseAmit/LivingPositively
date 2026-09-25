@@ -4,14 +4,17 @@ void _log(String message) =>
     debugPrint('[FcmScheduledNotificationService] $message');
 
 String _notificationHttpFailureDescription(http.Response response) {
-  final reason = response.body
-      .replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ' ')
-      .trim();
-  if (reason.isEmpty) return 'HTTP ${response.statusCode}';
-  final boundedReason = reason.length > 200
-      ? '${reason.substring(0, 200)}...'
-      : reason;
-  return 'HTTP ${response.statusCode}: $boundedReason';
+  const maxReasonLength = 200;
+  final body = response.body;
+  final truncated = body.length > maxReasonLength;
+  final excerpt = truncated ? body.substring(0, maxReasonLength) : body;
+  final reason = excerpt.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ' ').trim();
+  if (reason.isEmpty) {
+    return truncated
+        ? 'HTTP ${response.statusCode}: ...'
+        : 'HTTP ${response.statusCode}';
+  }
+  return 'HTTP ${response.statusCode}: $reason${truncated ? '...' : ''}';
 }
 
 void _reportNotificationFailure(

@@ -559,10 +559,11 @@ void main() {
   });
 
   test(
-    'reports the server reason when notification version lookup fails',
+    'bounds a notification version failure before sanitizing its body',
     () async {
       final logger = _RecordingIncidentLogger();
       GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+      final longReason = '${List.filled(300, '\n').join()}Invalid typeId';
 
       final registered = await _onPlatform(
         TargetPlatform.android,
@@ -573,7 +574,7 @@ void main() {
           minute: 45,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async =>
-              http.Response('Invalid typeId', 400),
+              http.Response(longReason, 400),
         ),
       );
 
@@ -581,8 +582,10 @@ void main() {
       expect(logger.capturedError, isA<StateError>());
       expect(
         logger.capturedError.toString(),
-        contains('HTTP 400: Invalid typeId'),
+        contains('HTTP 400: ...'),
       );
+      expect(logger.capturedError.toString(), isNot(contains('Invalid typeId')));
+      expect(logger.capturedError.toString().length, lessThan(300));
       expect(logger.capturedStackTrace, isNotNull);
     },
   );
