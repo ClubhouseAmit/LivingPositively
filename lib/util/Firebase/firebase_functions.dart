@@ -8,13 +8,17 @@ import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/features/notifications/data/notification_repository.dart';
 import 'package:mazilon/util/type_utils.dart';
+
 import 'dart:math';
+
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
 import 'package:mazilon/features/personal_plan/data/custom_categories_storage.dart';
 import 'package:mazilon/util/userInformation.dart';
+
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -303,31 +307,31 @@ Map<String, dynamic> createJson(AppInformation appInfo) {
 //upon adding CMS(rowy) texts, this will need to be updated:
 //1. add the new variable to the appInfo class
 //2. add the new variable to the createJson function
-//3. add the new variable to the loadAppInfoFromJson function using update function created in appinfo class
-//4. add the new variable to the loadAppFromFirebase function
 Future<bool> loadAppInfoFromJson(
   AppInformation appInfo,
   String path, {
   FirebaseFirestore? firestore,
 }) async {
-  //Get app version from firestore
-  final fs = firestore ?? FirebaseFirestore.instance;
-  QuerySnapshot snapshot = await fs.collection('VersionManager').get();
-  String appVersion = '';
-  for (var doc in snapshot.docs) {
-    Map<String, dynamic> d = doc.data() as Map<String, dynamic>? ?? {};
-    appVersion = d['version'];
-  }
-
-  //if a json exists
   File file = File(path);
   if (await file.exists()) {
+    String? appVersion;
+    try {
+      final fs = firestore ?? FirebaseFirestore.instance;
+      QuerySnapshot snapshot = await fs.collection('VersionManager').get();
+      appVersion = '';
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> d = doc.data() as Map<String, dynamic>? ?? {};
+        appVersion = d['version'];
+      }
+    } on FirebaseException catch (error) {
+      if (error.code != 'unavailable') rethrow;
+    }
+
     try {
       String fileContent = await file.readAsString();
       Map<String, dynamic> json = jsonDecode(fileContent);
       String storedVersion = json['appVersion'];
-      //check if the versions match
-      if (storedVersion != appVersion) {
+      if (appVersion != null && storedVersion != appVersion) {
         return false;
       }
 
@@ -843,27 +847,22 @@ Future<void> loadAppFromFirebase(
 }
 
 Future<void> loadAppInformation(AppInformation appInfo) async {
-  try {
-    if (!kIsWeb) {
+  if (!kIsWeb) {
+    try {
       Directory directory = await getApplicationDocumentsDirectory();
-
       bool loaded = await loadAppInfoFromJson(
         appInfo,
         '${directory.path}/data.json',
       );
       if (loaded) return;
+    } catch (error, stackTrace) {
+      IncidentLoggerService loggerService =
+          GetIt.instance<IncidentLoggerService>();
+      await loggerService.captureLog(error, stackTrace: stackTrace);
     }
-
-    await loadAppFromFirebase(appInfo);
-    return;
-  } catch (error, stackTrace) {
-    IncidentLoggerService loggerService =
-        GetIt.instance<IncidentLoggerService>();
-    await loggerService.captureLog(error, stackTrace: stackTrace);
-    await loadAppFromFirebase(appInfo);
-    // setReady();
-    return;
   }
+
+  await loadAppFromFirebase(appInfo);
 }
 
 Future<String> getJournalMainTitle({FirebaseFirestore? firestore}) async {
