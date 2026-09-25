@@ -3,10 +3,14 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mockito/mockito.dart';
+
+import '../auth/auth_page_interactions_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -97,6 +101,77 @@ FakeFirebaseFirestore _firestoreWithVersion(String version) {
 
 void main() {
   group('loadAppInfoFromJson', () {
+    test('should load local content when Firestore is unavailable', () async {
+      final tempDir = await Directory.systemTemp.createTemp('maz_test_');
+      addTearDown(() => tempDir.delete(recursive: true));
+      final file = await _writeJsonFile(tempDir, _buildValidJson('1.0.0'));
+      final firestore = MockFirebaseFirestore();
+      final versions = MockCollectionReference();
+      when(firestore.collection('VersionManager')).thenReturn(versions);
+      when(versions.get()).thenThrow(
+        FirebaseException(plugin: 'cloud_firestore', code: 'unavailable'),
+      );
+
+      final appInfo = AppInformation();
+      final loaded = await loadAppInfoFromJson(
+        appInfo,
+        file.path,
+        firestore: firestore,
+      );
+
+      expect(loaded, isTrue);
+      expect(appInfo.homeTitleGreeting, 'HTG');
+      expect(appInfo.warningHomePageTitles, {'w': 'v'});
+    });
+
+    test('should propagate non-offline version errors', () async {
+      final tempDir = await Directory.systemTemp.createTemp('maz_test_');
+      addTearDown(() => tempDir.delete(recursive: true));
+      final file = await _writeJsonFile(tempDir, _buildValidJson('1.0.0'));
+      final firestore = MockFirebaseFirestore();
+      final versions = MockCollectionReference();
+      when(firestore.collection('VersionManager')).thenReturn(versions);
+      when(versions.get()).thenThrow(
+        FirebaseException(plugin: 'cloud_firestore', code: 'permission-denied'),
+      );
+
+      await expectLater(
+        loadAppInfoFromJson(AppInformation(), file.path, firestore: firestore),
+        throwsA(isA<FirebaseException>()),
+      );
+    });
+
+    test('should reject missing or conflicting online versions', () async {
+      final tempDir = await Directory.systemTemp.createTemp('maz_test_');
+      addTearDown(() => tempDir.delete(recursive: true));
+      final file = await _writeJsonFile(tempDir, _buildValidJson('1.0.0'));
+      final versionCases = <List<Object?>>[
+        [],
+        [null],
+        [' '],
+        ['1.0.0', null],
+        ['1.0.0', '2.0.0'],
+      ];
+
+      for (final versions in versionCases) {
+        final firestore = FakeFirebaseFirestore();
+        for (final (index, version) in versions.indexed) {
+          await firestore.collection('VersionManager').doc('$index').set({
+            'version': version,
+          });
+        }
+
+        final appInfo = AppInformation();
+        final loaded = await loadAppInfoFromJson(
+          appInfo,
+          file.path,
+          firestore: firestore,
+        );
+        expect(loaded, isFalse, reason: 'versions: $versions');
+        expect(appInfo.homeTitleGreeting, isEmpty);
+      }
+    });
+
     test('returns false when file does not exist', () async {
       final tempDir = await Directory.systemTemp.createTemp('maz_test_');
       final fakePath = '${tempDir.path}/nonexistent.json';
