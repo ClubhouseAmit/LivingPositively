@@ -34,7 +34,14 @@ Future<bool> _registerNotification({
     final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
       FcmScheduledNotificationService._networkTimeout,
     );
-    if (idToken == null) return false;
+    if (idToken == null) {
+      _reportNotificationFailure(
+        'registerNotification authentication unavailable',
+        StateError('Notification registration has no authentication token.'),
+        StackTrace.current,
+      );
+      return false;
+    }
     if (resetEpoch != FcmScheduledNotificationService._resetEpoch) return false;
     final mutationVersion =
         expectedMutationVersion ??
@@ -63,7 +70,14 @@ Future<bool> _registerNotification({
         response,
         mutationVersion,
       );
-      if (nextMutationVersion == null) return false;
+      if (nextMutationVersion == null) {
+        _reportNotificationFailure(
+          'registerNotification invalid success response',
+          StateError('Notification registration returned an invalid version.'),
+          StackTrace.current,
+        );
+        return false;
+      }
       _log('Notification registered successfully.');
       if (!persistLocalPreference) return true;
       return await _persistRegisteredPreference(
@@ -77,8 +91,12 @@ Future<bool> _registerNotification({
         nextMutationVersion: nextMutationVersion,
       );
     } else {
-      _log(
-        'registerNotification failed: ${response.statusCode} ${response.body}',
+      _reportNotificationFailure(
+        'registerNotification HTTP failure',
+        StateError(
+          'Notification registration returned HTTP ${response.statusCode}.',
+        ),
+        StackTrace.current,
       );
       return false;
     }

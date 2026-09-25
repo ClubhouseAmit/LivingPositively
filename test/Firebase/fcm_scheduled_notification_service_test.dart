@@ -518,6 +518,42 @@ void main() {
     },
   );
 
+  test('reports a rejected notification time update', () async {
+    final logger = _RecordingIncidentLogger();
+    GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+    const previous = NotificationPreference(hour: 8, minute: 15);
+    await NotificationRepository.forService(user.service).setPreference(
+      'default',
+      previous,
+    );
+
+    final registered = await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.registerNotification(
+        userInformation: user,
+        typeId: 'default',
+        hour: 10,
+        minute: 45,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async =>
+            url.path.endsWith('/getNotificationMutationVersion')
+            ? http.Response('{"mutationVersion":0}', 200)
+            : http.Response('Conflict', 409),
+      ),
+    );
+
+    expect(registered, isFalse);
+    expect(logger.capturedError, isA<StateError>());
+    expect(logger.capturedError.toString(), contains('HTTP 409'));
+    expect(logger.capturedStackTrace, isNotNull);
+    expect(
+      NotificationRepository.forService(user.service)
+          .getPreference('default')
+          ?.toJson(),
+      previous.toJson(),
+    );
+  });
+
   test(
     'register compensates the remote schedule when local preference persistence fails',
     () async {

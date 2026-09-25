@@ -116,8 +116,12 @@ Future<int?> _getNotificationMutationVersion({
             )
             .timeout(FcmScheduledNotificationService._networkTimeout);
     if (response.statusCode != 200) {
-      _log(
-        'getNotificationMutationVersion failed: ${response.statusCode} ${response.body}',
+      _reportNotificationFailure(
+        'getNotificationMutationVersion HTTP failure',
+        StateError(
+          'Notification version lookup returned HTTP ${response.statusCode}.',
+        ),
+        StackTrace.current,
       );
       return null;
     }
@@ -128,7 +132,11 @@ Future<int?> _getNotificationMutationVersion({
     if (mutationVersion is int && mutationVersion >= 0) {
       return mutationVersion;
     }
-    _log('getNotificationMutationVersion returned an invalid body.');
+    _reportNotificationFailure(
+      'getNotificationMutationVersion invalid response',
+      StateError('Notification version lookup returned an invalid body.'),
+      StackTrace.current,
+    );
     return null;
   } catch (error, stackTrace) {
     _reportNotificationFailure(
