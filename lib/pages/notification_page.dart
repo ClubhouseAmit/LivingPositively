@@ -79,7 +79,9 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
             userInformation: userInfo,
             typeId: 'default',
           );
-    if (!applied && _hasPermission != false) _showReminderMutationFailure();
+    if (!applied && (!value || _hasPermission != false)) {
+      _showReminderMutationFailure();
+    }
     return applied;
   }
 

@@ -157,6 +157,37 @@ void main() {
   );
 
   testWidgets(
+    'NotificationPage should report failed cancellation when permission is denied',
+    (tester) async {
+      await _onPlatform(TargetPlatform.android, () async {
+        NotificationRepository.forService(user.service).restorePreferences({
+          'default': const NotificationPreference(hour: 8, minute: 30),
+        });
+        FcmService.debugGetNotificationSettingsOverride = () async =>
+            _settings(AuthorizationStatus.denied);
+
+        await pumpWithProviders(
+          tester,
+          const NotificationPage(),
+          userInformation: user,
+        );
+        await tester.pump();
+        await tester.tap(find.text('Cancel current notification'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.text('Something went wrong.'), findsOneWidget);
+        expect(
+          NotificationRepository.forService(user.service).getPreference(
+            'default',
+          ),
+          isNotNull,
+        );
+      });
+    },
+  );
+
+  testWidgets(
     'NotificationPage should show blocked settings when permission is revoked before a time change',
     (tester) async {
       await _onPlatform(TargetPlatform.android, () async {
