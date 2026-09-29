@@ -70,7 +70,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     // Disabling a reminder is safe and necessary even if notification
     // permission was later revoked. Only enabling needs a confirmed grant.
     if (value && _hasPermission != true) {
-      _showReminderMutationFailure();
+      await _checkPermission();
       return false;
     }
     final applied = value
@@ -79,7 +79,9 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
             userInformation: userInfo,
             typeId: 'default',
           );
-    if (!applied) _showReminderMutationFailure();
+    if (!applied && (!value || _hasPermission != false)) {
+      _showReminderMutationFailure();
+    }
     return applied;
   }
 
@@ -112,8 +114,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     // Read it again immediately before a mutation instead of relying on the
     // last lifecycle check.
     if (_hasPermission != true || !await FcmService.hasPermission()) {
-      unawaited(_checkPermission());
-      _showReminderMutationFailure();
+      await _checkPermission();
       return false;
     }
     if (!mounted) return false;
@@ -215,8 +216,9 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     final preference = NotificationRepository.forService(
       userInfo.service,
     ).getPreference('default');
-    // An existing reminder remains removable after OS permission is revoked.
-    if (_hasPermission == false && preference == null) {
+    // Keep cancellation available when permission is revoked, but do not
+    // offer a time picker that cannot save a new schedule.
+    if (_hasPermission == false) {
       return NotificationPermissionDeniedCard(
         onRequestPermission: _requestReminderPermission,
         onCancelReminder: () => _onToggle(false, userInfo),
