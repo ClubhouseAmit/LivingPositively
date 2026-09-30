@@ -7,6 +7,7 @@ import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page1.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page2.dart';
+import 'package:mazilon/features/onboarding/ui/initial_form_appearance_page.dart';
 import 'package:mazilon/features/onboarding/ui/to_form_page.dart';
 
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
@@ -115,6 +116,7 @@ void main() {
       // Verify the initial state
       expect(find.byType(InitialFormPage1), findsOneWidget);
       expect(find.byType(InitialFormPage2), findsNothing);
+      expect(find.byType(InitialFormAppearancePage), findsNothing);
       expect(find.byType(ToFormPage), findsNothing);
 
       // Tap the next button
@@ -125,6 +127,7 @@ void main() {
       // Verify the state after tapping next
       expect(find.byType(InitialFormPage1), findsNothing);
       expect(find.byType(InitialFormPage2), findsOneWidget);
+      expect(find.byType(InitialFormAppearancePage), findsNothing);
       expect(find.byType(ToFormPage), findsNothing);
 
       await tester.enterText(find.byType(TextFormField), 'Tester');
@@ -138,6 +141,14 @@ void main() {
       // Verify the state after tapping next
       expect(find.byType(InitialFormPage1), findsNothing);
       expect(find.byType(InitialFormPage2), findsNothing);
+      expect(find.byType(InitialFormAppearancePage), findsOneWidget);
+      expect(find.byType(ToFormPage), findsNothing);
+
+      await tester.tap(find.byKey(const Key('wizard-primary-action')));
+      await tester.pumpAndSettle();
+      drainOverflowExceptions(tester);
+
+      expect(find.byType(InitialFormAppearancePage), findsNothing);
       expect(find.byType(ToFormPage), findsOneWidget);
     });
   });

@@ -816,6 +816,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get darkModeEndTime => 'وقت الانتهاء';
 
   @override
+  String get onboardingAppearanceTitle => 'اختر مظهر التطبيق';
+
+  @override
+  String get onboardingAppearanceSubtitle =>
+      'اختر العرض الأكثر راحة لك. يمكنك تغيير ذلك لاحقًا من الإعدادات.';
+
+  @override
   String introductionFormFirstPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(
       gender,

@@ -88,13 +88,13 @@ void main() {
     await pumpFlow(tester);
 
     final dots = find.byKey(const ValueKey('intro-step-dot-0'));
-    expect(find.byType(AnimatedContainer), findsNWidgets(3));
+    expect(find.byType(AnimatedContainer), findsNWidgets(4));
 
     const dotSize = 10.0;
     const dotGap = 11.0;
     const dotsToBottom = 26.0;
 
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 4; i++) {
       final size = tester.getSize(find.byKey(ValueKey('intro-step-dot-$i')));
       expect(size.height, dotSize, reason: 'dot $i height');
       expect(size.width, dotSize, reason: 'dot $i width');
@@ -122,7 +122,7 @@ void main() {
     // Centred on the screen, not on the leftover space beside a control.
     final left = tester.getTopLeft(dots).dx;
     final right = tester
-        .getTopRight(find.byKey(const ValueKey('intro-step-dot-2')))
+        .getTopRight(find.byKey(const ValueKey('intro-step-dot-3')))
         .dx;
     expect((left + right) / 2, closeTo(_frame.width / 2, 0.5));
   });
@@ -163,13 +163,13 @@ void main() {
     // Frames 199, 205 and 207 all sit at y 104. Checking only the first step
     // let step 2 drift: it centred its form vertically, dropping the title well
     // below the other two.
-    for (var step = 0; step < 3; step++) {
+    for (var step = 0; step < 4; step++) {
       expect(
         tester.getTopLeft(find.byKey(const Key('intro-title-block'))).dy,
         closeTo(104, 1),
         reason: 'title block top on step ${step + 1}',
       );
-      if (step == 2) break;
+      if (step == 3) break;
       await tester.tap(find.byKey(const Key('wizard-primary-action')));
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
@@ -294,9 +294,7 @@ void main() {
           'field group pitch (Figma: Group 141 top 341 -> Group 142 top 447)',
     );
     expect(
-      kFormFieldLabelBox +
-          OnboardingGaps.labelToField +
-          kFormFieldHeight,
+      kFormFieldLabelBox + OnboardingGaps.labelToField + kFormFieldHeight,
       closeTo(designGroupHeight, 0.5),
       reason: "label + gap + field should make the design's 90pt group",
     );
@@ -313,8 +311,7 @@ void main() {
     expect(
       tester.getRect(find.byType(TextFormField)).height,
       greaterThan(before),
-      reason:
-          'the error line must add height, not be squeezed inside the field box',
+      reason: 'the error line must add height, not be squeezed inside the field box',
     );
   });
 }

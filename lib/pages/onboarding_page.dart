@@ -11,6 +11,7 @@ import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:mazilon/design_system/tokens/font_weight.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/features/onboarding/ui/to_form_page.dart';
+import 'package:mazilon/features/onboarding/ui/initial_form_appearance_page.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page2.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page1.dart';
 import 'package:mazilon/menu.dart';
@@ -126,6 +127,10 @@ class InitialFormProgressIndicatorState
         prev: prev,
         updateName: updateName,
       ),
+      InitialFormAppearancePage(
+        key: GlobalKey<WizardStepState>(debugLabel: 'appearance'),
+        next: next,
+      ),
       ToFormPage(
         key: GlobalKey<WizardStepState>(debugLabel: 'safety-plan-intro'),
         phonePageData: widget.phonePageData,
@@ -164,7 +169,7 @@ class InitialFormProgressIndicatorState
             child: Column(
               children: [
                 _IntroHeader(
-                  isLastStep: currentStep == steps.length - 1,
+                  canGoBack: currentStep > 1,
                   onSkip: handleSkip,
                   onBack: prev,
                   skipLabel: appLocale.skipButton(gender),
@@ -202,13 +207,13 @@ class InitialFormProgressIndicatorState
 /// reading-end edge (Figma node 1660:2302).
 class _IntroHeader extends StatelessWidget {
   const _IntroHeader({
-    required this.isLastStep,
+    required this.canGoBack,
     required this.onSkip,
     required this.onBack,
     required this.skipLabel,
   });
 
-  final bool isLastStep;
+  final bool canGoBack;
   final VoidCallback onSkip;
   final VoidCallback onBack;
   final String skipLabel;
@@ -225,7 +230,7 @@ class _IntroHeader extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (isLastStep)
+            if (canGoBack)
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: IconButton(
