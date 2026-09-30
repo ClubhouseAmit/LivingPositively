@@ -82,7 +82,14 @@ Future<bool> _registerNotification({
     final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
       FcmScheduledNotificationService._networkTimeout,
     );
-    if (idToken == null) return false;
+    if (idToken == null) {
+      _reportNotificationFailure(
+        'registerNotification authentication unavailable',
+        StateError('Notification registration has no authentication token.'),
+        StackTrace.current,
+      );
+      return false;
+    }
     if (resetEpoch != FcmScheduledNotificationService._resetEpoch) return false;
     final mutationVersion =
         expectedMutationVersion ??
@@ -112,8 +119,13 @@ Future<bool> _registerNotification({
       throw const NotificationReminderLimitException();
     }
     if (response.statusCode != 200) {
-      _log(
-        'registerNotification failed: ${response.statusCode} ${response.body}',
+      _reportNotificationFailure(
+        'registerNotification HTTP failure',
+        StateError(
+          'Notification registration returned '
+          '${_notificationHttpFailureDescription(response)}.',
+        ),
+        StackTrace.current,
       );
       return false;
     }
@@ -143,17 +155,6 @@ Future<bool> _registerNotification({
   }
 }
 
-bool _isReminderLimitResponse(http.Response response) {
-  if (response.statusCode != 429) return false;
-  try {
-    final body = jsonDecode(response.body);
-    return body is Map<String, dynamic> &&
-        body['error'] == 'REMINDER_LIMIT_REACHED';
-  } on FormatException {
-    return false;
-  }
-}
-
 Future<bool> _finishRegistration({
   required http.Response response,
   required int mutationVersion,
@@ -169,7 +170,14 @@ Future<bool> _finishRegistration({
   required bool persistLocalPreference,
 }) async {
   final nextVersion = _successfulMutationVersion(response, mutationVersion);
-  if (nextVersion == null) return false;
+  if (nextVersion == null) {
+    _reportNotificationFailure(
+      'registerNotification invalid success response',
+      StateError('Notification registration returned an invalid version.'),
+      StackTrace.current,
+    );
+    return false;
+  }
   _log('Notification registered successfully.');
   if (!persistLocalPreference) return true;
   return _persistRegisteredPreference(
@@ -233,11 +241,6 @@ String _registrationBody(
   'staticBody': ?staticBody,
   'expectedMutationVersion': mutationVersion,
 });
-
-Map<String, String> _notificationHeaders(String idToken) => {
-  'Authorization': 'Bearer $idToken',
-  'Content-Type': 'application/json',
-};
 
 Future<bool> _persistRegisteredPreference({
   required UserInformation userInformation,

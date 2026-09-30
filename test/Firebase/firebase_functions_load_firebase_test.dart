@@ -148,13 +148,14 @@ Future<FakeFirebaseFirestore> _buildFullFakeFirestore() async {
   return fake;
 }
 
-/// Adds a document to the `subgroup` collection-group under an arbitrary parent.
+/// Adds public form content under the production `AllFormData` parent.
 Future<void> _addSubgroupDoc(
   FakeFirebaseFirestore fake,
   Map<String, dynamic> data,
 ) async {
+  await fake.collection('AllFormData').doc('parent').set({});
   await fake
-      .collection('_pageGroups')
+      .collection('AllFormData')
       .doc('parent')
       .collection('subgroup')
       .add(data);
@@ -170,6 +171,22 @@ void main() {
   tearDown(_uninstallPathProviderMock);
 
   group('loadAppFromFirebase – subgroup switch branches', () {
+    test('ignores subgroup documents outside AllFormData', () async {
+      final fake = await _buildFullFakeFirestore();
+      await fake.collection('users').doc('someone').collection('subgroup').add({
+        'page': 'SignupLogin',
+        'fieldName': 'private',
+        'general': 'Do not load',
+        'male': 'Do not load',
+        'female': 'Do not load',
+      });
+
+      final appInfo = AppInformation();
+      await loadAppFromFirebase(appInfo, firestore: fake);
+
+      expect(appInfo.signUpLoginPage, isEmpty);
+    });
+
     test('SignupLogin branch populates signUpLoginPage', () async {
       final fake = await _buildFullFakeFirestore();
       await _addSubgroupDoc(fake, {

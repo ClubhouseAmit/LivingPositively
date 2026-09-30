@@ -146,7 +146,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   Future<bool> _onToggle(bool value, UserInformation userInfo) async {
     if (value && _initialRegistration != null) await _initialRegistration;
     if (value && _hasPermission != true) {
-      _showReminderMutationFailure();
+      await _checkPermission();
       return false;
     }
     final applied = value
@@ -155,7 +155,9 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
             userInformation: userInfo,
             typeId: 'default',
           );
-    if (!applied) _showReminderMutationFailure();
+    if (!applied && (!value || _hasPermission != false)) {
+      _showReminderMutationFailure();
+    }
     if (applied && mounted) setState(() {});
     return applied;
   }
@@ -200,8 +202,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       }
     }
     if (_hasPermission != true || !await FcmService.hasPermission()) {
-      unawaited(_checkPermission());
-      _showReminderMutationFailure();
+      await _checkPermission();
       return false;
     }
     if (!mounted) return false;
@@ -211,11 +212,8 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       hour: picked.hour,
       minute: picked.minute,
     );
-    if (!applied) {
-      _showReminderMutationFailure();
-    } else if (mounted) {
-      setState(() {});
-    }
+    if (!applied) _showReminderMutationFailure();
+    if (applied && mounted) setState(() {});
     return applied;
   }
 
@@ -354,7 +352,6 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     UserInformation userInfo,
     Widget? child,
   ) {
-    final gender = userInfo.gender;
     if (!userInfo.loggedIn) return const NotificationSignedOutCard();
     final repository = NotificationRepository.forService(userInfo.service);
     if (userInfo.userId.isNotEmpty &&
@@ -362,13 +359,15 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       return const SizedBox.shrink();
     }
     final preference = repository.getPreference('default');
-    if (_hasPermission == false && preference == null) {
+    if (_hasPermission == false) {
       return NotificationPermissionDeniedCard(
         onRequestPermission: _requestReminderPermission,
         onCancelReminder: () => _onToggle(false, userInfo),
         canRequestPermission: _canRequestPermission,
-        gender: gender,
-        requestPermissionBody: appLocale.notificationPageHeader(gender),
+        gender: userInfo.gender,
+        requestPermissionBody: appLocale.notificationPageHeader(
+          userInfo.gender,
+        ),
       );
     }
     if (_hasPermission == null) {

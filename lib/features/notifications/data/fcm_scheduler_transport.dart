@@ -1,5 +1,21 @@
 part of 'fcm_scheduled_notification_service.dart';
 
+Map<String, String> _notificationHeaders(String idToken) => {
+  'Authorization': 'Bearer $idToken',
+  'Content-Type': 'application/json',
+};
+
+bool _isReminderLimitResponse(http.Response response) {
+  if (response.statusCode != 429) return false;
+  try {
+    final body = jsonDecode(response.body);
+    return body is Map<String, dynamic> &&
+        body['error'] == 'REMINDER_LIMIT_REACHED';
+  } on FormatException {
+    return false;
+  }
+}
+
 /// Reads the server's default reminder without changing its schedule.
 Future<
   ({bool succeeded, NotificationPreference? schedule, int mutationVersion})
@@ -141,6 +157,20 @@ Future<bool> _migrateLegacyDefaultSchedule({
 void _log(String message) =>
     debugPrint('[FcmScheduledNotificationService] $message');
 
+String _notificationHttpFailureDescription(http.Response response) {
+  const maxReasonLength = 200;
+  final body = response.body;
+  final truncated = body.length > maxReasonLength;
+  final excerpt = truncated ? body.substring(0, maxReasonLength) : body;
+  final reason = excerpt.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ' ').trim();
+  if (reason.isEmpty) {
+    return truncated
+        ? 'HTTP ${response.statusCode}: ...'
+        : 'HTTP ${response.statusCode}';
+  }
+  return 'HTTP ${response.statusCode}: $reason${truncated ? '...' : ''}';
+}
+
 void _reportNotificationFailure(
   String operation,
   Object error,
@@ -254,8 +284,13 @@ Future<int?> _getNotificationMutationVersion({
             )
             .timeout(FcmScheduledNotificationService._networkTimeout);
     if (response.statusCode != 200) {
-      _log(
-        'getNotificationMutationVersion failed: ${response.statusCode} ${response.body}',
+      _reportNotificationFailure(
+        'getNotificationMutationVersion HTTP failure',
+        StateError(
+          'Notification version lookup returned '
+          '${_notificationHttpFailureDescription(response)}.',
+        ),
+        StackTrace.current,
       );
       return null;
     }
@@ -266,7 +301,11 @@ Future<int?> _getNotificationMutationVersion({
     if (mutationVersion is int && mutationVersion >= 0) {
       return mutationVersion;
     }
-    _log('getNotificationMutationVersion returned an invalid body.');
+    _reportNotificationFailure(
+      'getNotificationMutationVersion invalid response',
+      StateError('Notification version lookup returned an invalid body.'),
+      StackTrace.current,
+    );
     return null;
   } catch (error, stackTrace) {
     _reportNotificationFailure(

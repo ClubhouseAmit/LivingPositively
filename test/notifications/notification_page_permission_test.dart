@@ -17,6 +17,7 @@ import 'package:mazilon/pages/notification_page.dart';
 import 'package:mazilon/features/notifications/ui/notification_toggle_card.dart';
 import 'package:mazilon/features/notifications/ui/reminder_item_card.dart';
 import 'package:mazilon/features/notifications/ui/reminder_switch.dart';
+import 'package:mazilon/features/notifications/data/notification_models.dart';
 import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
@@ -290,6 +291,96 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+  testWidgets(
+    'NotificationPage should show blocked settings instead of time picker for an existing reminder',
+    (tester) async {
+      await _onPlatform(TargetPlatform.android, () async {
+        NotificationRepository.forService(user.service).restorePreferences({
+          'default': const NotificationPreference(hour: 8, minute: 30),
+        });
+        FcmService.debugGetNotificationSettingsOverride = () async =>
+            _settings(AuthorizationStatus.denied);
+
+        await pumpWithProviders(
+          tester,
+          const NotificationPage(),
+          userInformation: user,
+        );
+        await tester.pump();
+
+        expect(find.text('Notifications Blocked'), findsOneWidget);
+        expect(find.text('Open Settings'), findsOneWidget);
+        expect(find.text('Cancel current notification'), findsOneWidget);
+        expect(find.byType(NotificationToggleCard), findsNothing);
+      });
+    },
+  );
+
+  testWidgets(
+    'NotificationPage should report failed cancellation when permission is denied',
+    (tester) async {
+      await _onPlatform(TargetPlatform.android, () async {
+        NotificationRepository.forService(user.service).restorePreferences({
+          'default': const NotificationPreference(hour: 8, minute: 30),
+        });
+        FcmService.debugGetNotificationSettingsOverride = () async =>
+            _settings(AuthorizationStatus.denied);
+
+        await pumpWithProviders(
+          tester,
+          const NotificationPage(),
+          userInformation: user,
+        );
+        await tester.pump();
+        await tester.tap(find.text('Cancel current notification'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.text('Something went wrong.'), findsOneWidget);
+        expect(
+          NotificationRepository.forService(user.service).getPreference(
+            'default',
+          ),
+          isNotNull,
+        );
+      });
+    },
+  );
+
+  testWidgets(
+    'NotificationPage should show blocked settings when permission is revoked before a time change',
+    (tester) async {
+      await _onPlatform(TargetPlatform.android, () async {
+        NotificationRepository.forService(user.service).restorePreferences({
+          'default': const NotificationPreference(hour: 8, minute: 30),
+        });
+        var permission = AuthorizationStatus.authorized;
+        FcmService.debugGetNotificationSettingsOverride = () async =>
+            _settings(permission);
+
+        await pumpWithProviders(
+          tester,
+          const NotificationPage(),
+          userInformation: user,
+        );
+        await tester.pump();
+        final card = tester.widget<NotificationToggleCard>(
+          find.byType(NotificationToggleCard),
+        );
+
+        permission = AuthorizationStatus.denied;
+        expect(
+          await card.onTimeSelected!(const TimeOfDay(hour: 9, minute: 15)),
+          isFalse,
+        );
+        await tester.pump();
+
+        expect(find.text('Notifications Blocked'), findsOneWidget);
+        expect(find.text('Open Settings'), findsOneWidget);
+        expect(find.text('Something went wrong.'), findsNothing);
+      });
+    },
+  );
 }
 
 Future<T> _onPlatform<T>(

@@ -20,7 +20,6 @@ google_value_names=(
   GOOGLE_SIGN_IN_SERVER_CLIENT_ID
   GOOGLE_SIGN_IN_IOS_CLIENT_ID
   GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID
-  GOOGLE_SIGN_IN_WEB_CLIENT_ID
 )
 configured_google_values=0
 for value_name in "${google_value_names[@]}"; do
@@ -42,8 +41,6 @@ done
 
 is_google_client_id "$GOOGLE_SIGN_IN_SERVER_CLIENT_ID" || fail "GOOGLE_SIGN_IN_SERVER_CLIENT_ID must be a Google OAuth client ID"
 is_google_client_id "$GOOGLE_SIGN_IN_IOS_CLIENT_ID" || fail "GOOGLE_SIGN_IN_IOS_CLIENT_ID must be a Google OAuth client ID"
-is_google_client_id "$GOOGLE_SIGN_IN_WEB_CLIENT_ID" || fail "GOOGLE_SIGN_IN_WEB_CLIENT_ID must be a Google OAuth client ID"
-[[ "$GOOGLE_SIGN_IN_SERVER_CLIENT_ID" == "$GOOGLE_SIGN_IN_WEB_CLIENT_ID" ]] || fail "GOOGLE_SIGN_IN_SERVER_CLIENT_ID must equal the verified Web OAuth client ID"
 
 expected_reversed_client_id="com.googleusercontent.apps.${GOOGLE_SIGN_IN_IOS_CLIENT_ID%.apps.googleusercontent.com}"
 [[ "$GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID" == "$expected_reversed_client_id" ]] || fail "GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID must match GOOGLE_SIGN_IN_IOS_CLIENT_ID"

@@ -279,14 +279,13 @@ Follow [the provider setup](auth-provider-rollout.md), including the correct
 Firebase iOS app, OAuth callback scheme, provisioning profiles, and APNs key.
 For Google Sign-In, configure the server Web OAuth client ID, iOS OAuth client
 ID, and reversed iOS client ID as environment variables. Set
-`GOOGLE_SIGN_IN_WEB_CLIENT_ID` to the same verified **Web** OAuth client ID as
-`GOOGLE_SIGN_IN_SERVER_CLIENT_ID`. Run
+`GOOGLE_SIGN_IN_SERVER_CLIENT_ID` to the verified **Web** OAuth client ID. Run
 `bash scripts/prepare_ios_google_sign_in_config.sh` as a Codemagic pre-build
 step; it validates this one environment-owned identity and generates the
 ignored native `ios/Flutter/GoogleSignIn.xcconfig` file. An Apple-only build
 sets none of the Google variables; the step removes any stale generated file.
 
-Set `APPLE_SIGN_IN_ENABLED` and, when Google is enabled, all four Google
+Set `APPLE_SIGN_IN_ENABLED` and, when Google is enabled, all three Google
 variables in the release environment, then run from the repository root:
 
 ```bash
