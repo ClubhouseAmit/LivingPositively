@@ -45,6 +45,8 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
   StackTrace? migrationMarkerReadStackTrace;
   Object? migrationMarkerWriteError;
   Completer<void>? migrationMarkerWrite;
+  Completer<void>? notificationPreferenceWrite;
+  Completer<void>? notificationPreferenceWriteStarted;
   int notificationPreferenceWritesToFail = 0;
 
   @override
@@ -94,6 +96,12 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
       throw StateError('Unexpected persistent-memory write: $key');
     }
     if (key == _notificationPreferencesKey) {
+      if (notificationPreferenceWrite case final pendingWrite?) {
+        if (notificationPreferenceWriteStarted case final started?) {
+          if (!started.isCompleted) started.complete();
+        }
+        await pendingWrite.future;
+      }
       if (notificationPreferenceWritesToFail > 0) {
         notificationPreferenceWritesToFail--;
         throw StateError('notification preferences disk unavailable');
@@ -332,7 +340,7 @@ void main() {
         post: (url, {headers, body, encoding}) async {
           if (url.path.endsWith('/getNotificationMutationVersion')) {
             versionReadBody = body! as String;
-            return http.Response('{"mutationVersion":0}', 200);
+            return http.Response('{"mutationVersion":0,"schedule":null}', 200);
           }
           requestedUrl = url;
           requestedHeaders = headers!;
@@ -386,7 +394,10 @@ void main() {
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
                   operationEvents.add('first version read');
-                  return http.Response('{"mutationVersion":0}', 200);
+                  return http.Response(
+                    '{"mutationVersion":0,"schedule":null}',
+                    200,
+                  );
                 }
                 operationEvents.add('first mutation');
                 firstRegistrationStarted.complete();
@@ -405,7 +416,10 @@ void main() {
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
                   operationEvents.add('second version read');
-                  return http.Response('{"mutationVersion":0}', 200);
+                  return http.Response(
+                    '{"mutationVersion":0,"schedule":null}',
+                    200,
+                  );
                 }
                 operationEvents.add('second mutation');
                 secondRegistrationStarted.complete();
@@ -456,7 +470,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
-            ? http.Response('{"mutationVersion":0}', 200)
+            ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
             : http.Response('{"success":true}', 200),
       ),
     );
@@ -466,6 +480,39 @@ void main() {
       NotificationRepository.forService(user.service).getPreference('default'),
       isNull,
     );
+  });
+
+  test('reads an existing default schedule without registering it', () async {
+    final paths = <String>[];
+    final status = await readDefaultReminderSchedule(
+      userInformation: user,
+      idTokenProvider: () async => 'token-123',
+      post: (url, {headers, body, encoding}) async {
+        paths.add(url.path);
+        expect(jsonDecode(body! as String), {'typeId': 'default'});
+        return http.Response(
+          '{"mutationVersion":3,"schedule":{"hour":21,"minute":15}}',
+          200,
+        );
+      },
+    );
+
+    expect(status.succeeded, isTrue);
+    expect(status.schedule?.hour, 21);
+    expect(status.schedule?.minute, 15);
+    expect(paths, ['/getNotificationMutationVersion']);
+  });
+
+  test('keeps a server-disabled default reminder off', () async {
+    final status = await readDefaultReminderSchedule(
+      userInformation: user,
+      idTokenProvider: () async => 'token-123',
+      post: (url, {headers, body, encoding}) async =>
+          http.Response('{"mutationVersion":4,"schedule":null}', 200),
+    );
+
+    expect(status.succeeded, isTrue);
+    expect(status.schedule, isNull);
   });
 
   test('register rejects a malformed successful mutation response', () async {
@@ -479,7 +526,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
-            ? http.Response('{"mutationVersion":0}', 200)
+            ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
             : http.Response('{}', 200),
       ),
     );
@@ -552,6 +599,10 @@ void main() {
       expect(registered, isFalse);
       expect(operations, ['version:0', 'register', 'cancel']);
       expect(
+        NotificationRepository.forService(user.service).defaultOptOut,
+        isFalse,
+      );
+      expect(
         NotificationRepository.forService(
           user.service,
         ).getPreference('default'),
@@ -559,6 +610,82 @@ void main() {
       );
     },
   );
+
+  test('failed registration preserves a previous default opt-out', () async {
+    final preferences = NotificationRepository.forService(user.service);
+    await preferences.clearPreference('default');
+    memory.notificationPreferenceWritesToFail = 1;
+    var mutationVersion = 0;
+
+    final registered = await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.registerNotification(
+        userInformation: user,
+        typeId: 'default',
+        hour: 9,
+        minute: 30,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":$mutationVersion}', 200);
+          }
+          mutationVersion++;
+          return http.Response('{"success":true}', 200);
+        },
+      ),
+    );
+
+    expect(registered, isFalse);
+    expect(mutationVersion, 2);
+    expect(preferences.defaultOptOut, isTrue);
+    expect(preferences.getPreference('default'), isNull);
+  });
+
+  test('failed local save restores the paused reminder choice', () async {
+    user.userId = 'account-a';
+    final preferences = NotificationRepository.forService(user.service);
+    await preferences.activateAccount(user.userId);
+    await preferences.setPreference(
+      'quick_exercise',
+      const NotificationPreference.withContent(
+        hour: 8,
+        minute: 15,
+        staticTitle: 'Living Positively',
+        staticBody: 'Exercise',
+      ),
+    );
+    await preferences.clearPreferenceForAccountTransition('quick_exercise');
+    memory.notificationPreferenceWritesToFail = 1;
+    var mutationVersion = 0;
+
+    final registered = await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.registerNotification(
+        userInformation: user,
+        typeId: 'quick_exercise',
+        hour: 21,
+        minute: 30,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":$mutationVersion}', 200);
+          }
+          mutationVersion++;
+          return http.Response(
+            '{"success":true,"mutationVersion":$mutationVersion}',
+            200,
+          );
+        },
+      ),
+    );
+
+    final paused = preferences.pausedAccountRemindersFor(user.userId);
+    expect(registered, isFalse);
+    expect(preferences.getPreference('quick_exercise'), isNull);
+    expect(paused['quick_exercise']?.hour, 8);
+    expect(paused['quick_exercise']?.staticBody, 'Exercise');
+    expect(preferences.getSavedTime('quick_exercise')?.minute, 15);
+  });
 
   test(
     'register restores an existing remote schedule when its edited preference cannot persist',
@@ -663,6 +790,60 @@ void main() {
     },
   );
 
+  test('cancel compensation restores quick reminder content', () async {
+    const existing = NotificationPreference.withContent(
+      hour: 8,
+      minute: 15,
+      staticTitle: 'Living Positively',
+      staticBody: 'Drink Water',
+    );
+    await NotificationRepository.forService(
+      user.service,
+    ).setPreference('quick_water', existing);
+    memory.notificationPreferenceWritesToFail = 1;
+    Map<String, dynamic>? restoredPayload;
+    var mutationVersion = 0;
+
+    final cancelled = await _onPlatform(
+      TargetPlatform.iOS,
+      () => FcmScheduledNotificationService.cancelNotification(
+        userInformation: user,
+        typeId: 'quick_water',
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":$mutationVersion}', 200);
+          }
+          mutationVersion++;
+          if (url.path.endsWith('/cancelNotification')) {
+            return http.Response(
+              '{"success":true,"mutationVersion":$mutationVersion,'
+              '"schedule":{"hour":8,"minute":15,'
+              '"staticTitle":"Living Positively",'
+              '"staticBody":"Drink Water"}}',
+              200,
+            );
+          }
+          restoredPayload = jsonDecode(body! as String) as Map<String, dynamic>;
+          return http.Response(
+            '{"success":true,"mutationVersion":$mutationVersion}',
+            200,
+          );
+        },
+      ),
+    );
+
+    expect(cancelled, isFalse);
+    expect(restoredPayload?['staticTitle'], 'Living Positively');
+    expect(restoredPayload?['staticBody'], 'Drink Water');
+    expect(
+      NotificationRepository.forService(user.service)
+          .getPreference('quick_water')
+          ?.staticBody,
+      'Drink Water',
+    );
+  });
+
   testWidgets('cancel keeps the saved schedule when the server rejects it', (
     tester,
   ) async {
@@ -680,7 +861,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
-            ? http.Response('{"mutationVersion":0}', 200)
+            ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
             : http.Response('server error', 500),
       ),
     );
@@ -713,7 +894,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             cancellationPayload =
                 jsonDecode(body! as String) as Map<String, dynamic>;
@@ -755,7 +939,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
-            ? http.Response('{"mutationVersion":0}', 200)
+            ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
             : http.Response('{"success":true}', 200),
       ),
     );
@@ -780,7 +964,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
-            ? http.Response('{"mutationVersion":0}', 200)
+            ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
             : http.Response('{"success":true}', 200),
       ),
     );
@@ -809,7 +993,12 @@ void main() {
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) =>
                   url.path.endsWith('/getNotificationMutationVersion')
-                  ? Future.value(http.Response('{"mutationVersion":0}', 200))
+                  ? Future.value(
+                      http.Response(
+                        '{"mutationVersion":0,"schedule":null}',
+                        200,
+                      ),
+                    )
                   : stalledPost.future,
             );
         final cancelling = FcmScheduledNotificationService.cancelNotification(
@@ -818,7 +1007,7 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async =>
               url.path.endsWith('/getNotificationMutationVersion')
-              ? http.Response('{"mutationVersion":0}', 200)
+              ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
               : http.Response('{"success":true}', 200),
         );
 
@@ -875,7 +1064,7 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async =>
               url.path.endsWith('/getNotificationMutationVersion')
-              ? http.Response('{"mutationVersion":0}', 200)
+              ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
               : http.Response('{"success":true}', 200),
         );
         memory.migrationMarkerRead = null;
@@ -1073,7 +1262,7 @@ void main() {
           post: (url, {headers, body, encoding}) async {
             requestPaths.add(url.path);
             return url.path.endsWith('/getNotificationMutationVersion')
-                ? http.Response('{"mutationVersion":0}', 200)
+                ? http.Response('{"mutationVersion":0,"schedule":null}', 200)
                 : http.Response('{"success":true}', 200);
           },
         ),
@@ -1114,7 +1303,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             postCalls++;
             operations.add('register');
@@ -1136,7 +1328,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             postCalls++;
             return http.Response('{"success":true}', 200);
@@ -1152,6 +1347,187 @@ void main() {
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
     },
   );
+
+  testWidgets('legacy migration keeps a newer server schedule', (tester) async {
+    await pumpUser(tester);
+    var registrations = 0;
+    final cancelledIds = <int>[];
+
+    await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+        userInformation: user,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response(
+              '{"mutationVersion":2,"schedule":{"hour":21,"minute":15}}',
+              200,
+            );
+          }
+          registrations++;
+          return http.Response('{"success":true}', 200);
+        },
+        legacyNotificationCanceller: (id) async => cancelledIds.add(id),
+      ),
+    );
+
+    expect(registrations, 0);
+    expect(cancelledIds, [815]);
+    final preference = NotificationRepository.forService(
+      user.service,
+    ).getPreference('default');
+    expect(preference?.hour, 21);
+    expect(preference?.minute, 15);
+    expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+  });
+
+  testWidgets('legacy migration respects a server cancellation', (
+    tester,
+  ) async {
+    await pumpUser(tester);
+    var registrations = 0;
+    final cancelledIds = <int>[];
+
+    await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+        userInformation: user,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":2,"schedule":null}', 200);
+          }
+          registrations++;
+          return http.Response('{"success":true}', 200);
+        },
+        legacyNotificationCanceller: (id) async => cancelledIds.add(id),
+      ),
+    );
+
+    final repository = NotificationRepository.forService(user.service);
+    expect(registrations, 0);
+    expect(cancelledIds, [815]);
+    expect(repository.getPreference('default'), isNull);
+    expect(repository.defaultOptOut, isFalse);
+    expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+  });
+
+  group('FcmScheduledNotificationService legacy preference persistence', () {
+    for (final hasServerSchedule in [true, false]) {
+      testWidgets(
+        'should release the queue when the migration '
+        '${hasServerSchedule ? 'set' : 'clear'} write hangs',
+        (tester) async {
+          await pumpUser(tester);
+          memory.notificationPreferenceWrite = Completer<void>();
+          memory.notificationPreferenceWriteStarted = Completer<void>();
+          var cancellationRequested = false;
+          debugDefaultTargetPlatformOverride = TargetPlatform.android;
+          try {
+            final migration =
+                FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+                  userInformation: user,
+                  idTokenProvider: () async => 'token-123',
+                  post: (url, {headers, body, encoding}) async => http.Response(
+                    jsonEncode({
+                      'mutationVersion': 2,
+                      'schedule': hasServerSchedule
+                          ? {'hour': 21, 'minute': 15}
+                          : null,
+                    }),
+                    200,
+                  ),
+                );
+            final migrationFailure = expectLater(
+              migration,
+              throwsA(isA<TimeoutException>()),
+            );
+            await tester.pump();
+            await memory.notificationPreferenceWriteStarted!.future;
+            final cancellation =
+                FcmScheduledNotificationService.cancelNotification(
+                  userInformation: user,
+                  typeId: 'default',
+                  requireNoActiveDeliveryPermit: true,
+                  idTokenProvider: () async => 'token-123',
+                  post: (url, {headers, body, encoding}) async {
+                    if (url.path.endsWith('/getNotificationMutationVersion')) {
+                      return http.Response('{"mutationVersion":2}', 200);
+                    }
+                    cancellationRequested = true;
+                    return http.Response('temporary server failure', 503);
+                  },
+                );
+            await tester.pump(const Duration(seconds: 5));
+            await migrationFailure;
+            expect(await cancellation, isFalse);
+            expect(cancellationRequested, isTrue);
+            expect(memory.stored['fcmDefaultReminderMigrated'], isNull);
+          } finally {
+            memory.notificationPreferenceWrite!.complete();
+            await tester.pump();
+            debugDefaultTargetPlatformOverride = null;
+          }
+        },
+      );
+    }
+
+    testWidgets('should preserve an existing default opt-out', (tester) async {
+      final repository = NotificationRepository.forService(user.service);
+      await repository.clearPreference('default');
+      await pumpUser(tester);
+
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async =>
+              http.Response('{"mutationVersion":2,"schedule":null}', 200),
+        ),
+      );
+
+      expect(repository.getPreference('default'), isNull);
+      expect(repository.defaultOptOut, isTrue);
+      expect(
+        jsonDecode(memory.stored['notificationPreferences'] as String),
+        containsPair('__defaultOptOut', true),
+      );
+      expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+    });
+  });
+
+  testWidgets('legacy migration cannot overwrite a concurrent server edit', (
+    tester,
+  ) async {
+    await pumpUser(tester);
+    final requests = <String>[];
+
+    await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+        userInformation: user,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          requests.add(url.path);
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":0,"schedule":null}', 200);
+          }
+          final payload = jsonDecode(body! as String) as Map<String, dynamic>;
+          expect(payload['expectedMutationVersion'], 0);
+          return http.Response('schedule changed', 409);
+        },
+        legacyNotificationCanceller: _ignoreLegacyNotification,
+      ),
+    );
+
+    expect(requests, [
+      '/getNotificationMutationVersion',
+      '/registerNotification',
+    ]);
+    expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+  });
 
   testWidgets('does not migrate a reminder without a persisted legacy time', (
     tester,
@@ -1283,7 +1659,10 @@ void main() {
           idTokenProvider: () async => null,
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             postCalls++;
             return http.Response('{"success":true}', 200);
@@ -1300,7 +1679,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             postCalls++;
             return http.Response('failed', 500);
@@ -1337,7 +1719,7 @@ void main() {
         Encoding? encoding,
       }) async {
         if (url.path.endsWith('/getNotificationMutationVersion')) {
-          return http.Response('{"mutationVersion":0}', 200);
+          return http.Response('{"mutationVersion":0,"schedule":null}', 200);
         }
         final payload = jsonDecode(body! as String) as Map<String, dynamic>;
         registrations.add((
@@ -1396,7 +1778,10 @@ void main() {
           legacyNotificationCanceller: _ignoreLegacyNotification,
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             postCalls++;
             return http.Response('{"success":true}', 200);
@@ -1412,7 +1797,10 @@ void main() {
           legacyNotificationCanceller: _ignoreLegacyNotification,
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             postCalls++;
             return http.Response('{"success":true}', 200);
@@ -1448,7 +1836,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             cancelRequests++;
             return http.Response('failed', 500);
@@ -1468,7 +1859,10 @@ void main() {
           legacyNotificationCanceller: _ignoreLegacyNotification,
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             registerRequests++;
             return http.Response('{"success":true}', 200);
@@ -1499,7 +1893,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             cancelRequests++;
             return http.Response('{"success":true}', 200);
@@ -1667,7 +2064,10 @@ void main() {
             final payload = jsonDecode(body! as String) as Map<String, dynamic>;
             requests.add(<String, dynamic>{'path': url.path, ...payload});
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             if (url.path.endsWith('/cancelNotification')) {
               return http.Response('{"success":true,"mutationVersion":1}', 200);
@@ -1717,7 +2117,10 @@ void main() {
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
-                  return http.Response('{"mutationVersion":0}', 200);
+                  return http.Response(
+                    '{"mutationVersion":0,"schedule":null}',
+                    200,
+                  );
                 }
                 requests.add(url.path);
                 return http.Response('{"success":true}', 200);
@@ -1732,7 +2135,10 @@ void main() {
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
-                  return http.Response('{"mutationVersion":0}', 200);
+                  return http.Response(
+                    '{"mutationVersion":0,"schedule":null}',
+                    200,
+                  );
                 }
                 requests.add(url.path);
                 return http.Response('{"success":true}', 200);
@@ -1760,8 +2166,9 @@ void main() {
       );
       await pumpUser(tester);
       final operations = <String>[];
-      FcmService.debugCancelLegacyLocalNotificationOverride =
-          (notificationId) async => operations.add('local:$notificationId');
+      FcmService.debugCancelLegacyLocalNotificationOverride = (
+        notificationId,
+      ) async => operations.add('local:$notificationId');
 
       final cancelled = await _onPlatform(
         TargetPlatform.windows,
@@ -1771,7 +2178,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             operations.add('remote');
             return http.Response('{"success":true}', 200);
@@ -1800,8 +2210,9 @@ void main() {
       );
       await pumpUser(tester);
       final operations = <String>[];
-      FcmService.debugCancelLegacyLocalNotificationOverride =
-          (notificationId) async => operations.add('local:$notificationId');
+      FcmService.debugCancelLegacyLocalNotificationOverride = (
+        notificationId,
+      ) async => operations.add('local:$notificationId');
 
       final cancelled = await _onPlatform(
         TargetPlatform.windows,
@@ -1810,7 +2221,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             operations.add('remote');
             return http.Response('{"success":true}', 200);
@@ -1838,8 +2252,9 @@ void main() {
         const NotificationPreference(hour: 8, minute: 15),
       );
       await pumpUser(tester);
-      FcmService.debugCancelLegacyLocalNotificationOverride =
-          (notificationId) async => throw StateError('local cancel failed');
+      FcmService.debugCancelLegacyLocalNotificationOverride = (
+        notificationId,
+      ) async => throw StateError('local cancel failed');
       final operations = <String>[];
       var mutationVersion = 0;
 
@@ -1905,7 +2320,10 @@ void main() {
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
-                  return http.Response('{"mutationVersion":0}', 200);
+                  return http.Response(
+                    '{"mutationVersion":0,"schedule":null}',
+                    200,
+                  );
                 }
                 operations.add('register');
                 return http.Response('{"success":true}', 200);
@@ -1920,7 +2338,10 @@ void main() {
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
-                  return http.Response('{"mutationVersion":0}', 200);
+                  return http.Response(
+                    '{"mutationVersion":0,"schedule":null}',
+                    200,
+                  );
                 }
                 operations.add('remote');
                 return http.Response('{"success":true}', 200);
@@ -1979,6 +2400,10 @@ void main() {
         ),
       );
       expect(cancelled, isTrue);
+      expect(
+        NotificationRepository.forService(user.service).defaultOptOut,
+        isFalse,
+      );
 
       var migrationStarted = false;
       FcmScheduledNotificationService
@@ -2064,7 +2489,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async {
           if (url.path.endsWith('/getNotificationMutationVersion')) {
-            return http.Response('{"mutationVersion":0}', 200);
+            return http.Response('{"mutationVersion":0,"schedule":null}', 200);
           }
           return http.Response('{"success":true}', 200);
         },
@@ -2101,7 +2526,10 @@ void main() {
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
             if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
+              return http.Response(
+                '{"mutationVersion":0,"schedule":null}',
+                200,
+              );
             }
             requests.add(url.path);
             return cancelResponse.future;
@@ -2115,7 +2543,10 @@ void main() {
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
-                  return http.Response('{"mutationVersion":0}', 200);
+                  return http.Response(
+                    '{"mutationVersion":0,"schedule":null}',
+                    200,
+                  );
                 }
                 requests.add(url.path);
                 return http.Response('{"success":true}', 200);

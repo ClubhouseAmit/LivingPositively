@@ -27,6 +27,7 @@ const SERVER_ONLY_COLLECTIONS = [
   "notification_deliveries",
   "notification_scheduler_state",
   "notification_mutation_state",
+  "notification_registration_locks",
   "notification_types",
   "quotes_he",
   "quotes_ar",

@@ -1,4 +1,9 @@
 const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const USER_REMINDER_ID_PATTERN = /^(quick_[a-z_]{1,40}|custom_[A-Za-z0-9_-]{1,40})$/;
+
+export function isUserReminderTypeId(value: unknown): value is string {
+  return typeof value === "string" && USER_REMINDER_ID_PATTERN.test(value);
+}
 
 export type NotificationGender = "male" | "female" | "other";
 export type NotificationLocale = "he" | "ar" | "en";
@@ -43,6 +48,23 @@ export function isAnonymousSignIn(decodedToken: unknown): boolean {
 export function isValidNotificationTypeId(value: unknown): value is string {
   return (
     typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)
+  );
+}
+
+/** User-authored reminder content is bounded before it reaches FCM. */
+export function isValidUserReminderContent(
+  typeId: unknown,
+  title: unknown,
+  body: unknown,
+): boolean {
+  return (
+    isUserReminderTypeId(typeId) &&
+    typeof title === "string" &&
+    title.trim().length > 0 &&
+    title.length <= 100 &&
+    typeof body === "string" &&
+    body.trim().length > 0 &&
+    body.length <= 240
   );
 }
 

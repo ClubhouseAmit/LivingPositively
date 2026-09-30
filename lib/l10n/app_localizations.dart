@@ -4711,6 +4711,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ended early'**
   String get breathingStopped;
+
+  /// No description provided for @reminderTitleFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind'**
+  String get reminderTitleFirst;
+
+  /// No description provided for @reminderTitleSecond.
+  ///
+  /// In en, this message translates to:
+  /// **'Me'**
+  String get reminderTitleSecond;
+
+  /// No description provided for @reminderPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose reminders to shape your day'**
+  String get reminderPageSubtitle;
+
+  /// No description provided for @reminderAppSection.
+  ///
+  /// In en, this message translates to:
+  /// **'APP REMINDER'**
+  String get reminderAppSection;
+
+  /// No description provided for @reminderAppTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A Word of Resilience'**
+  String get reminderAppTitle;
+
+  /// No description provided for @reminderAppSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A gentle daily spark of comfort and hope, lighting your way'**
+  String get reminderAppSubtitle;
+
+  /// No description provided for @reminderQuickSection.
+  ///
+  /// In en, this message translates to:
+  /// **'QUICK REMINDERS'**
+  String get reminderQuickSection;
+
+  /// No description provided for @reminderCustomSection.
+  ///
+  /// In en, this message translates to:
+  /// **'CHOOSE OR CREATE YOUR OWN REMINDER'**
+  String get reminderCustomSection;
+
+  /// No description provided for @reminderActiveSection.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVE REMINDERS'**
+  String get reminderActiveSection;
+
+  /// No description provided for @reminderEmojiLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji'**
+  String get reminderEmojiLabel;
+
+  /// No description provided for @reminderLabelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder label'**
+  String get reminderLabelLabel;
+
+  /// No description provided for @reminderAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add reminder'**
+  String get reminderAdd;
+
+  /// No description provided for @reminderLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You can have up to 32 active reminders. Turn one off before adding another.'**
+  String get reminderLimitReached;
+
+  /// No description provided for @reminderRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove reminder'**
+  String get reminderRemove;
+
+  /// No description provided for @reminderHourFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'24h'**
+  String get reminderHourFormat;
+
+  /// No description provided for @reminderAmPmFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'AM/PM'**
+  String get reminderAmPmFormat;
+
+  /// No description provided for @reminderQuickExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get reminderQuickExercise;
+
+  /// No description provided for @reminderQuickPills.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Pills'**
+  String get reminderQuickPills;
+
+  /// No description provided for @reminderQuickMeditate.
+  ///
+  /// In en, this message translates to:
+  /// **'Meditate'**
+  String get reminderQuickMeditate;
+
+  /// No description provided for @reminderQuickWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Drink Water'**
+  String get reminderQuickWater;
+
+  /// No description provided for @reminderQuickRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get reminderQuickRead;
+
+  /// No description provided for @reminderQuickSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get reminderQuickSleep;
+
+  /// No description provided for @reminderQuickJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Write in Journal'**
+  String get reminderQuickJournal;
+
+  /// No description provided for @reminderQuickStretch.
+  ///
+  /// In en, this message translates to:
+  /// **'Stretch'**
+  String get reminderQuickStretch;
+
+  /// No description provided for @reminderQuickBreathe.
+  ///
+  /// In en, this message translates to:
+  /// **'Breathe'**
+  String get reminderQuickBreathe;
+
+  /// No description provided for @reminderQuickMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Music'**
+  String get reminderQuickMusic;
+
+  /// No description provided for @reminderQuickFriend.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with a Friend'**
+  String get reminderQuickFriend;
 }
 
 class _AppLocalizationsDelegate

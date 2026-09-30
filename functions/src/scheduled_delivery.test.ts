@@ -6,6 +6,7 @@ import {
   buildNotificationDeliveryKey,
   claimAndSendScheduledDelivery,
   classifyDeviceUpdatedAt,
+  dailyQuoteIndex,
   hasValidFCMToken,
   israelLocalDeliveryCandidates,
   israelLocalDeliveryCandidatesSince,
@@ -27,6 +28,31 @@ import {
 } from "./scheduler_observability.js";
 
 describe("scheduled notification delivery", () => {
+  it("shuffles daily quotes without repeating on consecutive days", () => {
+    for (const count of [2, 3, 10]) {
+      const choices = Array.from({ length: count * 4 }, (_, offset) => {
+        const day = new Date(Date.UTC(2026, 8, 24 + offset))
+          .toISOString().slice(0, 10);
+        return dailyQuoteIndex("user-1", day, count);
+      });
+      for (let index = 1; index < choices.length; index++) {
+        assert.notEqual(choices[index], choices[index - 1]);
+      }
+      const startDay = Math.floor(Date.UTC(2026, 8, 24) / 86_400_000);
+      const cycleStart = startDay + (count - startDay % count) % count;
+      const cycle = Array.from({ length: count }, (_, offset) =>
+        dailyQuoteIndex(
+          "user-1",
+          new Date((cycleStart + offset) * 86_400_000)
+            .toISOString().slice(0, 10),
+          count,
+        ),
+      );
+      assert.equal(new Set(cycle).size, count);
+      assert.equal(dailyQuoteIndex("user-1", "2026-09-25", count), choices[1]);
+    }
+  });
+
   it("clears an invalid FCM token only when it is still current", () => {
     assert.equal(shouldClearFCMToken("old-token", "old-token"), true);
     assert.equal(shouldClearFCMToken("new-token", "old-token"), false);

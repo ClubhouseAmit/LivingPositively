@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,9 @@ import 'package:mazilon/features/shell/ui/async_state_view.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/async/app_theme.dart';
 import 'package:provider/provider.dart';
+
 import 'util/Firebase/firebase_options.dart';
+
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mixpanel_flutter/mixpanel_flutter.dart';
 import 'package:mazilon/pages/introduction_page.dart';
@@ -21,7 +24,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
 import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/features/notifications/data/fcm_scheduled_notification_service.dart';
-import 'package:mazilon/features/notifications/data/notification_repository.dart';
+import 'package:mazilon/features/notifications/ui/notification_locale_rescheduler.dart';
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:upgrader/upgrader.dart';
 //testing:
@@ -422,17 +425,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         currentContext,
         listen: false,
       );
-      final pref = NotificationRepository.forService(
-        userInfo.service,
-      ).getPreference('default');
-      if (pref != null) {
-        await FcmScheduledNotificationService.registerNotification(
-          userInformation: userInfo,
-          typeId: 'default',
-          hour: pref.hour,
-          minute: pref.minute,
-        );
-      }
+      await rescheduleNotificationsForLocale(
+        userInfo,
+        lookupAppLocalizations(Locale(locale)),
+      );
     });
   }
 
