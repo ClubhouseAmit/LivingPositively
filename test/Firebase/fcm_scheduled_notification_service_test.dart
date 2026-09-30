@@ -52,10 +52,17 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
   @override
   Future<Map<String, Object?>> readSnapshot(
     Map<String, PersistentMemoryType> keys,
-  ) => throw StateError('Unexpected export snapshot read in this test.');
+  ) async {
+    if (keys.length != 1 ||
+        keys[_notificationPreferencesKey] != PersistentMemoryType.String) {
+      throw StateError('Unexpected snapshot keys: $keys');
+    }
+    return {_notificationPreferencesKey: stored[_notificationPreferencesKey]};
+  }
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (key == _notificationPreferencesKey) return stored[key];
     if (_legacyReminderKeys.contains(key)) {
       final expectedType = key == 'legacyDefaultReminderEnabled'
           ? PersistentMemoryType.Bool
@@ -90,6 +97,10 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
     PersistentMemoryType type,
     dynamic value,
   ) async {
+    if (key == 'notificationReminderSettings') {
+      stored[key] = value;
+      return;
+    }
     if (key != _migrationKey &&
         key != _retirementKey &&
         key != _notificationPreferencesKey) {
@@ -631,7 +642,10 @@ void main() {
         logger.capturedError.toString(),
         contains('HTTP 400: ...'),
       );
-      expect(logger.capturedError.toString(), isNot(contains('Invalid typeId')));
+      expect(
+        logger.capturedError.toString(),
+        isNot(contains('Invalid typeId')),
+      );
       expect(logger.capturedError.toString().length, lessThan(300));
       expect(logger.capturedStackTrace, isNotNull);
     },

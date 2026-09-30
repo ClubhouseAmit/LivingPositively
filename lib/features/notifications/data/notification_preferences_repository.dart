@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:mazilon/features/notifications/data/notification_models.dart';
+import 'package:mazilon/features/notifications/data/notification_preferences_storage.dart';
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
 
@@ -169,6 +170,19 @@ class NotificationRepository {
     };
   }
 
+  /// Keeps expanded state when an older client rewrites the legacy blob.
+  void restorePersistedJson(String? legacy, String? expanded) {
+    restoreJson(mergeNotificationSnapshots(legacy, expanded));
+  }
+
+  Future<void> restorePersistedState(String? legacy) async {
+    final expanded = await _memory.getItem(
+      'notificationReminderSettings',
+      PersistentMemoryType.String,
+    );
+    restorePersistedJson(legacy, expanded as String?);
+  }
+
   Future<void> setPreference(
     String typeId,
     NotificationPreference preference,
@@ -267,6 +281,38 @@ class NotificationRepository {
     return _persist();
   }
 
+  /// Saves a custom definition and its inactive time together before scheduling.
+  Future<void> setCustomReminderTime(CustomReminder reminder) async {
+    final previous = _customReminders
+        .where((item) => item.id == reminder.id)
+        .firstOrNull;
+    final previousTime = _savedTimes[reminder.id];
+    final saved = getSavedTime(reminder.id);
+    _savedTimes = {
+      ..._savedTimes,
+      reminder.id: NotificationPreference.withContent(
+        hour: reminder.hour,
+        minute: reminder.minute,
+        staticTitle: saved?.staticTitle,
+        staticBody: saved?.staticBody,
+      ),
+    };
+    try {
+      await setCustomReminder(reminder);
+    } catch (_) {
+      _customReminders = List.unmodifiable([
+        for (final item in _customReminders)
+          if (item.id != reminder.id) item else ?previous,
+      ]);
+      _savedTimes = {..._savedTimes}..remove(reminder.id);
+      if (previousTime != null) {
+        _savedTimes = {..._savedTimes, reminder.id: previousTime};
+      }
+      await _persist();
+      rethrow;
+    }
+  }
+
   Future<void> removeCustomReminder(String id) {
     _customReminders = List.unmodifiable(
       _customReminders.where((item) => item.id != id),
@@ -299,19 +345,11 @@ class NotificationRepository {
     final encoded = _encodePreferences(includeSnapshots: true);
     final previous = _pendingWrite;
     final write = previous == null
-        ? _memory.setItem(
-            'notificationPreferences',
-            PersistentMemoryType.String,
-            encoded,
-          )
+        ? persistNotificationSnapshot(_memory, encoded)
         : previous
               .catchError((Object _) {})
               .then<void>(
-                (_) => _memory.setItem(
-                  'notificationPreferences',
-                  PersistentMemoryType.String,
-                  encoded,
-                ),
+                (_) => persistNotificationSnapshot(_memory, encoded),
               );
     _pendingWrite = write;
     unawaited(

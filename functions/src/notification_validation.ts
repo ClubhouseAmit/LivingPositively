@@ -1,8 +1,14 @@
 const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
-const USER_REMINDER_ID_PATTERN = /^(quick_[a-z_]{1,40}|custom_[A-Za-z0-9_-]{1,40})$/;
+const CUSTOM_REMINDER_ID_PATTERN = /^custom_[A-Za-z0-9_-]{1,40}$/;
+const QUICK_REMINDER_IDS = new Set([
+  "quick_exercise", "quick_pills", "quick_meditate", "quick_water",
+  "quick_read", "quick_sleep", "quick_journal", "quick_stretch",
+  "quick_breathe", "quick_music", "quick_friend",
+]);
 
 export function isUserReminderTypeId(value: unknown): value is string {
-  return typeof value === "string" && USER_REMINDER_ID_PATTERN.test(value);
+  return typeof value === "string" &&
+    (QUICK_REMINDER_IDS.has(value) || CUSTOM_REMINDER_ID_PATTERN.test(value));
 }
 
 export type NotificationGender = "male" | "female" | "other";

@@ -25,7 +25,6 @@ import {
 import {
   hasValidNotificationTypeSchema,
   isAnonymousSignIn,
-  isUserReminderTypeId,
   isValidUserReminderContent,
   isValidNotificationLocale,
   isValidNotificationScheduleTime,
@@ -866,7 +865,7 @@ export const registerNotification = onRequest(
 
     const db = getFirestore();
     const userContent = isValidUserReminderContent(typeId, staticTitle, staticBody);
-    if (isUserReminderTypeId(typeId) && !userContent) {
+    if ((staticTitle !== undefined || staticBody !== undefined) && !userContent) {
       res.status(400).send("Invalid reminder content");
       return;
     }
@@ -1278,8 +1277,9 @@ export const processScheduledNotifications = onSchedule(
 
     // Collect unique typeIds and all locales present per typeId
     const localesByTypeId = new Map<string, Set<string>>();
+    const provisionedTypeIds = new Set<string>();
     for (const { doc } of scheduledCandidates) {
-      const { typeId, locale } = doc.data();
+      const { typeId, locale, staticTitle, staticBody } = doc.data();
       if (
         !isValidNotificationTypeId(typeId) ||
         !isValidNotificationLocale(locale)
@@ -1288,13 +1288,16 @@ export const processScheduledNotifications = onSchedule(
       }
       if (!localesByTypeId.has(typeId)) localesByTypeId.set(typeId, new Set());
       localesByTypeId.get(typeId)!.add(locale);
+      if (!isValidUserReminderContent(typeId, staticTitle, staticBody)) {
+        provisionedTypeIds.add(typeId);
+      }
     }
 
     // Fetch all unique notification_type docs in parallel
     const typeDataMap = new Map<string, FirebaseFirestore.DocumentData>();
     await Promise.all(
       [...localesByTypeId.keys()]
-        .filter((typeId) => !isUserReminderTypeId(typeId))
+        .filter((typeId) => provisionedTypeIds.has(typeId))
         .map(async (typeId) => {
         const doc = await getFirestore()
           .collection("notification_types")

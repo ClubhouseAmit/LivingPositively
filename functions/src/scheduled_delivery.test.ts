@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-import { Timestamp } from "firebase-admin/firestore";
+import { describe, it, mock } from "node:test";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 import {
   buildNotificationDeliveryKey,
@@ -21,11 +22,50 @@ import {
   staleDeviceScheduleCleanupPlan,
   shouldClearFCMToken,
   shouldAdvanceSchedulerCheckpoint,
+  registerNotification,
 } from "./index.js";
 import {
   schedulerRecoveryWindow,
   scheduledNotificationSummary,
 } from "./scheduler_observability.js";
+
+describe("provisioned reminder registration", () => {
+  for (const typeId of ["quick_music", "quick_legacy", "custom_legacy"]) {
+    it(`retains provisioned ${typeId} without user-authored text`, async () => {
+      process.env.GCLOUD_PROJECT ??= "reminder-tests";
+      const auth = getAuth();
+      const db = getFirestore();
+      const verify = mock.method(auth, "verifyIdToken", async () => ({ uid: "user-1" }));
+      const read = mock.method(db, "getAll", async () => [{
+        exists: true,
+        data: () => ({ messageType: "static", staticTitle: "Legacy", staticBody: "Body" }),
+      }]);
+      const transaction = mock.method(db, "runTransaction", async () => 1);
+      let response: unknown;
+      let status = 200;
+      const res = {
+        status: (code: number) => { status = code; return res; },
+        send: (body: unknown) => { response = body; },
+        on: () => res,
+      };
+      try {
+        await registerNotification({
+          method: "POST", headers: { authorization: "Bearer token" },
+          body: { typeId, hour: 8, minute: 0, locale: "en" },
+        } as Parameters<typeof registerNotification>[0],
+        res as unknown as Parameters<typeof registerNotification>[1]);
+        assert.equal(status, 200);
+        assert.deepEqual(response, { success: true, mutationVersion: 1 });
+        assert.equal(read.mock.callCount(), 1);
+        assert.equal(transaction.mock.callCount(), 1);
+      } finally {
+        verify.mock.restore();
+        read.mock.restore();
+        transaction.mock.restore();
+      }
+    });
+  }
+});
 
 describe("scheduled notification delivery", () => {
   it("shuffles daily quotes without repeating on consecutive days", () => {

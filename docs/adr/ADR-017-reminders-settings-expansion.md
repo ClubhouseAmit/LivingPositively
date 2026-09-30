@@ -92,8 +92,17 @@ and the rejected custom reminder is removed from local metadata.
 Failed reset or sign-out compensation uses a saved title as the notification
 body when legacy stored content lacks a body.
 The custom form, persisted model, and backend measure labels in UTF-16 code
-units and accept at most 240. The scheduler reads provisioned notification type
-documents only for IDs outside the user reminder namespace.
+units and accept at most 240. User-authored quick IDs are restricted to the eleven
+client presets. Registrations without user-authored content still validate a
+provisioned type document, including legacy quick/custom IDs; delivery loads
+that document when a schedule lacks valid user-authored content.
+Expanded reminder state is also retained under `notificationReminderSettings`,
+which older clients never rewrite. When an older client strips the legacy blob's
+metadata, loading restores expanded choices and merges legacy schedule times;
+the legacy default entry remains authoritative for an old client's opt-out.
+Custom time edits save the definition and inactive time together before remote
+registration. A failed registration restores the old metadata; a failed local
+write restores the previous in-memory and persisted snapshot.
 
 ## Consequences
 

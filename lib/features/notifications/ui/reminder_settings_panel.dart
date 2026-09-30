@@ -272,10 +272,10 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
   }
 
   Future<bool> _setCustomTime(CustomReminder reminder, TimeOfDay time) async {
-    final applied = await _setTime(reminder.id, reminder.label, time);
-    if (!applied) return false;
+    final enabled = widget.repository.getPreference(reminder.id) != null;
+    var saved = false;
     try {
-      await widget.repository.setCustomReminder(
+      await widget.repository.setCustomReminderTime(
         CustomReminder(
           id: reminder.id,
           emoji: reminder.emoji,
@@ -284,7 +284,21 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
           minute: time.minute,
         ),
       );
+      saved = true;
+      if (enabled &&
+          !await _setEnabled(reminder.id, reminder.label, true, time)) {
+        await widget.repository.setCustomReminderTime(reminder);
+        return false;
+      }
     } catch (_) {
+      if (saved) {
+        try {
+          await widget.repository.setCustomReminderTime(reminder);
+        } catch (_) {
+          widget.onFailure();
+          return false;
+        }
+      }
       widget.onFailure();
       return false;
     }

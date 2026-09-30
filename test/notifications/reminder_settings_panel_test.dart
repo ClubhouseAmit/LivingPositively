@@ -3,11 +3,83 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/notifications/data/notification_models.dart';
 import 'package:mazilon/features/notifications/data/notification_repository.dart';
 import 'package:mazilon/features/notifications/ui/reminder_settings_panel.dart';
+import 'package:mazilon/features/notifications/ui/reminder_item_card.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
 void main() {
+  group('custom reminder time edits', () {
+    for (final enabled in [false, true]) {
+      testWidgets(
+        'should keep old time when metadata fails (enabled: $enabled)',
+        (tester) async {
+          final memory = FakePersistentMemoryService();
+          final repository = NotificationRepository.forService(memory);
+          const previous = CustomReminder(
+            id: 'custom_1',
+            emoji: 'x',
+            label: 'Practice',
+            hour: 8,
+            minute: 0,
+          );
+          await repository.setCustomReminderTime(previous);
+          if (enabled) {
+            await repository.setPreference(
+              previous.id,
+              const NotificationPreference(hour: 8, minute: 0),
+            );
+          }
+          var registrations = 0;
+          var failures = 0;
+          await pumpWithProviders(
+            tester,
+            Scaffold(
+              body: SingleChildScrollView(
+                child: ReminderSettingsPanel(
+                  repository: repository,
+                  onRegister: (_, _, _, _) async {
+                    registrations++;
+                    return true;
+                  },
+                  onCancel: (_) async => true,
+                  onFailure: () => failures++,
+                  onFormatChanged: () {},
+                ),
+              ),
+            ),
+            userInformation: UserInformation(service: memory),
+            surfaceSize: const Size(400, 800),
+          );
+          var failNext = true;
+          memory.onPersist = (key, _, _) {
+            if (key == 'notificationPreferences' && failNext) {
+              failNext = false;
+              throw StateError('disk unavailable');
+            }
+          };
+          final card = tester.widget<ReminderItemCard>(
+            find.byKey(const ValueKey('custom_1')),
+          );
+          final result = await card.onTimeChanged(
+            const TimeOfDay(hour: 9, minute: 30),
+          );
+          expect(result, isFalse);
+          expect(registrations, 0);
+          expect(failures, 1);
+          expect(repository.customReminders.single.hour, 8);
+          expect(repository.getSavedTime(previous.id)?.hour, 8);
+          final restored =
+              NotificationRepository.forService(FakePersistentMemoryService())
+                ..restoreJson(
+                  memory.durableStore['notificationPreferences'] as String,
+                );
+          expect(restored.customReminders.single.hour, 8);
+          expect(restored.getSavedTime(previous.id)?.hour, 8);
+        },
+      );
+    }
+  });
   testWidgets('uncertain custom registration remains removable', (
     tester,
   ) async {

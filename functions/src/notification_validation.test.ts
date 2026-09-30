@@ -63,6 +63,19 @@ describe("notification validation", () => {
     assert.equal(isValidUserReminderContent("custom_1", "X", "x".repeat(241)), false);
   });
 
+  it("accepts every client quick ID and rejects unknown quick IDs", () => {
+    for (const suffix of ["exercise", "pills", "meditate", "water", "read",
+      "sleep", "journal", "stretch", "breathe", "music", "friend"]) {
+      assert.equal(isUserReminderTypeId(`quick_${suffix}`), true);
+    }
+    for (const id of ["quick_extra", "quick_", "quick_Music", "quick_water_extra"]) {
+      assert.equal(isUserReminderTypeId(id), false);
+      assert.equal(isValidUserReminderContent(id, "Title", "Body"), false);
+    }
+    assert.equal(isUserReminderTypeId(`custom_${"a".repeat(40)}`), true);
+    assert.equal(isUserReminderTypeId(`custom_${"a".repeat(41)}`), false);
+  });
+
   it("normalizes unknown genders to the documented fallback", () => {
     assert.equal(normalizeNotificationGender("male"), "male");
     assert.equal(normalizeNotificationGender("female"), "female");

@@ -18,8 +18,10 @@ import '../../../Firebase/firebase_auth_service_test.mocks.dart';
 
 final class _Memory implements PersistentMemoryService {
   final writes = <String>[];
+  String? expanded;
   Completer<void>? gate;
   bool failNextWrite = false;
+  bool failNextExpandedWrite = false;
 
   @override
   Future<void> setItem(
@@ -30,6 +32,14 @@ final class _Memory implements PersistentMemoryService {
     if (key == 'fcmDefaultReminderMigrated') {
       expect(type, PersistentMemoryType.Bool);
       expect(value, isTrue);
+      return;
+    }
+    if (key == 'notificationReminderSettings') {
+      if (failNextExpandedWrite) {
+        failNextExpandedWrite = false;
+        throw StateError('expanded storage unavailable');
+      }
+      expanded = value as String;
       return;
     }
     expect(key, 'notificationPreferences');
@@ -43,12 +53,13 @@ final class _Memory implements PersistentMemoryService {
   }
 
   @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async =>
+      key == 'notificationPreferences' ? writes.lastOrNull : null;
 
   @override
   Future<Map<String, Object?>> readSnapshot(
     Map<String, PersistentMemoryType> keys,
-  ) async => const {};
+  ) async => {'notificationPreferences': writes.lastOrNull};
 
   @override
   Future<void> reset() async {}
@@ -62,6 +73,126 @@ void main() {
     setUp(() {
       memory = _Memory();
       repository = NotificationRepository.forService(memory);
+    });
+
+    test(
+      'should retain expanded choices after an older client writes',
+      () async {
+        await repository.activateAccount('account-a');
+        await repository.setCustomReminder(
+          const CustomReminder(
+            id: 'custom_1',
+            emoji: 'x',
+            label: 'Practice',
+            hour: 8,
+            minute: 0,
+          ),
+        );
+        await repository.setPreference(
+          'custom_1',
+          const NotificationPreference.withContent(
+            hour: 8,
+            minute: 0,
+            staticTitle: 'Title',
+            staticBody: 'Practice',
+          ),
+        );
+        await repository.setUse24HourFormat(false);
+        await repository.setSavedTime(
+          'quick_water',
+          const NotificationPreference(hour: 9, minute: 15),
+        );
+        final expanded = memory.expanded;
+        repository.restorePersistedJson(
+          '{"default":{"hour":7,"minute":45},"custom_1":{"hour":8,"minute":0}}',
+          expanded,
+        );
+        expect(repository.customReminders.single.label, 'Practice');
+        expect(repository.use24HourFormat, isFalse);
+        expect(repository.isActiveAccount('account-a'), isTrue);
+        expect(repository.getSavedTime('quick_water')?.minute, 15);
+        expect(repository.getPreference('custom_1')?.staticBody, 'Practice');
+        expect(repository.getPreference('default')?.minute, 45);
+        repository.restorePersistedJson('{}', expanded);
+        expect(repository.getPreference('default'), isNull);
+        expect(repository.defaultOptOut, isTrue);
+        expect(repository.getPreference('custom_1'), isNotNull);
+      },
+    );
+
+    for (final expandedFailure in [false, true]) {
+      test(
+        'should roll back custom time on failure (expanded: $expandedFailure)',
+        () async {
+          const previous = CustomReminder(
+            id: 'custom_1',
+            emoji: 'x',
+            label: 'Practice',
+            hour: 8,
+            minute: 0,
+          );
+          await repository.setCustomReminderTime(previous);
+          memory.failNextWrite = !expandedFailure;
+          memory.failNextExpandedWrite = expandedFailure;
+          await expectLater(
+            repository.setCustomReminderTime(
+              const CustomReminder(
+                id: 'custom_1',
+                emoji: 'x',
+                label: 'Practice',
+                hour: 9,
+                minute: 30,
+              ),
+            ),
+            throwsStateError,
+          );
+          expect(repository.customReminders.single.hour, 8);
+          expect(repository.getSavedTime('custom_1')?.hour, 8);
+          final restored = NotificationRepository.forService(_Memory())
+            ..restoreJson(memory.writes.last);
+          expect(restored.customReminders.single.hour, 8);
+          expect(restored.getSavedTime('custom_1')?.hour, 8);
+        },
+      );
+    }
+
+    test('should preserve concurrent edits when custom time fails', () async {
+      await repository.setCustomReminderTime(
+        const CustomReminder(
+          id: 'custom_1',
+          emoji: 'x',
+          label: 'Practice',
+          hour: 8,
+          minute: 0,
+        ),
+      );
+      memory.gate = Completer<void>();
+      memory.failNextWrite = true;
+      final edit = repository.setCustomReminderTime(
+        const CustomReminder(
+          id: 'custom_1',
+          emoji: 'x',
+          label: 'Practice',
+          hour: 9,
+          minute: 30,
+        ),
+      );
+      final format = repository.setUse24HourFormat(false);
+      final quick = repository.setPreference(
+        'quick_water',
+        const NotificationPreference(hour: 10, minute: 15),
+      );
+      final failed = expectLater(edit, throwsStateError);
+      memory.gate!.complete();
+      await Future.wait([failed, format, quick]);
+      expect(repository.customReminders.single.hour, 8);
+      expect(repository.use24HourFormat, isFalse);
+      expect(repository.getPreference('quick_water')?.hour, 10);
+      final restored = NotificationRepository.forService(_Memory())
+        ..restoreJson(memory.writes.last);
+      expect(restored.customReminders.single.hour, 8);
+      expect(restored.use24HourFormat, isFalse);
+      expect(restored.getPreference('quick_water')?.hour, 10);
     });
 
     group('locale rescheduling', () {
