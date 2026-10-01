@@ -37,12 +37,49 @@ name: iOS integration telemetry
 # main.yml AND restore the iOS branch in check_aggregate_coverage.dart.
 on:
   workflow_call:
+  workflow_dispatch:
+    inputs:
+      refresh-pod-lock:
+        description: Regenerate the iOS dependency lockfile for a package upgrade.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  refresh-pod-lock:
+    if: github.event_name == 'workflow_dispatch' && inputs.refresh-pod-lock
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      FLUTTER_SWIFT_PACKAGE_MANAGER: "false"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Install Dart dependencies
+        run: flutter pub get
+
+      - name: Regenerate CocoaPods lockfile
+        working-directory: ios
+        run: pod update --repo-update
+
+      - name: Upload regenerated iOS lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-podfile-lock
+          path: ios/Podfile.lock
+          if-no-files-found: error
+
   integration-test-ios:
+    if: github.event_name != 'workflow_dispatch' || !inputs.refresh-pod-lock
     runs-on: macos-15
     # Telemetry must still be time-bounded. GitHub's default job timeout is
     # 360 minutes, which lets a stuck `flutter test` monopolize the macOS
