@@ -32,6 +32,7 @@ class InitialFormAppearancePage extends WizardStep {
 class _InitialFormAppearancePageState
     extends WizardStepState<InitialFormAppearancePage> {
   Future<void>? _pendingSave;
+  bool _exitRequested = false;
 
   Future<void> _saveCurrentAppearance() {
     final user = Provider.of<UserInformation>(context, listen: false);
@@ -58,6 +59,7 @@ class _InitialFormAppearancePageState
   }
 
   Future<void> _retryAndAdvance() async {
+    _exitRequested = false;
     try {
       final save = _saveCurrentAppearance();
       _pendingSave = save;
@@ -70,13 +72,28 @@ class _InitialFormAppearancePageState
 
   @override
   Future<void> onPrimaryAction() async {
+    _exitRequested = false;
     try {
       await _pendingSave;
-      widget.next();
+      if (mounted && !_exitRequested) widget.next();
     } catch (_) {
       if (mounted) _showSaveError();
       rethrow;
     }
+  }
+
+  @override
+  Future<void> persistBeforeExit() async {
+    _exitRequested = true;
+    await _pendingSave;
+  }
+
+  @override
+  Future<void> retryPersistBeforeExit() async {
+    _exitRequested = true;
+    final save = _saveCurrentAppearance();
+    _pendingSave = save;
+    await save;
   }
 
   @override

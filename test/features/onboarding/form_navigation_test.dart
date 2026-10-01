@@ -67,6 +67,20 @@ PhonePageData _data() => PhonePageData(
   phoneDescription: const <String>[],
 );
 
+UserInformation _userWithAppearanceMemory(PersistentMemoryService memory) {
+  GetIt.instance.unregister<PersistentMemoryService>();
+  GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+  return UserInformation()
+    ..gender = 'other'
+    ..localeName = 'en'
+    ..disclaimerSigned = true;
+}
+
+void _expectNoAppearanceWrites(FakePersistentMemoryService memory) {
+  final keys = memory.attemptedWrites.map((write) => write.key);
+  expect(keys.where((key) => key.startsWith('darkMode')), isEmpty);
+}
+
 Future<void> _moveToAppearance(
   WidgetTester tester,
   UserInformation user,
@@ -259,16 +273,41 @@ void main() {
     },
   );
 
+  testWidgets('unchanged appearance navigation does not persist defaults', (
+    tester,
+  ) async {
+    final memory = FakePersistentMemoryService();
+    user = _userWithAppearanceMemory(memory);
+    await _moveToAppearance(tester, user);
+
+    await tester.tap(find.byKey(const Key('intro-header-back')));
+    await tester.pumpAndSettle();
+    _expectNoAppearanceWrites(memory);
+
+    tester.widget<InitialFormPage2>(find.byType(InitialFormPage2)).next();
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('intro-header-skip')));
+    await tester.pumpAndSettle();
+    _expectNoAppearanceWrites(memory);
+
+    await tester.tap(find.byKey(const Key('intro-header-back')));
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    _expectNoAppearanceWrites(memory);
+
+    tester.widget<InitialFormPage2>(find.byType(InitialFormPage2)).next();
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('wizard-primary-action')));
+    await tester.pumpAndSettle();
+    _expectNoAppearanceWrites(memory);
+  });
+
   testWidgets('appearance step waits for its preference to persist', (
     tester,
   ) async {
     final memory = _HeldAppearanceMemoryService();
-    GetIt.instance.unregister<PersistentMemoryService>();
-    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
-    user = UserInformation()
-      ..gender = 'other'
-      ..localeName = 'en'
-      ..disclaimerSigned = true;
+    user = _userWithAppearanceMemory(memory);
     addTearDown(memory.releasePreferenceWrite);
 
     await _moveToAppearance(tester, user);
@@ -283,16 +322,97 @@ void main() {
     expect(find.byType(ToFormPage), findsOneWidget);
   });
 
+  testWidgets(
+    'back requested during a primary save returns to personal details',
+    (tester) async {
+      final memory = _HeldAppearanceMemoryService();
+      user = _userWithAppearanceMemory(memory);
+      addTearDown(memory.releasePreferenceWrite);
+
+      await _moveToAppearance(tester, user);
+      await tester.tap(find.byKey(const Key('darkModeAlwaysDarkOption')));
+      await memory.preferenceWriteStarted.future;
+      await tester.tap(find.byKey(const Key('wizard-primary-action')));
+      await tester.tap(find.byKey(const Key('intro-header-back')));
+      await tester.pump();
+
+      expect(find.byType(InitialFormAppearancePage), findsOneWidget);
+      memory.releasePreferenceWrite();
+      await tester.pumpAndSettle();
+      expect(find.byType(InitialFormPage2), findsOneWidget);
+      expect(find.byType(InitialFormAppearancePage), findsNothing);
+    },
+  );
+
+  testWidgets('appearance skip waits for its preference to persist', (
+    tester,
+  ) async {
+    final memory = _HeldAppearanceMemoryService();
+    user = _userWithAppearanceMemory(memory);
+    addTearDown(memory.releasePreferenceWrite);
+
+    await _moveToAppearance(tester, user);
+    await tester.tap(find.byKey(const Key('darkModeAlwaysDarkOption')));
+    await memory.preferenceWriteStarted.future;
+    await tester.tap(find.byKey(const Key('intro-header-skip')));
+    await tester.pump();
+
+    expect(find.byType(InitialFormAppearancePage), findsOneWidget);
+    memory.releasePreferenceWrite();
+    await tester.pumpAndSettle();
+    expect(find.byType(ToFormPage), findsOneWidget);
+  });
+
+  testWidgets('system back waits for the appearance preference to persist', (
+    tester,
+  ) async {
+    final memory = _HeldAppearanceMemoryService();
+    user = _userWithAppearanceMemory(memory);
+    addTearDown(memory.releasePreferenceWrite);
+
+    await _moveToAppearance(tester, user);
+    await tester.tap(find.byKey(const Key('darkModeAlwaysDarkOption')));
+    await memory.preferenceWriteStarted.future;
+    final pop = tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(find.byType(InitialFormAppearancePage), findsOneWidget);
+    memory.releasePreferenceWrite();
+    await pop;
+    await tester.pumpAndSettle();
+    expect(find.byType(InitialFormPage2), findsOneWidget);
+  });
+
+  testWidgets('appearance back offers a retry when persistence fails', (
+    tester,
+  ) async {
+    final memory = _FailFirstAppearanceMemoryService();
+    user = _userWithAppearanceMemory(memory);
+
+    await _moveToAppearance(tester, user);
+    await tester.tap(find.byKey(const Key('darkModeAlwaysDarkOption')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isA<StateError>());
+
+    await tester.tap(find.byKey(const Key('intro-header-back')));
+    await tester.pumpAndSettle();
+    expect(find.byType(InitialFormAppearancePage), findsOneWidget);
+    expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
+
+    tester
+        .widget<SnackBarAction>(
+          find.widgetWithText(SnackBarAction, 'Try again'),
+        )
+        .onPressed();
+    await tester.pumpAndSettle();
+    expect(find.byType(InitialFormPage2), findsOneWidget);
+  });
+
   testWidgets('appearance step offers a retry when persistence fails', (
     tester,
   ) async {
     final memory = _FailFirstAppearanceMemoryService();
-    GetIt.instance.unregister<PersistentMemoryService>();
-    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
-    user = UserInformation()
-      ..gender = 'other'
-      ..localeName = 'en'
-      ..disclaimerSigned = true;
+    user = _userWithAppearanceMemory(memory);
 
     await _moveToAppearance(tester, user);
     await tester.tap(find.byKey(const Key('darkModeAlwaysDarkOption')));

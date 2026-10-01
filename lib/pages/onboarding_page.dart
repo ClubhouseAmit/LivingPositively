@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/async/global_enums.dart';
@@ -8,6 +10,7 @@ import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 
 import 'package:mazilon/features/wizard/ui/wizard_actions.dart';
 import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/features/shell/ui/persistence_retry_snack_bar.dart';
 import 'package:mazilon/design_system/tokens/font_weight.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/features/onboarding/ui/to_form_page.dart';
@@ -48,6 +51,7 @@ class InitialFormProgressIndicatorState
   int currentStep = 0;
   String name = '';
   bool hasFilled = false;
+  bool _headerNavigationInFlight = false;
   List<WizardStep> steps = [];
 
   void getHasFilled() async {
@@ -87,6 +91,32 @@ class InitialFormProgressIndicatorState
     setState(() {
       if (currentStep > 0) currentStep--;
     });
+  }
+
+  Future<void> _persistThenNavigate(
+    VoidCallback navigate, {
+    bool retry = false,
+  }) async {
+    if (_headerNavigationInFlight) return;
+    _headerNavigationInFlight = true;
+    try {
+      final stepState = steps[currentStep].stepKey.currentState;
+      if (retry) {
+        await stepState?.retryPersistBeforeExit();
+      } else {
+        await stepState?.persistBeforeExit();
+      }
+      if (mounted) navigate();
+    } catch (_) {
+      if (mounted) {
+        showPersistenceRetrySnackBar(
+          context,
+          () => _persistThenNavigate(navigate, retry: true),
+        );
+      }
+    } finally {
+      _headerNavigationInFlight = false;
+    }
   }
 
   void updateName(String name) {
@@ -157,7 +187,7 @@ class InitialFormProgressIndicatorState
         if (didPop) {
           return;
         } else {
-          prev();
+          await _persistThenNavigate(prev);
         }
       },
       child: Scaffold(
@@ -170,8 +200,10 @@ class InitialFormProgressIndicatorState
               children: [
                 _IntroHeader(
                   canGoBack: currentStep > 1,
-                  onSkip: handleSkip,
-                  onBack: prev,
+                  onSkip: () => unawaited(
+                    _persistThenNavigate(handleSkip),
+                  ),
+                  onBack: () => unawaited(_persistThenNavigate(prev)),
                   skipLabel: appLocale.skipButton(gender),
                 ),
                 Expanded(
