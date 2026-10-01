@@ -140,12 +140,11 @@ class AuthService {
     final clientId = defaultTargetPlatform == TargetPlatform.iOS
         ? iosClientId
         : null;
-    final GoogleSignInAccount? googleUser;
     _trackGoogleSignInOutcome('started');
     try {
       final startGoogleSignIn =
           debugGoogleSignInStarterOverride ?? _startGoogleSignIn;
-      googleUser = await startGoogleSignIn(
+      final googleUser = await startGoogleSignIn(
         clientId: clientId,
         serverClientId: serverClientId,
       );
@@ -153,9 +152,13 @@ class AuthService {
         _trackGoogleSignInOutcome('canceled');
         return null;
       }
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleUser.authentication.idToken,
-      );
+      final idToken = googleUser.authentication.idToken;
+      if (idToken == null || idToken.trim().isEmpty) {
+        throw const GoogleSignInException(
+          code: GoogleSignInExceptionCode.clientConfigurationError,
+        );
+      }
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
       final result = await _auth.signInWithCredential(credential);
       _trackGoogleSignInOutcome('success');
       return result;
@@ -332,7 +335,11 @@ class AuthService {
                     ? error.stackTrace
                     : stackTrace,
               ),
-            ).catchError((_) {}),
+            ).catchError((_) {
+              if (error is GoogleSignInInitializationFailure) {
+                error.releaseReport();
+              }
+            }),
           );
         }
       }

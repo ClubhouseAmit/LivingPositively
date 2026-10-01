@@ -13,6 +13,9 @@ final class GoogleSignInInitializationFailure implements Exception {
     return true;
   }
 
+  /// Releases a failed incident claim so a later authentication attempt can report.
+  void releaseReport() => _reported = false;
+
   @override
   String toString() => 'Google Sign-In initialization failed: $cause';
 }
