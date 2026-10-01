@@ -41,9 +41,21 @@ String? mergeNotificationSnapshots(String? legacy, String? expanded) {
       : jsonDecode(legacy);
   if (decoded is! Map) throw const FormatException('Invalid preferences');
   if (decoded.containsKey('__customReminders')) return legacy;
-  final settings = jsonDecode(expanded);
-  if (settings is! Map) {
-    throw const FormatException('Invalid reminder settings');
+  final Map<String, dynamic> settings;
+  try {
+    final value = jsonDecode(expanded);
+    if (value is! Map<String, dynamic>) return legacy;
+    settings = value;
+  } on FormatException {
+    return legacy;
+  }
+  // Older writers omit ownership, so their entries cannot be attributed to
+  // an account in the retained snapshot. Preserve that snapshot unchanged.
+  if (settings['__activeAccountUid'] != null ||
+      settings['__pausedAccountOwnerUid'] != null ||
+      (settings['__accountSnapshots'] is Map &&
+          (settings['__accountSnapshots'] as Map).isNotEmpty)) {
+    return expanded;
   }
   final merged = Map<String, dynamic>.from(settings)..remove('default');
   for (final entry in decoded.entries) {

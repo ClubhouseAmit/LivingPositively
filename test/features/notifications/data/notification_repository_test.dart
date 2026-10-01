@@ -76,9 +76,8 @@ void main() {
     });
 
     test(
-      'should retain expanded choices after an older client writes',
+      'should retain unowned expanded choices after an older client writes',
       () async {
-        await repository.activateAccount('account-a');
         await repository.setCustomReminder(
           const CustomReminder(
             id: 'custom_1',
@@ -109,7 +108,7 @@ void main() {
         );
         expect(repository.customReminders.single.label, 'Practice');
         expect(repository.use24HourFormat, isFalse);
-        expect(repository.isActiveAccount('account-a'), isTrue);
+        expect(repository.isActiveAccount('account-a'), isFalse);
         expect(repository.getSavedTime('quick_water')?.minute, 15);
         expect(repository.getPreference('custom_1')?.staticBody, 'Practice');
         expect(repository.getPreference('default')?.minute, 45);
@@ -117,6 +116,95 @@ void main() {
         expect(repository.getPreference('default'), isNull);
         expect(repository.defaultOptOut, isTrue);
         expect(repository.getPreference('custom_1'), isNotNull);
+      },
+    );
+
+    for (final corrupt in ['{broken', '[]', 'null', '42', '"settings"']) {
+      test('should retain valid primary state with corrupt copy $corrupt', () {
+        repository.restorePersistedJson(
+          '{"quick_water":{"hour":9,"minute":15},"__defaultOptOut":true}',
+          corrupt,
+        );
+        expect(repository.getPreference('quick_water')?.minute, 15);
+        expect(repository.getPreference('default'), isNull);
+        expect(repository.defaultOptOut, isTrue);
+      });
+    }
+
+    for (final invalid in ['{broken', '[]', 'null', '42']) {
+      test(
+        'should reject invalid primary state $invalid despite valid copy',
+        () {
+          expect(
+            () => repository.restorePersistedJson(invalid, '{}'),
+            throwsFormatException,
+          );
+        },
+      );
+    }
+
+    test(
+      'should preserve account A after an unowned account B rewrite',
+      () async {
+        await repository.activateAccount('account-b');
+        await repository.setPreference(
+          'default',
+          const NotificationPreference(hour: 6, minute: 0),
+        );
+        await repository.activateAccount('account-a');
+        await repository.setCustomReminder(
+          const CustomReminder(
+            id: 'custom_1',
+            emoji: 'x',
+            label: 'Account A practice',
+            hour: 8,
+            minute: 0,
+          ),
+        );
+        await repository.setPreference(
+          'quick_water',
+          const NotificationPreference(hour: 9, minute: 15),
+        );
+        await repository.clearPreferenceForAccountTransition('quick_water');
+        await repository.clearPreference('default');
+        await repository.setUse24HourFormat(false);
+        final expanded = memory.expanded;
+        repository.restorePersistedJson(
+          '{"default":{"hour":22,"minute":45},'
+          '"quick_water":{"hour":21,"minute":30}}',
+          expanded,
+        );
+        expect(repository.isActiveAccount('account-a'), isTrue);
+        expect(repository.getPreference('default'), isNull);
+        expect(repository.defaultOptOut, isTrue);
+        expect(repository.getPreference('quick_water'), isNull);
+        expect(
+          repository
+              .pausedAccountRemindersFor('account-a')['quick_water']
+              ?.hour,
+          9,
+        );
+        expect(repository.customReminders.single.label, 'Account A practice');
+        expect(repository.use24HourFormat, isFalse);
+
+        await repository.activateAccount('account-b');
+        expect(repository.getPreference('default')?.hour, 6);
+        expect(repository.getPreference('quick_water'), isNull);
+        expect(repository.customReminders, isEmpty);
+        final restored = NotificationRepository.forService(_Memory())
+          ..restoreJson(memory.writes.last);
+        await restored.activateAccount('account-a');
+        expect(restored.getPreference('default'), isNull);
+        expect(restored.defaultOptOut, isTrue);
+        expect(restored.getSavedTime('quick_water')?.hour, 9);
+        expect(
+          restored
+              .pausedAccountRemindersFor('account-a')['quick_water']
+              ?.minute,
+          15,
+        );
+        expect(restored.customReminders.single.label, 'Account A practice');
+        expect(restored.use24HourFormat, isFalse);
       },
     );
 
