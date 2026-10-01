@@ -5827,4 +5827,87 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get breathingStopped => 'انتهى مبكّرًا';
+
+  @override
+  String get reminderTitleFirst => 'ذكّر';
+
+  @override
+  String get reminderTitleSecond => 'ني';
+
+  @override
+  String get reminderPageSubtitle => 'اختر تذكيرات تناسب يومك';
+
+  @override
+  String get reminderAppSection => 'تذكير من التطبيق';
+
+  @override
+  String get reminderAppTitle => 'كلمة صمود يومية';
+
+  @override
+  String get reminderAppSubtitle =>
+      'ومضة يومية لطيفة من الأمل والراحة تنير طريقك';
+
+  @override
+  String get reminderQuickSection => 'تذكيرات سريعة';
+
+  @override
+  String get reminderCustomSection => 'اختر أو أنشئ تذكيرك الخاص';
+
+  @override
+  String get reminderActiveSection => 'التذكيرات المفعّلة';
+
+  @override
+  String get reminderEmojiLabel => 'رمز تعبيري';
+
+  @override
+  String get reminderLabelLabel => 'عنوان التذكير';
+
+  @override
+  String get reminderAdd => 'إضافة تذكير';
+
+  @override
+  String get reminderLimitReached =>
+      'يمكنك تفعيل ما يصل إلى 32 تذكيرًا. أوقف أحدها قبل إضافة تذكير آخر.';
+
+  @override
+  String get reminderRemove => 'حذف التذكير';
+
+  @override
+  String get reminderHourFormat => '24 ساعة';
+
+  @override
+  String get reminderAmPmFormat => 'ص/م';
+
+  @override
+  String get reminderQuickExercise => 'تمارين رياضية';
+
+  @override
+  String get reminderQuickPills => 'تناول الدواء';
+
+  @override
+  String get reminderQuickMeditate => 'التأمل';
+
+  @override
+  String get reminderQuickWater => 'شرب الماء';
+
+  @override
+  String get reminderQuickRead => 'القراءة';
+
+  @override
+  String get reminderQuickSleep => 'النوم';
+
+  @override
+  String get reminderQuickJournal => 'الكتابة في المفكرة';
+
+  @override
+  String get reminderQuickStretch => 'تمارين التمدد';
+
+  @override
+  String get reminderQuickBreathe => 'التنفس';
+
+  @override
+  String get reminderQuickMusic => 'عزف الموسيقى';
+
+  @override
+  String get reminderQuickFriend => 'التواصل مع صديق';
 }

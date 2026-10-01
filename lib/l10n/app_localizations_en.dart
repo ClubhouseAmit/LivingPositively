@@ -5816,4 +5816,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get breathingStopped => 'Ended early';
+
+  @override
+  String get reminderTitleFirst => 'Remind';
+
+  @override
+  String get reminderTitleSecond => 'Me';
+
+  @override
+  String get reminderPageSubtitle => 'Choose reminders to shape your day';
+
+  @override
+  String get reminderAppSection => 'APP REMINDER';
+
+  @override
+  String get reminderAppTitle => 'A Word of Resilience';
+
+  @override
+  String get reminderAppSubtitle =>
+      'A gentle daily spark of comfort and hope, lighting your way';
+
+  @override
+  String get reminderQuickSection => 'QUICK REMINDERS';
+
+  @override
+  String get reminderCustomSection => 'CHOOSE OR CREATE YOUR OWN REMINDER';
+
+  @override
+  String get reminderActiveSection => 'ACTIVE REMINDERS';
+
+  @override
+  String get reminderEmojiLabel => 'Emoji';
+
+  @override
+  String get reminderLabelLabel => 'Reminder label';
+
+  @override
+  String get reminderAdd => 'Add reminder';
+
+  @override
+  String get reminderLimitReached =>
+      'You can have up to 32 active reminders. Turn one off before adding another.';
+
+  @override
+  String get reminderRemove => 'Remove reminder';
+
+  @override
+  String get reminderHourFormat => '24h';
+
+  @override
+  String get reminderAmPmFormat => 'AM/PM';
+
+  @override
+  String get reminderQuickExercise => 'Exercise';
+
+  @override
+  String get reminderQuickPills => 'Take Pills';
+
+  @override
+  String get reminderQuickMeditate => 'Meditate';
+
+  @override
+  String get reminderQuickWater => 'Drink Water';
+
+  @override
+  String get reminderQuickRead => 'Read';
+
+  @override
+  String get reminderQuickSleep => 'Sleep';
+
+  @override
+  String get reminderQuickJournal => 'Write in Journal';
+
+  @override
+  String get reminderQuickStretch => 'Stretch';
+
+  @override
+  String get reminderQuickBreathe => 'Breathe';
+
+  @override
+  String get reminderQuickMusic => 'Play Music';
+
+  @override
+  String get reminderQuickFriend => 'Connect with a Friend';
 }

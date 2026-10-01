@@ -210,11 +210,11 @@ Future<void> loadUserInformation(
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   try {
-    NotificationRepository.forService(
-      service,
-    ).restoreJson(data['notificationPreferences'] as String?);
+    await NotificationRepository.forService(service).restorePersistedState(
+      data['notificationPreferences'] as String?,
+    );
   } on FormatException {
-    NotificationRepository.forService(service).restorePreferences(const {});
+    NotificationRepository.forService(service).restoreJson(null);
   }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,

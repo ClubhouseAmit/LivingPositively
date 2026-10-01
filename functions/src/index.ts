@@ -25,6 +25,7 @@ import {
 import {
   hasValidNotificationTypeSchema,
   isAnonymousSignIn,
+  isValidUserReminderContent,
   isValidNotificationLocale,
   isValidNotificationScheduleTime,
   isValidNotificationTypeId,
@@ -46,6 +47,7 @@ const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
 const DELIVERY_SEND_BATCH_SIZE = 25;
 const MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE = 250;
 const MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION = 25;
+const MAX_REMINDERS_PER_USER = 32;
 const STALE_DEVICE_CLEANUP_BATCH_SIZE = 5;
 const MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP = 25;
 
@@ -87,6 +89,45 @@ export type IsraelLocalDeliveryCandidate = {
   minute: number;
   intendedAt: Date;
 };
+
+/** Picks a stable shuffled quote for each user and local day. */
+export function dailyQuoteIndex(
+  uid: string,
+  localDate: string,
+  quoteCount: number,
+): number {
+  if (quoteCount <= 1) return 0;
+  const day = Math.floor(Date.parse(`${localDate}T00:00:00Z`) / 86_400_000);
+  if (quoteCount === 2) {
+    return (shuffledQuoteIndices(uid, 0, quoteCount)[0] + day) % quoteCount;
+  }
+  const cycle = Math.floor(day / quoteCount);
+  const position = day - cycle * quoteCount;
+  const order = shuffledQuoteIndices(uid, cycle, quoteCount);
+  const previous = shuffledQuoteIndices(uid, cycle - 1, quoteCount);
+  if (order[0] === previous[quoteCount - 1]) {
+    [order[0], order[1]] = [order[1], order[0]];
+  }
+  return order[position];
+}
+
+function shuffledQuoteIndices(
+  uid: string,
+  cycle: number,
+  quoteCount: number,
+): number[] {
+  const order = Array.from({ length: quoteCount }, (_, index) => index);
+  let seed = 0;
+  for (const character of `${uid}:${cycle}`) {
+    seed = (Math.imul(seed, 31) + character.charCodeAt(0)) >>> 0;
+  }
+  for (let index = quoteCount - 1; index > 0; index--) {
+    seed = (Math.imul(seed, 1_664_525) + 1_013_904_223) >>> 0;
+    const next = seed % (index + 1);
+    [order[index], order[next]] = [order[next], order[index]];
+  }
+  return order;
+}
 type FcmMessage = {
   token: string;
   notification: { title: string; body: string };
@@ -159,6 +200,8 @@ function isNotificationMutationRequestBody(
 type NotificationScheduleDescriptor = {
   hour: number;
   minute: number;
+  staticTitle?: string;
+  staticBody?: string;
 };
 
 function notificationScheduleDescriptor(
@@ -185,7 +228,14 @@ function notificationScheduleDescriptor(
   ) {
     return undefined;
   }
-  return { hour, minute };
+  return {
+    hour,
+    minute,
+    ...(isValidUserReminderContent(typeId, schedule.staticTitle, schedule.staticBody)
+      ? { staticTitle: schedule.staticTitle as string,
+        staticBody: schedule.staticBody as string }
+      : {}),
+  };
 }
 
 export function buildNotificationDeliveryKey(
@@ -694,6 +744,7 @@ export function staleDeviceCleanupBatch(
 }
 
 class NotificationMutationConflictError extends Error {}
+class NotificationReminderLimitError extends Error {}
 
 // ---------------------------------------------------------------------------
 // getNotificationMutationVersion — returns the server-authoritative version
@@ -729,26 +780,35 @@ export const getNotificationMutationVersion = onRequest(
       uid,
       typeId,
     ).get();
-    if (!stateDoc.exists) {
-      res.send({ mutationVersion: 0 });
-      return;
-    }
-
     const mutationVersion = stateDoc.data()?.version;
-    if (mutationVersion === undefined) {
-      res.send({ mutationVersion: 0 });
-      return;
-    }
-    if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
+    if (mutationVersion !== undefined &&
+      !isNonNegativeNotificationMutationVersion(mutationVersion)) {
       logger.warn("Invalid notification mutation state version", {
         uid,
         typeId,
         valueType: typeof mutationVersion,
       });
-      res.send({ mutationVersion: 0 });
+    }
+    const version = isNonNegativeNotificationMutationVersion(mutationVersion)
+      ? mutationVersion : 0;
+    if (typeId !== "default") {
+      res.send({ mutationVersion: version });
       return;
     }
-    res.send({ mutationVersion });
+    const scheduleRef = notificationScheduleRef(getFirestore(), uid, typeId);
+    const legacyRef = legacyNotificationScheduleRef(getFirestore(), uid, typeId);
+    const scheduleDoc = await scheduleRef.get();
+    const legacyDoc = scheduleDoc.exists || legacyRef.path === scheduleRef.path
+      ? undefined : await legacyRef.get();
+    const active = scheduleDoc.exists ? scheduleDoc : legacyDoc;
+    const data = active?.data();
+    const readable = active?.exists &&
+      hasMatchingNotificationScheduleIdentity(data, uid, typeId) &&
+      isValidNotificationScheduleTime(data?.hour, data?.minute);
+    res.send({
+      mutationVersion: version,
+      schedule: readable ? { hour: data?.hour, minute: data?.minute } : null,
+    });
   },
 );
 
@@ -779,7 +839,8 @@ export const registerNotification = onRequest(
       res.status(400).send("Invalid body");
       return;
     }
-    const { typeId, hour, minute, locale, gender, expectedMutationVersion } =
+    const { typeId, hour, minute, locale, gender, expectedMutationVersion,
+      staticTitle, staticBody } =
       req.body;
     const expectedVersion = parseExpectedNotificationMutationVersion(
       expectedMutationVersion,
@@ -802,32 +863,58 @@ export const registerNotification = onRequest(
       return;
     }
 
-    const typeDoc = await getFirestore()
-      .collection("notification_types")
-      .doc(typeId)
-      .get();
-    if (!typeDoc.exists || !hasValidNotificationTypeSchema(typeDoc.data())) {
-      res.status(400).send(`Unknown or invalid typeId: ${typeId}`);
+    const db = getFirestore();
+    const userContent = isValidUserReminderContent(typeId, staticTitle, staticBody);
+    if ((staticTitle !== undefined || staticBody !== undefined) && !userContent) {
+      res.status(400).send("Invalid reminder content");
       return;
     }
+    if (!userContent) {
+      const typeDoc = await db
+        .collection("notification_types")
+        .doc(typeId)
+        .get();
+      if (!typeDoc.exists || !hasValidNotificationTypeSchema(typeDoc.data()) ||
+        staticTitle !== undefined || staticBody !== undefined) {
+        res.status(400).send(`Unknown or invalid typeId: ${typeId}`);
+        return;
+      }
+    }
 
-    const db = getFirestore();
     const stateRef = notificationMutationStateRef(db, uid, typeId);
     const scheduleRef = notificationScheduleRef(db, uid, typeId);
     const legacyScheduleRef = legacyNotificationScheduleRef(db, uid, typeId);
+    const quotaRef = db.collection("notification_registration_locks").doc(uid);
     let mutationVersion: number | undefined;
     try {
       mutationVersion = await db.runTransaction(async (transaction) => {
+        await transaction.get(quotaRef);
+        const existingSchedule = await transaction.get(scheduleRef);
         const legacySchedule =
           legacyScheduleRef.path === scheduleRef.path
             ? undefined
             : await transaction.get(legacyScheduleRef);
+        const replacingLegacy = legacySchedule?.exists &&
+          hasMatchingNotificationScheduleIdentity(
+            legacySchedule.data(), uid, typeId,
+          );
+        if (!existingSchedule.exists && !replacingLegacy) {
+          const schedules = await transaction.get(
+            db.collection("scheduled_notifications")
+              .where("uid", "==", uid).limit(MAX_REMINDERS_PER_USER),
+          );
+          if (schedules.size >= MAX_REMINDERS_PER_USER) {
+            throw new NotificationReminderLimitError("Reminder limit reached");
+          }
+        }
         const scheduleData: Record<string, unknown> = {
           uid,
           typeId,
           hour,
           minute,
           locale,
+          ...(userContent ? { staticTitle: (staticTitle as string).trim(),
+            staticBody: (staticBody as string).trim() } : {}),
           gender: normalizeNotificationGender(gender),
           updatedAt: FieldValue.serverTimestamp(),
         };
@@ -849,6 +936,7 @@ export const registerNotification = onRequest(
         if (decision.kind === "conflict") {
           throw new NotificationMutationConflictError(decision.message);
         }
+        transaction.set(quotaRef, { updatedAt: FieldValue.serverTimestamp() });
         if (
           legacySchedule?.exists &&
           hasMatchingNotificationScheduleIdentity(
@@ -862,6 +950,13 @@ export const registerNotification = onRequest(
         return decision.nextVersion;
       });
     } catch (error) {
+      if (error instanceof NotificationReminderLimitError) {
+        res.status(429).json({
+          error: "REMINDER_LIMIT_REACHED",
+          message: error.message,
+        });
+        return;
+      }
       if (error instanceof NotificationMutationConflictError) {
         res.status(409).send(error.message);
         return;
@@ -1182,8 +1277,9 @@ export const processScheduledNotifications = onSchedule(
 
     // Collect unique typeIds and all locales present per typeId
     const localesByTypeId = new Map<string, Set<string>>();
+    const provisionedTypeIds = new Set<string>();
     for (const { doc } of scheduledCandidates) {
-      const { typeId, locale } = doc.data();
+      const { typeId, locale, staticTitle, staticBody } = doc.data();
       if (
         !isValidNotificationTypeId(typeId) ||
         !isValidNotificationLocale(locale)
@@ -1192,18 +1288,23 @@ export const processScheduledNotifications = onSchedule(
       }
       if (!localesByTypeId.has(typeId)) localesByTypeId.set(typeId, new Set());
       localesByTypeId.get(typeId)!.add(locale);
+      if (!isValidUserReminderContent(typeId, staticTitle, staticBody)) {
+        provisionedTypeIds.add(typeId);
+      }
     }
 
     // Fetch all unique notification_type docs in parallel
     const typeDataMap = new Map<string, FirebaseFirestore.DocumentData>();
     await Promise.all(
-      [...localesByTypeId.keys()].map(async (typeId) => {
+      [...localesByTypeId.keys()]
+        .filter((typeId) => provisionedTypeIds.has(typeId))
+        .map(async (typeId) => {
         const doc = await getFirestore()
           .collection("notification_types")
           .doc(typeId)
           .get();
         if (doc.exists) typeDataMap.set(typeId, doc.data()!);
-      }),
+        }),
     );
 
     // Fetch each unique quote collection once, keyed by collection name
@@ -1354,22 +1455,38 @@ export const processScheduledNotifications = onSchedule(
       const fcmToken = deviceData?.fcmToken;
       if (!hasValidFCMToken(fcmToken)) continue;
 
+      const scheduleData = doc.data();
+      const hasUserContent = isValidUserReminderContent(
+        typeId,
+        scheduleData.staticTitle,
+        scheduleData.staticBody,
+      );
       const typeData = typeDataMap.get(typeId);
-      if (!hasValidNotificationTypeSchema(typeData)) continue;
+      const configuredType = hasValidNotificationTypeSchema(typeData)
+        ? typeData
+        : undefined;
+      if (!hasUserContent && !configuredType) {
+        continue;
+      }
 
       let title = "Living Positively";
       let body: string;
 
-      if (typeData.messageType === "dynamic") {
+      if (hasUserContent) {
+        title = scheduleData.staticTitle;
+        body = scheduleData.staticBody;
+      } else if (configuredType?.messageType === "dynamic") {
         const collectionName =
-          typeData.quotesCollections[locale] ??
-          typeData.quotesCollections["he"];
+          configuredType.quotesCollections[locale] ??
+          configuredType.quotesCollections["he"];
         if (typeof collectionName !== "string" || collectionName.length === 0) {
           continue;
         }
         const quotes = quotesMap.get(collectionName);
         if (!quotes || quotes.length === 0) continue;
-        const quoteData = quotes[Math.floor(Math.random() * quotes.length)];
+        const quoteData = quotes[
+          dailyQuoteIndex(uid, candidate.localDate, quotes.length)
+        ];
         const normalizedGender = normalizeNotificationGender(gender);
         const quote = [
           quoteData[normalizedGender],
@@ -1381,9 +1498,11 @@ export const processScheduledNotifications = onSchedule(
         );
         if (quote === undefined) continue;
         body = quote;
+      } else if (configuredType?.messageType === "static") {
+        title = configuredType.staticTitle;
+        body = configuredType.staticBody;
       } else {
-        title = typeData.staticTitle;
-        body = typeData.staticBody;
+        continue;
       }
 
       const deliveryKey = buildNotificationDeliveryKey(

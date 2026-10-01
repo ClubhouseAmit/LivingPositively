@@ -41,16 +41,20 @@ class UserSettingsAccountActions {
     );
   }
 
-  Future<void> _restoreReminder(
+  Future<void> _restoreReminders(
     UserInformation userInfo,
-    NotificationPreference? preference,
+    Map<String, NotificationPreference> snapshot,
   ) async {
-    final restored = await NotificationRepository.forService(userInfo.service)
+    final repository = NotificationRepository.forService(userInfo.service);
+    final defaultRestored = await repository
         .restoreDefaultReminderAfterResetFailure(
           userInformation: userInfo,
-          previousPreference: preference,
+          previousPreference: snapshot['default'],
         );
-    if (!restored) {
+    final others = Map<String, NotificationPreference>.of(snapshot)
+      ..remove('default');
+    final othersRestored = await repository.restoreSchedules(userInfo, others);
+    if (!defaultRestored || !othersRestored) {
       _reportFailure(
         StateError('Unable to restore the cancelled reminder.'),
         StackTrace.current,
@@ -63,7 +67,15 @@ class UserSettingsAccountActions {
     final notificationRepository = NotificationRepository.forService(
       userInfo.service,
     );
-    final previousReminder = notificationRepository.getPreference('default');
+    try {
+      if (userInfo.userId.isNotEmpty) {
+        await notificationRepository.activateAccount(userInfo.userId);
+      }
+    } catch (error, stackTrace) {
+      _reportFailure(error, stackTrace);
+      rethrow;
+    }
+    final previousReminders = notificationRepository.preferences;
     NotificationPreference? cancelledReminder;
     var remoteReminderCancelled = false;
     try {
@@ -74,6 +86,13 @@ class UserSettingsAccountActions {
               userInformation: userInfo,
               onRemoteScheduleCancelled: (value) => cancelledReminder = value,
             );
+        if (remoteReminderCancelled) {
+          final othersCancelled = await notificationRepository
+              .cancelOtherReminders(userInfo, previousReminders);
+          if (!othersCancelled) {
+            throw StateError('Unable to cancel all reminders before reset.');
+          }
+        }
         if (!remoteReminderCancelled) {
           throw StateError('Unable to cancel the reminder before reset.');
         }
@@ -81,9 +100,13 @@ class UserSettingsAccountActions {
       invalidatePendingWrites();
       await userInfo.service.reset();
       await userInfo.reset(localeService.getLocale());
+      notificationRepository.restoreJson(null);
     } catch (error, stackTrace) {
       if (remoteReminderCancelled) {
-        await _restoreReminder(userInfo, cancelledReminder ?? previousReminder);
+        await _restoreReminders(userInfo, {
+          ...previousReminders,
+          'default': ?cancelledReminder,
+        });
       }
       _reportFailure(error, stackTrace);
       rethrow;
@@ -128,7 +151,15 @@ class UserSettingsAccountActions {
     final notificationRepository = NotificationRepository.forService(
       userInfo.service,
     );
-    final previousReminder = notificationRepository.getPreference('default');
+    try {
+      if (userInfo.userId.isNotEmpty) {
+        await notificationRepository.activateAccount(userInfo.userId);
+      }
+    } catch (error, stackTrace) {
+      _reportFailure(error, stackTrace);
+      return null;
+    }
+    final previousReminders = notificationRepository.preferences;
     NotificationPreference? cancelledReminder;
     var reminderCancelled = false;
     final user = AuthService.registeredUser;
@@ -138,12 +169,26 @@ class UserSettingsAccountActions {
         onRemoteScheduleCancelled: (value) => cancelledReminder = value,
       );
       if (!reminderCancelled) return null;
+      reminderCancelled = await notificationRepository.cancelOtherReminders(
+        userInfo,
+        previousReminders,
+      );
+      if (!reminderCancelled) {
+        await _restoreReminders(userInfo, {
+          ...previousReminders,
+          'default': ?cancelledReminder,
+        });
+        return null;
+      }
     }
     try {
       await AuthService.signOut();
     } catch (error, stackTrace) {
       if (reminderCancelled) {
-        await _restoreReminder(userInfo, cancelledReminder ?? previousReminder);
+        await _restoreReminders(userInfo, {
+          ...previousReminders,
+          'default': ?cancelledReminder,
+        });
       }
       _reportFailure(error, stackTrace);
       return null;

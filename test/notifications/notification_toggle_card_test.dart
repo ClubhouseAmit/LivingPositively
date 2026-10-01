@@ -58,7 +58,7 @@ void main() {
         ),
       );
 
-      expect(find.text('9:30 AM'), findsNothing);
+      expect(find.text('9:30 AM'), findsOneWidget);
       await tester.tap(find.byType(AnimatedContainer));
       await tester.pumpAndSettle();
 
@@ -93,7 +93,11 @@ void main() {
         await tester.tap(find.byType(AnimatedContainer));
         await tester.pumpAndSettle();
 
-        expect(find.text('9:30 AM'), findsNothing);
+        expect(find.text('9:30 AM'), findsOneWidget);
+        expect(
+          tester.widget<AnimatedAlign>(find.byType(AnimatedAlign)).alignment,
+          AlignmentDirectional.centerStart,
+        );
       },
     );
 

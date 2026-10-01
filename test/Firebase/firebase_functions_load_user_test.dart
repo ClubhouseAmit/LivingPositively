@@ -508,12 +508,41 @@ void main() {
         );
 
         final userInfo = _makeUserInfo();
+        final repository = NotificationRepository.forService(userInfo.service);
+        await repository.activateAccount('previous-account');
+        await repository.setCustomReminder(
+          const CustomReminder(
+            id: 'custom_old',
+            emoji: 'x',
+            label: 'Old',
+            hour: 8,
+            minute: 0,
+          ),
+        );
+        await repository.setPreference(
+          'custom_old',
+          const NotificationPreference(hour: 8, minute: 0),
+        );
+        await repository.clearPreferenceForAccountTransition('custom_old');
+        await repository.setUse24HourFormat(false);
+        await repository.clearPreference('default');
+        final memory = userInfo.service as _FakeMemory;
+        memory.store['notificationPreferences'] = '{not-json';
         await loadUserInformation(userInfo, 'en');
 
         expect(
           NotificationRepository.forService(userInfo.service).preferences,
           isEmpty,
         );
+        expect(repository.customReminders, isEmpty);
+        expect(repository.getSavedTime('custom_old'), isNull);
+        expect(
+          repository.pausedAccountRemindersFor('previous-account'),
+          isEmpty,
+        );
+        expect(repository.isActiveAccount('previous-account'), isFalse);
+        expect(repository.use24HourFormat, isTrue);
+        expect(repository.defaultOptOut, isFalse);
       },
     );
 

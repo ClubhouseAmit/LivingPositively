@@ -17,18 +17,18 @@ import 'package:mazilon/util/async/global_enums.dart';
 /// Injectable authenticated HTTP boundary used by notification mutations.
 part 'fcm_scheduler_transport.dart';
 part 'fcm_scheduler_registration.dart';
+part 'fcm_scheduler_rescheduling.dart';
 part 'fcm_scheduler_cancellation.dart';
 
 ///
 /// Production uses `http.post`; callers use this type only to provide an
 /// equivalent transport in tests or a caller-approved boundary.
-typedef NotificationHttpPost =
-    Future<http.Response> Function(
-      Uri url, {
-      Map<String, String>? headers,
-      Object? body,
-      Encoding? encoding,
-    });
+typedef NotificationHttpPost = Future<http.Response> Function(
+  Uri url, {
+  Map<String, String>? headers,
+  Object? body,
+  Encoding? encoding,
+});
 
 /// Coordinates authenticated FCM reminder registration, cancellation, and
 /// migration of the old Android device-local reminder.
@@ -169,11 +169,9 @@ class FcmScheduledNotificationService {
       );
       if (preference == null) return;
       final legacyNotificationId = _legacyLocalNotificationId(preference);
-      final registered = await _registerNotification(
+      final registered = await _migrateLegacyDefaultSchedule(
         userInformation: userInfo,
-        typeId: 'default',
-        hour: preference.hour,
-        minute: preference.minute,
+        legacyPreference: preference,
         idTokenProvider: idTokenProvider,
         post: post,
         resetEpoch: resetEpoch,

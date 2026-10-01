@@ -5,15 +5,17 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:mazilon/features/notifications/data/notification_repository.dart';
+import 'package:mazilon/features/notifications/data/notification_models.dart';
 import 'package:mazilon/features/notifications/ui/reminder_debug_panel.dart';
 import 'package:mazilon/features/notifications/ui/notification_toggle_card.dart';
 import 'package:mazilon/features/notifications/ui/notification_permission_denied_card.dart';
 import 'package:mazilon/features/notifications/ui/notification_signed_out_card.dart';
+import 'package:mazilon/features/notifications/ui/reminder_settings_panel.dart';
+import 'package:mazilon/features/notifications/ui/reminder_page_header.dart';
 import 'package:mazilon/features/notifications/data/reminder_debug_recorder.dart';
 import 'package:mazilon/features/notifications/data/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/features/shell/ui/LP_extended_state.dart';
-import 'package:mazilon/features/shell/ui/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:provider/provider.dart';
@@ -30,7 +32,12 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   bool? _hasPermission;
   bool _canRequestPermission = false;
   int _permissionCheckGeneration = 0;
-
+  bool _initialReminderChecked = false;
+  int _initialReminderAttempts = 0;
+  Timer? _initialReminderRetry;
+  Future<void>? _initialRegistration;
+  Future<void>? _accountRestore;
+  String? _observedAccountId;
   @override
   void initState() {
     super.initState();
@@ -40,7 +47,21 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userInfo = context.watch<UserInformation>();
+    final accountId = userInfo.loggedIn ? userInfo.userId : '';
+    if (accountId == _observedAccountId) return;
+    _observedAccountId = accountId;
+    _initialReminderRetry?.cancel();
+    _initialReminderAttempts = 0;
+    _initialReminderChecked = false;
+    if (accountId.isNotEmpty) unawaited(_checkPermission());
+  }
+
+  @override
   void dispose() {
+    _initialReminderRetry?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -50,25 +71,80 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     if (state == AppLifecycleState.resumed) _checkPermission();
   }
 
-  Future<void> _checkPermission() async {
+  Future<void> _checkPermission({bool requestPermission = false}) async {
+    if (requestPermission) await FcmService.requestPermissionAndInitialize();
     final generation = ++_permissionCheckGeneration;
     final granted = await FcmService.hasPermission();
     final canRequestPermission =
         !granted && await FcmService.canRequestPermission();
     if (!mounted || generation != _permissionCheckGeneration) return;
+    final userInfo = context.read<UserInformation>();
+    final repository = NotificationRepository.forService(userInfo.service);
+    if (userInfo.loggedIn && userInfo.userId.isNotEmpty) {
+      try {
+        await repository.activateAccount(userInfo.userId);
+      } catch (_) {
+        _showReminderMutationFailure();
+      }
+    }
+    if (!mounted || generation != _permissionCheckGeneration) return;
     setState(() {
       _hasPermission = granted;
       _canRequestPermission = canRequestPermission;
     });
-    // Permission controls this page. Token/APNs setup is best-effort and may
-    // take much longer while the device is offline, so it must not hold the
-    // permission UI in its loading state.
     if (granted) unawaited(FcmService.initialize());
+    if (granted && !_initialReminderChecked) {
+      _initialReminderChecked = true;
+      unawaited(_initialRegistration = _ensureInitialReminder());
+    }
+    if (granted &&
+        _accountRestore == null &&
+        userInfo.loggedIn &&
+        repository.pausedAccountRemindersFor(userInfo.userId).isNotEmpty) {
+      unawaited(
+        _accountRestore = repository.resumePausedReminders(userInfo).then((_) {
+          if (mounted) setState(() {});
+          _accountRestore = null;
+        }),
+      );
+    }
+  }
+
+  Future<void> _ensureInitialReminder() async {
+    _initialReminderRetry?.cancel();
+    final userInfo = context.read<UserInformation>();
+    if (!userInfo.loggedIn) {
+      _initialReminderChecked = false;
+      return;
+    }
+    final repository = NotificationRepository.forService(userInfo.service);
+    if (repository.defaultOptOut ||
+        repository.getPreference('default') != null) {
+      return;
+    }
+    final status = await readDefaultReminderSchedule(userInformation: userInfo);
+    final schedule = status.schedule;
+    if (status.succeeded && schedule != null) {
+      try {
+        await repository.setPreference('default', schedule);
+      } catch (_) {
+        _showReminderMutationFailure();
+      }
+    }
+    _initialReminderChecked = status.succeeded;
+    if (mounted) setState(() {});
+    if (!status.succeeded && mounted && ++_initialReminderAttempts < 3) {
+      _initialReminderRetry = Timer(const Duration(seconds: 30), () {
+        if (mounted && _hasPermission == true && !_initialReminderChecked) {
+          _initialReminderChecked = true;
+          unawaited(_initialRegistration = _ensureInitialReminder());
+        }
+      });
+    }
   }
 
   Future<bool> _onToggle(bool value, UserInformation userInfo) async {
-    // Disabling a reminder is safe and necessary even if notification
-    // permission was later revoked. Only enabling needs a confirmed grant.
+    if (value && _initialRegistration != null) await _initialRegistration;
     if (value && _hasPermission != true) {
       await _checkPermission();
       return false;
@@ -82,13 +158,11 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     if (!applied && (!value || _hasPermission != false)) {
       _showReminderMutationFailure();
     }
+    if (applied && mounted) setState(() {});
     return applied;
   }
 
   Future<bool> _enableReminder(UserInformation userInfo) async {
-    // Initialization can still be pending on iOS immediately after a user
-    // grants permission because APNs has not supplied its token yet. The
-    // permission result, rather than FCM initialization, controls this UI.
     await FcmService.requestPermissionAndInitialize();
     if (!await FcmService.hasPermission()) {
       if (!mounted) return false;
@@ -98,7 +172,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     if (!mounted) return false;
     final preference = NotificationRepository.forService(
       userInfo.service,
-    ).getPreference('default');
+    ).getSavedTime('default');
     return FcmScheduledNotificationService.registerNotification(
       userInformation: userInfo,
       typeId: 'default',
@@ -110,15 +184,28 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   Future<bool> _onPickedTime(TimeOfDay picked) async {
-    // The operating-system setting can change while this page stays mounted.
-    // Read it again immediately before a mutation instead of relying on the
-    // last lifecycle check.
+    if (_initialRegistration case final pending?) await pending;
+    if (!mounted) return false;
+    final userInfo = context.read<UserInformation>();
+    final repository = NotificationRepository.forService(userInfo.service);
+    if (repository.getPreference('default') == null) {
+      try {
+        await repository.setSavedTime(
+          'default',
+          NotificationPreference(hour: picked.hour, minute: picked.minute),
+        );
+        if (mounted) setState(() {});
+        return true;
+      } catch (_) {
+        _showReminderMutationFailure();
+        return false;
+      }
+    }
     if (_hasPermission != true || !await FcmService.hasPermission()) {
       await _checkPermission();
       return false;
     }
     if (!mounted) return false;
-    final userInfo = context.read<UserInformation>();
     final applied = await FcmScheduledNotificationService.registerNotification(
       userInformation: userInfo,
       typeId: 'default',
@@ -126,8 +213,36 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       minute: picked.minute,
     );
     if (!applied) _showReminderMutationFailure();
+    if (applied && mounted) setState(() {});
     return applied;
   }
+
+  Future<bool> _registerTextReminder(
+    String id,
+    TimeOfDay time,
+    String title,
+    String body,
+  ) async {
+    if (_hasPermission != true || !await FcmService.hasPermission()) {
+      _showReminderMutationFailure();
+      return false;
+    }
+    if (!mounted) return false;
+    return registerTextReminder(
+      userInformation: context.read<UserInformation>(),
+      typeId: id,
+      hour: time.hour,
+      minute: time.minute,
+      title: title,
+      body: body,
+    );
+  }
+
+  Future<bool> _cancelTextReminder(String id) =>
+      FcmScheduledNotificationService.cancelNotification(
+        userInformation: context.read<UserInformation>(),
+        typeId: id,
+      );
 
   void _showReminderMutationFailure() {
     if (!mounted) return;
@@ -152,57 +267,83 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const SizedBox(height: AppSpacing.xl * 5),
-                Consumer<UserInformation>(
-                  builder: (context, userInfo, _) => Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: myText(
-                      appLocale.notifications(userInfo.gender),
-                      TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      TextAlign.start,
-                    ),
-                  ),
-                ),
-                Consumer<UserInformation>(builder: _buildReminderControls),
-                if (kDebugMode) ...[
-                  Consumer<UserInformation>(
-                    builder: (context, userInfo, _) => GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onLongPress: _toggleDebugUnlock,
-                      child: Text(
-                        appLocale.notificationPageHeader(userInfo.gender),
-                      ),
-                    ),
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: reminderDebugPanelUnlocked,
-                    builder: (context, unlocked, _) {
-                      if (!unlocked) return const SizedBox.shrink();
-                      return const Padding(
-                        padding: EdgeInsets.only(top: AppSpacing.xxl),
-                        child: ReminderDebugPanel(),
-                      );
-                    },
-                  ),
-                ],
-              ],
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            ReminderPageHeader(
+              onFormatChanged: () => setState(() {}),
+              onFailure: _showReminderMutationFailure,
             ),
-          ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: _buildContent(),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
+    ),
+  );
+
+  Widget _buildContent() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        '✨ ${appLocale.reminderAppSection}',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+        textAlign: TextAlign.start,
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      Consumer<UserInformation>(builder: _buildReminderControls),
+      Consumer<UserInformation>(builder: _buildAdditionalReminders),
+      if (kDebugMode) ...[
+        Consumer<UserInformation>(
+          builder: (context, userInfo, _) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onLongPress: _toggleDebugUnlock,
+            child: Text(appLocale.notificationPageHeader(userInfo.gender)),
+          ),
+        ),
+        ValueListenableBuilder<bool>(
+          valueListenable: reminderDebugPanelUnlocked,
+          builder: (context, unlocked, _) {
+            if (!unlocked) return const SizedBox.shrink();
+            return const Padding(
+              padding: EdgeInsets.only(top: AppSpacing.xxl),
+              child: ReminderDebugPanel(),
+            );
+          },
+        ),
+      ],
+    ],
+  );
+
+  Widget _buildAdditionalReminders(
+    BuildContext context,
+    UserInformation userInfo,
+    Widget? child,
+  ) {
+    if (!userInfo.loggedIn) return const SizedBox.shrink();
+    final repository = NotificationRepository.forService(userInfo.service);
+    if (userInfo.userId.isNotEmpty &&
+        !repository.isActiveAccount(userInfo.userId)) {
+      return const SizedBox.shrink();
+    }
+    return ReminderSettingsPanel(
+      repository: repository,
+      onRegister: _registerTextReminder,
+      onCancel: _cancelTextReminder,
+      onFailure: _showReminderMutationFailure,
+      onFormatChanged: () => setState(() {}),
     );
   }
 
@@ -211,55 +352,48 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     UserInformation userInfo,
     Widget? child,
   ) {
-    final gender = userInfo.gender;
     if (!userInfo.loggedIn) return const NotificationSignedOutCard();
-    final preference = NotificationRepository.forService(
-      userInfo.service,
-    ).getPreference('default');
-    // Keep cancellation available when permission is revoked, but do not
-    // offer a time picker that cannot save a new schedule.
+    final repository = NotificationRepository.forService(userInfo.service);
+    if (userInfo.userId.isNotEmpty &&
+        !repository.isActiveAccount(userInfo.userId)) {
+      return const SizedBox.shrink();
+    }
+    final preference = repository.getPreference('default');
     if (_hasPermission == false) {
       return NotificationPermissionDeniedCard(
         onRequestPermission: _requestReminderPermission,
         onCancelReminder: () => _onToggle(false, userInfo),
         canRequestPermission: _canRequestPermission,
-        gender: gender,
-        requestPermissionBody: appLocale.notificationPageHeader(gender),
-      );
-    }
-    if (_hasPermission == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.xxl),
-          child: CircularProgressIndicator(),
+        gender: userInfo.gender,
+        requestPermissionBody: appLocale.notificationPageHeader(
+          userInfo.gender,
         ),
       );
     }
-    return NotificationToggleCard(
-      emoji: '✨',
-      badgeText: 'LP',
-      title: appLocale.notifications(gender),
-      subtitle: appLocale.notificationPageHeader(gender),
-      setTimeLabel: appLocale.notificationsSetTime,
-      initialEnabled: preference != null,
-      initialTime: preference == null
-          ? null
-          : TimeOfDay(hour: preference.hour, minute: preference.minute),
-      onTimeSelected: _onPickedTime,
-      onToggle: (value) => _onToggle(value, userInfo),
+    if (_hasPermission == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        alwaysUse24HourFormat: repository.use24HourFormat,
+      ),
+      child: NotificationToggleCard(
+        emoji: '✨',
+        badgeText: 'LP',
+        title: appLocale.reminderAppTitle,
+        subtitle: appLocale.reminderAppSubtitle,
+        setTimeLabel: appLocale.notificationsSetTime,
+        initialEnabled: preference != null,
+        initialTime: switch (repository.getSavedTime('default')) {
+          final saved? => TimeOfDay(hour: saved.hour, minute: saved.minute),
+          null => NotificationToggleCard.defaultReminderTime,
+        },
+        onTimeSelected: _onPickedTime,
+        onToggle: (value) => _onToggle(value, userInfo),
+      ),
     );
   }
 
-  Future<void> _requestReminderPermission() async {
-    final generation = ++_permissionCheckGeneration;
-    await FcmService.requestPermissionAndInitialize();
-    final granted = await FcmService.hasPermission();
-    final canRequestPermission =
-        !granted && await FcmService.canRequestPermission();
-    if (!mounted || generation != _permissionCheckGeneration) return;
-    setState(() {
-      _hasPermission = granted;
-      _canRequestPermission = canRequestPermission;
-    });
-  }
+  Future<void> _requestReminderPermission() =>
+      _checkPermission(requestPermission: true);
 }

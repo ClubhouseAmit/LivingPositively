@@ -3,9 +3,10 @@
 import 'package:flutter/material.dart' hide Text;
 import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
+import 'package:mazilon/features/notifications/ui/reminder_switch.dart';
 
 class NotificationToggleCard extends StatefulWidget {
-  static const TimeOfDay defaultReminderTime = TimeOfDay(hour: 8, minute: 30);
+  static const TimeOfDay defaultReminderTime = TimeOfDay(hour: 8, minute: 0);
 
   final String emoji;
   final String badgeText;
@@ -85,18 +86,23 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
         _syncFromWidget();
       } else if (applied) {
         _isEnabled = requestedValue;
-        if (!requestedValue) {
-          _selectedTime = NotificationToggleCard.defaultReminderTime;
-        }
       }
     });
   }
 
   Future<void> _selectTime() async {
     if (_isMutating) return;
+    final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
+      initialEntryMode: TimePickerEntryMode.dial,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          alwaysUse24HourFormat: use24HourFormat,
+        ),
+        child: child!,
+      ),
     );
     if (picked == null || !mounted) return;
 
@@ -128,9 +134,15 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: _isEnabled
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.07)
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
+        border: Border.all(
+          color: _isEnabled
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.outline,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xs),
@@ -151,11 +163,16 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     textAlign: TextAlign.start,
                   ),
-                  if (_isEnabled) _buildTime(context),
+                  _buildTime(context),
                 ],
               ),
             ),
-            _buildSwitch(context),
+            ReminderSwitch(
+              value: _isEnabled,
+              label: widget.title,
+              busy: _isMutating,
+              onPressed: _isMutating ? null : _toggleEnabled,
+            ),
           ],
         ),
       ),
@@ -170,7 +187,12 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
           vertical: AppSpacing.hairline + AppSpacing.hairline,
         ),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.tertiary,
+            ],
+          ),
           borderRadius: BorderRadius.circular(AppRadii.badge),
         ),
         child: Text(
@@ -181,11 +203,13 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
         ),
       ),
       const SizedBox(width: AppSpacing.sm),
-      Text(
-        widget.title,
-        style: AppTextStyle.titleSmall,
-        color: Theme.of(context).colorScheme.onSurface,
-        textAlign: TextAlign.start,
+      Flexible(
+        child: Text(
+          widget.title,
+          style: AppTextStyle.titleSmall,
+          color: Theme.of(context).colorScheme.onSurface,
+          textAlign: TextAlign.start,
+        ),
       ),
     ],
   );
@@ -205,53 +229,12 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
           style: AppTextStyle.labelSmall,
           color: Theme.of(context).colorScheme.primary,
         ),
-      ],
-    ),
-  );
-
-  Widget _buildSwitch(BuildContext context) => GestureDetector(
-    onTap: _isMutating ? null : _toggleEnabled,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      width: 55,
-      height: 30,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          AppRadii.card - AppSpacing.hairline,
+        Icon(
+          Icons.arrow_drop_down,
+          size: AppSpacing.lg,
+          color: Theme.of(context).colorScheme.primary,
         ),
-        gradient: _isEnabled
-            ? LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.secondary,
-                ],
-              )
-            : null,
-        color: _isEnabled
-            ? null
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-      child: AnimatedAlign(
-        duration: const Duration(milliseconds: 250),
-        alignment: _isEnabled ? Alignment.centerRight : Alignment.centerLeft,
-        child: _isMutating
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Container(
-                width: 22,
-                height: 22,
-                margin: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.hairline + AppSpacing.hairline,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-      ),
+      ],
     ),
   );
 }
