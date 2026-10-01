@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
+import 'package:mazilon/features/appearance/ui/appearance_settings.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/user_settings/ui/user_settings_account_actions.dart';
@@ -59,23 +60,11 @@ const double _kFieldHeight = 40;
 /// here sit on the same profile as the fields.
 const double _kFieldRadius = kInputRadius;
 
-/// Inside horizontal padding of a field.
-const double _kFieldPaddingX = kInputPaddingX;
-
 /// Field label size (`Label` in the design's Form Field component).
 const double _kLabelSize = 13;
 
 /// Field value size (`Value` in the design's Form Field component).
 const double _kValueSize = 15;
-
-/// Appearance option card height.
-const double _kModeOptionHeight = 56;
-
-/// Gap between the three appearance option cards.
-const double _kModeOptionGap = 8;
-
-/// Gap between the appearance section's title and its option cards.
-const double _kModeTitleToOptions = 6;
 
 /// Height and radius of the two action buttons at the bottom.
 const double _kActionButtonHeight = 44;
@@ -255,268 +244,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         ),
       ],
       onSelected: onSelected,
-    );
-  }
-
-  Future<void> _selectDarkModeTime(
-    UserInformation userInfo, {
-    required bool isStart,
-  }) async {
-    try {
-      final initialTime = TimeOfDay(
-        hour: isStart ? userInfo.darkModeStartHour : userInfo.darkModeEndHour,
-        minute: isStart
-            ? userInfo.darkModeStartMinute
-            : userInfo.darkModeEndMinute,
-      );
-      final selectedTime = await showTimePicker(
-        context: context,
-        initialTime: initialTime,
-      );
-      if (selectedTime == null || !mounted) {
-        return;
-      }
-
-      await userInfo.updateDarkModeSettings(
-        startHour: isStart ? selectedTime.hour : null,
-        startMinute: isStart ? selectedTime.minute : null,
-        endHour: isStart ? null : selectedTime.hour,
-        endMinute: isStart ? null : selectedTime.minute,
-      );
-    } catch (error, stackTrace) {
-      debugPrint('Unable to save dark-mode schedule: $error\n$stackTrace');
-    }
-  }
-
-  /// One card in the appearance segmented control (design nodes dP4Pe /
-  /// wycvf / m1OpYb): icon over label, primary-tinted when selected.
-  Widget _modeOption(
-    ColorScheme colorScheme, {
-    required Key optionKey,
-    required IconData icon,
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    final foreground = selected ? colorScheme.primary : colorScheme.outline;
-    return Expanded(
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        child: InkWell(
-          key: optionKey,
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(_kFieldRadius),
-          child: Container(
-            height: _kModeOptionHeight,
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              // The design tints the selected card with a light wash of its
-              // accent; deriving it from `primary` keeps that relationship in
-              // both themes instead of pinning a second literal colour.
-              color: selected
-                  ? colorScheme.primary.withValues(alpha: 0.12)
-                  : colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(_kFieldRadius),
-              border: Border.all(
-                color: selected
-                    ? colorScheme.primary
-                    : colorScheme.surfaceContainerHighest,
-                width: selected ? 1.5 : 1,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              spacing: 4,
-              children: [
-                Icon(icon, size: 20, color: foreground),
-                Flexible(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Rubix',
-                      fontSize: 11.5.sp,
-                      fontWeight: selected
-                          ? AppFontWeight.semiBold
-                          : AppFontWeight.regular,
-                      color: foreground,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDarkModeSettings(
-    UserInformation userInfo,
-    ColorScheme colorScheme,
-  ) {
-    final preference = userInfo.darkModePreference;
-    final isScheduled = preference == DarkModePreference.scheduled;
-    final startTime = TimeOfDay(
-      hour: userInfo.darkModeStartHour,
-      minute: userInfo.darkModeStartMinute,
-    );
-    final endTime = TimeOfDay(
-      hour: userInfo.darkModeEndHour,
-      minute: userInfo.darkModeEndMinute,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      spacing: _kModeTitleToOptions,
-      children: [
-        Text(
-          appLocale.darkModeSettingsTitle,
-          style: _labelStyle(colorScheme),
-          textAlign: TextAlign.start,
-        ),
-        _darkModeOptions(userInfo, colorScheme, preference),
-        Visibility(
-          visible: isScheduled,
-          maintainSize: true,
-          maintainAnimation: true,
-          maintainState: true,
-          child: Row(
-            spacing: _kModeOptionGap,
-            children: [
-              Expanded(
-                child: _scheduleButton(
-                  colorScheme,
-                  buttonKey: const Key('darkModeStartTimeButton'),
-                  label:
-                      '${appLocale.darkModeStartTime}: ${startTime.format(context)}',
-                  onPressed: () {
-                    unawaited(_selectDarkModeTime(userInfo, isStart: true));
-                  },
-                ),
-              ),
-              Expanded(
-                child: _scheduleButton(
-                  colorScheme,
-                  buttonKey: const Key('darkModeEndTimeButton'),
-                  label:
-                      '${appLocale.darkModeEndTime}: ${endTime.format(context)}',
-                  onPressed: () {
-                    unawaited(_selectDarkModeTime(userInfo, isStart: false));
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _selectDarkModePreference(
-    UserInformation userInfo,
-    DarkModePreference value,
-  ) async {
-    try {
-      await userInfo.updateDarkModeSettings(preference: value);
-    } catch (error, stackTrace) {
-      debugPrint('Unable to save dark-mode preference: $error\n$stackTrace');
-    }
-  }
-
-  Widget _darkModeOptions(
-    UserInformation userInfo,
-    ColorScheme colorScheme,
-    DarkModePreference preference,
-  ) {
-    return Row(
-      spacing: _kModeOptionGap,
-      children: [
-        _darkModeOption(
-          userInfo,
-          colorScheme,
-          preference,
-          key: const Key('darkModeAlwaysLightOption'),
-          icon: Icons.light_mode_outlined,
-          label: appLocale.darkModeAlwaysLight,
-          value: DarkModePreference.alwaysLight,
-        ),
-        _darkModeOption(
-          userInfo,
-          colorScheme,
-          preference,
-          key: const Key('darkModeAlwaysDarkOption'),
-          icon: Icons.dark_mode_outlined,
-          label: appLocale.darkModeAlwaysDark,
-          value: DarkModePreference.alwaysDark,
-        ),
-        _darkModeOption(
-          userInfo,
-          colorScheme,
-          preference,
-          key: const Key('darkModeScheduledOption'),
-          icon: Icons.schedule_outlined,
-          label: appLocale.darkModeSleepPromoting,
-          value: DarkModePreference.scheduled,
-        ),
-      ],
-    );
-  }
-
-  Widget _darkModeOption(
-    UserInformation userInfo,
-    ColorScheme colorScheme,
-    DarkModePreference preference, {
-    required Key key,
-    required IconData icon,
-    required String label,
-    required DarkModePreference value,
-  }) {
-    return _modeOption(
-      colorScheme,
-      optionKey: key,
-      icon: icon,
-      label: label,
-      selected: preference == value,
-      onTap: () => unawaited(_selectDarkModePreference(userInfo, value)),
-    );
-  }
-
-  /// The schedule pickers have no counterpart in the design (which offers a
-  /// "System" option instead); they borrow this screen's field geometry so
-  /// they read as part of the appearance block.
-  Widget _scheduleButton(
-    ColorScheme colorScheme, {
-    required Key buttonKey,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return OutlinedButton(
-      key: buttonKey,
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(_kFieldHeight),
-        maximumSize: const Size.fromHeight(_kFieldHeight),
-        alignment: AlignmentDirectional.centerStart,
-        padding: const EdgeInsets.symmetric(horizontal: _kFieldPaddingX),
-        foregroundColor: colorScheme.onSurface,
-        side: BorderSide(color: colorScheme.surfaceContainerHighest),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_kFieldRadius),
-        ),
-      ),
-      child: Text(
-        label,
-        style: _valueStyle(colorScheme).copyWith(fontSize: 12.sp),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
     );
   }
 
@@ -824,7 +551,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             helpButtonSize: 20,
           ),
           _divider(colorScheme),
-          _buildDarkModeSettings(userInfo, colorScheme),
+          AppearanceSettings(userInformation: userInfo),
         ],
       ),
     );

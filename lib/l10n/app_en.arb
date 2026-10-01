@@ -294,6 +294,8 @@
   "darkModeSleepPromoting": "Scheduled",
   "darkModeStartTime": "Start time",
   "darkModeEndTime": "End time",
+  "onboardingAppearanceTitle": "Choose your appearance",
+  "onboardingAppearanceSubtitle": "Choose what feels most comfortable. You can change this later in Settings.",
   "introductionFormFirstPageMainTitle": "{gender,select,male{What keeps me safe?} female{What keeps me safe?} other{What keeps me safe?}}",
   "@introductionFormFirstPageMainTitle": {
     "description": ""

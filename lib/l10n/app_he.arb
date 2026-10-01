@@ -107,6 +107,8 @@
      "darkModeSleepPromoting": "מתוזמן",
      "darkModeStartTime": "שעת התחלה",
      "darkModeEndTime": "שעת סיום",
+     "onboardingAppearanceTitle": "בחרו את מראה האפליקציה",
+     "onboardingAppearanceSubtitle": "בחרו את התצוגה הנוחה לכם. אפשר לשנות זאת מאוחר יותר בהגדרות.",
 
 
      "introductionFormFirstPageMainTitle": "{gender,select,male{מה ששומר עלי} female{מה ששומר עלי} other{מה ששומר עלי}}",

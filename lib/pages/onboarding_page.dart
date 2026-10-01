@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/async/global_enums.dart';
@@ -8,9 +10,11 @@ import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 
 import 'package:mazilon/features/wizard/ui/wizard_actions.dart';
 import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/features/shell/ui/persistence_retry_snack_bar.dart';
 import 'package:mazilon/design_system/tokens/font_weight.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/features/onboarding/ui/to_form_page.dart';
+import 'package:mazilon/features/onboarding/ui/initial_form_appearance_page.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page2.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page1.dart';
 import 'package:mazilon/menu.dart';
@@ -47,6 +51,7 @@ class InitialFormProgressIndicatorState
   int currentStep = 0;
   String name = '';
   bool hasFilled = false;
+  bool _headerNavigationInFlight = false;
   List<WizardStep> steps = [];
 
   void getHasFilled() async {
@@ -88,6 +93,32 @@ class InitialFormProgressIndicatorState
     });
   }
 
+  Future<void> _persistThenNavigate(
+    VoidCallback navigate, {
+    bool retry = false,
+  }) async {
+    if (_headerNavigationInFlight) return;
+    _headerNavigationInFlight = true;
+    try {
+      final stepState = steps[currentStep].stepKey.currentState;
+      if (retry) {
+        await stepState?.retryPersistBeforeExit();
+      } else {
+        await stepState?.persistBeforeExit();
+      }
+      if (mounted) navigate();
+    } catch (_) {
+      if (mounted) {
+        showPersistenceRetrySnackBar(
+          context,
+          () => _persistThenNavigate(navigate, retry: true),
+        );
+      }
+    } finally {
+      _headerNavigationInFlight = false;
+    }
+  }
+
   void updateName(String name) {
     setState(() {
       this.name = name;
@@ -126,6 +157,10 @@ class InitialFormProgressIndicatorState
         prev: prev,
         updateName: updateName,
       ),
+      InitialFormAppearancePage(
+        key: GlobalKey<WizardStepState>(debugLabel: 'appearance'),
+        next: next,
+      ),
       ToFormPage(
         key: GlobalKey<WizardStepState>(debugLabel: 'safety-plan-intro'),
         phonePageData: widget.phonePageData,
@@ -152,7 +187,7 @@ class InitialFormProgressIndicatorState
         if (didPop) {
           return;
         } else {
-          prev();
+          await _persistThenNavigate(prev);
         }
       },
       child: Scaffold(
@@ -164,9 +199,11 @@ class InitialFormProgressIndicatorState
             child: Column(
               children: [
                 _IntroHeader(
-                  isLastStep: currentStep == steps.length - 1,
-                  onSkip: handleSkip,
-                  onBack: prev,
+                  canGoBack: currentStep > 1,
+                  onSkip: () => unawaited(
+                    _persistThenNavigate(handleSkip),
+                  ),
+                  onBack: () => unawaited(_persistThenNavigate(prev)),
                   skipLabel: appLocale.skipButton(gender),
                 ),
                 Expanded(
@@ -202,13 +239,13 @@ class InitialFormProgressIndicatorState
 /// reading-end edge (Figma node 1660:2302).
 class _IntroHeader extends StatelessWidget {
   const _IntroHeader({
-    required this.isLastStep,
+    required this.canGoBack,
     required this.onSkip,
     required this.onBack,
     required this.skipLabel,
   });
 
-  final bool isLastStep;
+  final bool canGoBack;
   final VoidCallback onSkip;
   final VoidCallback onBack;
   final String skipLabel;
@@ -225,7 +262,7 @@ class _IntroHeader extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (isLastStep)
+            if (canGoBack)
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: IconButton(

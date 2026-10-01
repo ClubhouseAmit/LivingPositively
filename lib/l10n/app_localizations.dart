@@ -628,6 +628,18 @@ abstract class AppLocalizations {
   /// **'End time'**
   String get darkModeEndTime;
 
+  /// No description provided for @onboardingAppearanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your appearance'**
+  String get onboardingAppearanceTitle;
+
+  /// No description provided for @onboardingAppearanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what feels most comfortable. You can change this later in Settings.'**
+  String get onboardingAppearanceSubtitle;
+
   ///
   ///
   /// In en, this message translates to:

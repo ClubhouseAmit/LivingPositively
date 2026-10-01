@@ -75,7 +75,7 @@ void main() {
     expect(continueButton, findsOneWidget);
 
     final progressDots = find.byType(AnimatedContainer);
-    expect(progressDots, findsNWidgets(3));
+    expect(progressDots, findsNWidgets(4));
 
     final continueBottom = tester.getBottomLeft(continueButton).dy;
     final firstDotTop = tester.getTopLeft(progressDots.first).dy;
