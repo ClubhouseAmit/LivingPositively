@@ -787,6 +787,8 @@
   "authErrorUserNotFound": "שם המשתמש או הסיסמא לא נכונים",
   "authErrorEmailInUse": "כבר קיים חשבון עם כתובת אימייל זו",
   "authErrorGeneric": "אירעה שגיאה. נסו שנית.",
+  "authErrorGoogleInterrupted": "ההתחברות הופסקה. אפשר לנסות שוב.",
+  "authErrorGoogleUiUnavailable": "לא ניתן לפתוח את חלון ההתחברות. יש לחזור למסך זה ולנסות שוב.",
   "authForgotPasswordTitle": "איפוס סיסמה",
   "authForgotPasswordHint": "הכניסו כתובת אימייל",
   "authForgotPasswordButton": "לקבלת קישור לאיפוס",

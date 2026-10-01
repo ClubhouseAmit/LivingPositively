@@ -2,6 +2,7 @@
   "name": "functions",
   "scripts": {
     "build": "tsc",
+    "verify:dependencies": "node scripts/verify_dependency_graph.mjs",
     "test": "npm run build && node --test lib/http_cors.test.js lib/notification_validation.test.js lib/notification_provisioning.test.js lib/scheduled_delivery.test.js",
     "provision:notifications": "npm run build && node lib/provision_notifications.js",
     "build:watch": "tsc --watch",
@@ -13,7 +14,8 @@
     "test:rules": "npm run build && firebase emulators:exec --only firestore --project mazilon-rules-test --config ../firebase.json \"node --test lib/firestore_rules.test.js\""
   },
   "engines": {
-    "node": "22"
+    "node": "22",
+    "npm": "11.14.0"
   },
   "main": "lib/index.js",
   "dependencies": {

@@ -43,6 +43,10 @@ on:
         description: Regenerate the iOS dependency lockfile for a package upgrade.
         type: boolean
         default: false
+      require-simulator-test-success:
+        description: Fail this manual validation run when the simulator test does not pass.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -432,6 +436,25 @@ jobs:
           find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
 
           exit "$TEST_EXIT"
+
+      - name: Record actual iOS simulator test outcome
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.ios-integration-test.outcome }}
+        run: |
+          mkdir -p ci-ios-diagnostics
+          printf '%s\n' "$TEST_OUTCOME" > ci-ios-diagnostics/test-step-outcome.txt
+          printf '### iOS simulator validation\n\nActual test outcome: `%s`.\n\nThis test does not authenticate a real Google account.\n' "$TEST_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require successful simulator test for manual validation
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.require-simulator-test-success }}
+        env:
+          TEST_OUTCOME: ${{ steps.ios-integration-test.outcome }}
+        run: |
+          if [[ "$TEST_OUTCOME" != success ]]; then
+            echo "::error::Actual simulator test outcome: $TEST_OUTCOME"
+            exit 1
+          fi
 
       - name: Save Xcode DerivedData
         if: ${{ always() && (steps.ios-integration-test.outcome == 'success' || steps.ios-integration-test.outcome == 'failure') && steps.ios-derived-data-cache.outputs.cache-hit != 'true' }}

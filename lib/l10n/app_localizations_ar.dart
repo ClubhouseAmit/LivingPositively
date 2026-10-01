@@ -5021,6 +5021,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get authErrorGeneric => 'حدث خطأ. يرجى المحاولة مرة أخرى.';
 
   @override
+  String get authErrorGoogleInterrupted =>
+      'تمت مقاطعة تسجيل الدخول. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get authErrorGoogleUiUnavailable =>
+      'تعذّر فتح تسجيل الدخول. يُرجى العودة إلى هذه الشاشة والمحاولة مرة أخرى.';
+
+  @override
   String get authForgotPasswordTitle => 'إعادة تعيين كلمة المرور';
 
   @override

@@ -5025,6 +5025,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrorGeneric => 'An error occurred. Please try again.';
 
   @override
+  String get authErrorGoogleInterrupted =>
+      'Sign-in was interrupted. Please try again.';
+
+  @override
+  String get authErrorGoogleUiUnavailable =>
+      'Sign-in could not open. Return to this screen and try again.';
+
+  @override
   String get authForgotPasswordTitle => 'Reset Password';
 
   @override

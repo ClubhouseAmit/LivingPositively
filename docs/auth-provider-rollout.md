@@ -93,3 +93,65 @@ flag intentionally hides the Apple button.
   account.
 - Confirm Firebase Authentication records the expected provider.
 - On a physical iOS device, confirm APNs registration and one FCM delivery.
+
+## ADR-018 Google Sign-In 7 release gate
+
+Status on 2026-10-01: **BLOCKED: real-account device validation unavailable.**
+The owner confirmed that no device testing is currently available. Mocked auth
+tests and the notification simulator test do not satisfy ADR-018's authentication
+acceptance requirement. Keep PR #420 in draft until the evidence below exists.
+
+### Builds and configuration
+
+Use the candidate commit, Flutter 3.47.5, and the committed Dart/native locks.
+Record the commit, artifact identifier, OS version, package/bundle ID, and
+certificate fingerprints with each result. Do not attach tokens or account data.
+
+- Android: use a release-signed candidate with the production Web client ID.
+  The existing release pipeline signs only trusted `main` revisions; PR jobs
+  produce test evidence without a production-signed bundle. Prepare a candidate
+  through the release owner's signing process. If distributed through Play,
+  check the Play app-signing certificate fingerprints, which may differ from
+  the upload key. Confirm those fingerprints and `com.matzilon.mezilon` match
+  the Android OAuth registration in the same Firebase project as the Web ID.
+- iOS: use the existing macOS CI/Codemagic release environment to run
+  `scripts/build_ios_release.sh` with production provider values and signing
+  profile. Install the signed archive on an iPhone. Confirm the iOS client ID,
+  Firebase options, bundle ID, and generated callback URL scheme agree. The
+  simulator telemetry job does not produce this signed device build.
+
+The [official Android plugin configuration guide](https://pub.dev/packages/google_sign_in_android)
+also notes that some Credential Manager configuration failures appear as
+`canceled`. A neutral cancellation result alone cannot prove configuration.
+Successful real-account authentication is required on each platform.
+
+### Required device results
+
+| Check | Android release / production certificate | iOS signed / production configuration |
+| --- | --- | --- |
+| New and existing Google account sign-in produces the expected Firebase user/provider | NOT RUN | NOT RUN |
+| Dismiss/back from account UI leaves Firebase signed out and permits the next attempt | NOT RUN | NOT RUN |
+| Sign-out clears Firebase state; the next sign-in succeeds | NOT RUN | NOT RUN |
+| Restart while signed in, then sign out and sign in again | NOT RUN | NOT RUN |
+| Interrupt the flow/background the app, return, and retry | NOT RUN | NOT RUN |
+| Android with no Google account: record the actual add-account flow or error and subsequent recovery | NOT RUN | N/A |
+| After success, FCM token registration and legacy reminder migration still run | NOT RUN | NOT RUN |
+
+Record actual SDK exception codes for dismissal/interruption/no-account outcomes.
+Do not infer them from mocks. A configuration failure is a failed validation,
+including a misleading `canceled` result when the next complete sign-in fails.
+
+### Simulator evidence is separate
+
+For an explicit macOS simulator validation run, dispatch the existing workflow:
+
+```shell
+gh workflow run _ios-integration.yml --ref Tovli/adr-upgrade-flutter-functions \
+  -f refresh-pod-lock=false -f require-simulator-test-success=true
+```
+
+Download `ios-integration-diagnostics`, check `test-step-outcome.txt` and
+`post-test.txt` (`=== flutter test exit ===` followed by `0`). The manual input
+requires the actual test outcome to be `success`; ordinary PR telemetry retains
+its ADR-006 policy. These tests cover notifications/persistence, not Google
+account authentication. They cannot close the device rows above.

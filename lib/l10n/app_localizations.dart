@@ -3304,6 +3304,18 @@ abstract class AppLocalizations {
   /// **'An error occurred. Please try again.'**
   String get authErrorGeneric;
 
+  /// No description provided for @authErrorGoogleInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in was interrupted. Please try again.'**
+  String get authErrorGoogleInterrupted;
+
+  /// No description provided for @authErrorGoogleUiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in could not open. Return to this screen and try again.'**
+  String get authErrorGoogleUiUnavailable;
+
   /// No description provided for @authForgotPasswordTitle.
   ///
   /// In en, this message translates to:

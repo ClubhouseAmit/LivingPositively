@@ -25,11 +25,20 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
+      - name: Use the Functions npm version
+        run: |
+          npm_version=$(node -p 'require("./package.json").engines.npm')
+          npm install --global "npm@$npm_version"
+          test "$(npm --version)" = "$npm_version"
+
       - name: Install Functions dependencies
         run: npm ci
 
       - name: Run Functions tests
         run: npm test
+
+      - name: Verify the installed security patches
+        run: npm run verify:dependencies
 
       - name: Test backend deployment guards
         run: >-
@@ -44,7 +53,11 @@ jobs:
         run: node ../scripts/check_firestore_collection_policy.mjs
 
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=low
+        run: |
+          npm prune --omit=dev
+          npm run verify:dependencies -- --production
+          npm ls --omit=dev --all
+          npm audit --omit=dev --audit-level=low
 
   firestore-rules-test:
     name: Firestore security rules
@@ -67,8 +80,17 @@ jobs:
           distribution: temurin
           java-version: "21.x"
 
+      - name: Use the Functions npm version
+        run: |
+          npm_version=$(node -p 'require("./functions/package.json").engines.npm')
+          npm install --global "npm@$npm_version"
+          test "$(npm --version)" = "$npm_version"
+
       - name: Install Functions dependencies
         run: npm --prefix functions ci
+
+      - name: Verify the installed security patches
+        run: npm --prefix functions run verify:dependencies
 
       - name: Install Firebase CLI
         run: npm install --global firebase-tools@15.32.1

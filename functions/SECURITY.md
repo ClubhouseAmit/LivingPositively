@@ -24,8 +24,7 @@ Two scoped security overrides remain:
   affects only its UUID-consuming version 6 in the resolved graph.
   Re-evaluate the override whenever Gaxios changes; remove it when its
   UUID-consuming parents support a patched release without substitution.
-  Both Node 22 CI and deployment use npm 10;
-  regenerate and validate the lockfile with that npm version as well as npm 11.
+  The graph also passes Node 22 with npm 10.9.8, which first exposed the bug.
 - The Firebase 12.19.0 development SDK requires `@grpc/grpc-js ~1.9.0` through
   `@firebase/firestore` 4.17.2. Override only that parent to patched 1.14.5,
   addressing [certificate authorization](https://github.com/advisories/GHSA-m9gg-hp2v-232j)
@@ -39,3 +38,22 @@ Re-run the audits and `npm ls --all` whenever either JavaScript lockfile changes
 Remove each override when its parent resolves the patched dependency naturally;
 do not add an advisory acceptance without an explicit maintainer decision and
 an expiry date.
+
+The Functions manifest pins `engines.npm` to 11.14.0. CI and the release
+workflow install that exact version from the manifest before `npm ci` and
+verify the installed dependency graph using `npm run verify:dependencies`.
+The script checks Storage/Gaxios's resolved UUID version and CommonJS `v4`
+API, Admin Firestore's gRPC version, and the Firestore test SDK's gRPC version.
+Backend quality also prunes development dependencies and runs the script with
+`--production`, which skips the test SDK check. These checks run in CI and
+before release, not inside a deployed function.
+
+Google's [Node.js buildpack documentation](https://docs.cloud.google.com/docs/buildpacks/nodejs)
+supports selecting npm with `engines.npm`. The inspected
+[version selection source](https://github.com/GoogleCloudPlatform/buildpacks/blob/a317bc9857f8b013d19b3de0bc33296b700496dc/pkg/nodejs/npm.go#L80)
+reads that field, and the [npm buildpack](https://github.com/GoogleCloudPlatform/buildpacks/blob/a317bc9857f8b013d19b3de0bc33296b700496dc/cmd/nodejs/npm/lib/lib.go#L241)
+installs the requested version before dependency installation. Local clean
+installs demonstrate compatibility with the pin; they do not establish that
+the managed Firebase Cloud Build image used in a future deployment has run it.
+Confirm its selected npm version, build, production dependency graph, and
+audit in an authorized managed build before release.

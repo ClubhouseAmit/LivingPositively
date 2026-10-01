@@ -2105,6 +2105,8 @@
   "authErrorUserNotFound": "The email/password combination is incorrect",
   "authErrorEmailInUse": "An account with this email already exists",
   "authErrorGeneric": "An error occurred. Please try again.",
+  "authErrorGoogleInterrupted": "Sign-in was interrupted. Please try again.",
+  "authErrorGoogleUiUnavailable": "Sign-in could not open. Return to this screen and try again.",
   "authForgotPasswordTitle": "Reset Password",
   "authForgotPasswordHint": "Enter your email address",
   "authForgotPasswordButton": "Send Reset Link",

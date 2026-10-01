@@ -11,7 +11,7 @@ Baseline: `68d30320`. Branch: `Tovli/adr-upgrade-flutter-functions`.
 | Pseudocode | Inventory stable targets; resolve compatible graphs; migrate current consumers; regenerate artifacts; test; independently review; import macOS lockfile; run PR CI. |
 | Architecture | Existing feature boundaries and external APIs retained. Auth owns the identity API migration; Functions owns its TypeScript runtime and data contracts. |
 | Refinement | Separate Ruflo-tracked Functions, auth, and Flutter compatibility agents implemented and validated their owned changes. |
-| Completion | Full local checks passed. The fresh-context reviewer confirmed both findings resolved, including provider cleanup/logout coupling and native lock regeneration. Normal PR platform CI remains the final validation stage. |
+| Completion | Implementation checks passed and pre-merge platform CI succeeded. ADR acceptance remains blocked on real-account Android/iOS authentication, cancellation and sign-out validation; the owner has no devices available. |
 
 Ruflo swarm: `swarm-1790828261782-j88sgg`; task: `task-1790828283752-9upl9d`. The Ruflo agent registry tracks execution; Codex collaboration agents execute the implementation and independent review.
 
@@ -61,7 +61,75 @@ check_guidelines: 1 file(s) scanned, 0 generated localization file(s) exempt, 0 
 
 [macOS lockfile refresh run](https://github.com/ClubhouseAmit/LivingPositively/actions/runs/36815392143) runs `pod update --repo-update` on macos-15 with Flutter 3.47.5, then uploads `ios-podfile-lock`. The run succeeded, and artifact `11141571346` was imported into `ios/Podfile.lock`. The independent reviewer downloaded the artifact separately and confirmed its SHA-256 matches the repository file. Native dependencies now include Firebase 12.19.0, GoogleSignIn 9.2.0, Sentry 8.58.4, and file_picker_darwin 1.0.0. This manual refresh runs no production deployment and skips the simulator job; ordinary reusable integration continues to use `pod install --deployment`.
 
-[Draft PR #420](https://github.com/ClubhouseAmit/LivingPositively/pull/420) runs the existing platform pipeline. The first run found npm 10.9.8 discarding the ancestor-scoped UUID override after shared Gaxios hoisting. Moving the override to the immediate Gaxios parent fixes clean installation without changing the resolved lockfile; both npm toolchains are explicitly checked. Code quality, inventory, iOS deployment-mode CocoaPods installation, and simulator boot passed that run. Final native build/runtime verification remains pending the corrected PR run. Check the iOS simulator test step outcome directly: this repository intentionally marks its telemetry test step as continue-on-error, so a green aggregate job alone cannot prove the simulator test passed.
+[Draft PR #420](https://github.com/ClubhouseAmit/LivingPositively/pull/420) runs the existing platform pipeline. The first run found npm 10.9.8 discarding the ancestor-scoped UUID override after shared Gaxios hoisting. Moving the override to the immediate Gaxios parent fixes clean installation without changing the resolved lockfile; both npm toolchains are explicitly checked.
+
+The [corrected pre-merge PR run](https://github.com/ClubhouseAmit/LivingPositively/actions/runs/36817025934), at `e41dc594`, succeeded. All nine Android integration shards passed. Its actual iOS simulator test exited **0**, recorded in artifact `ios-integration-diagnostics/post-test.txt`; this was checked directly rather than inferred from the telemetry job conclusion. This notification/persistence test does **not** authenticate a Google account. Native dependency resolution matches the committed graph; Flutter's automatic change to the commented Podfile platform line explains the artifact checksum difference. The committed lock matches the tracked Podfile.
+
+The merge from main at `ca8e529b` passed local analysis (`No issues found! (ran in 140.4s)`), 1,912 Flutter tests with six skips, 92 Functions tests and 50 rules tests. Its [platform CI run](https://github.com/ClubhouseAmit/LivingPositively/actions/runs/36825729592) started before these review corrections; it is evidence for that commit only.
+
+## Review findings follow-up
+
+Ruflo SPARC refinement task: `task-1790838086412-dh5pa7`.
+
+- **Release blocker:** production-configured real-account Google authentication,
+  cancellation, sign-out and retry remain unvalidated on Android and iOS.
+  The owner confirmed no device testing is available. The
+  [release checklist](../auth-provider-rollout.md#adr-018-google-sign-in-7-release-gate)
+  records each required result as NOT RUN. Keep the PR in draft; simulator
+  success and mocked tests cannot satisfy this gate.
+- The iOS workflow now records the actual simulator step outcome in its summary
+  and diagnostics artifact. A manual `require-simulator-test-success=true` run
+  fails if that step does not succeed, while ordinary telemetry follows ADR-006.
+- Exact constraint styles from main are restored for the eleven declarations
+  that acquired carets during the merge. Geolocator and url_launcher were already
+  exact. `flutter pub get --enforce-lockfile` succeeds with the same lockfile.
+- The UUID override is `gaxios > uuid` wherever Gaxios occurs, not restricted to
+  the Storage ancestor. Gaxios 7 currently has no UUID dependency. The security
+  explanation and inventory below use this actual manifest scope.
+- Google `interrupted` and `uiUnavailable` outcomes remain retryable errors,
+  with localized guidance rather than incident telemetry. Only `canceled`
+  returns the existing neutral result. Android 7.2.17's interactive path uses
+  `throwForNoAuth: true`; its untyped no-credential `unknownError` remains visible
+  and reported, as do client/provider configuration errors. Do not infer a
+  missing account from an unstable error description or hide all unknown errors.
+- The [upstream initialization contract](https://pub.dev/documentation/google_sign_in/latest/google_sign_in/GoogleSignIn/initialize.html)
+  requires exactly one call and defines repeated calls as undefined behavior,
+  without a failed-initialization retry exception. Retaining a failed future is
+  deliberate contract compliance. After a successful initialization,
+  authentication can be retried without reinitializing. Provider sign-out after
+  a restart remains Firebase-only when this process has never initialized
+  Google; that preserves existing behavior, and no silent authentication path
+  was introduced.
+- Functions now selects npm 11.14.0 through `engines.npm`, the selector
+  supported by the [Google Node.js buildpack](https://docs.cloud.google.com/docs/buildpacks/nodejs).
+  Backend CI and the release preparation workflow install the same manifest
+  version and verify the installed Gaxios/UUID CommonJS and Firestore/gRPC graph.
+  Earlier toolchains demonstrated the npm 10.9.8 hoisting issue; relying on an
+  unspecified managed-build default would not establish equivalence.
+  Functions manifest/lock changes still trigger a backend release by existing
+  policy, including dev-only changes. No production deployment or managed
+  Cloud Build was run for this review. The next authorized managed build must
+  confirm npm selection, production graph and audit before release.
+
+### Validation of the review corrections
+
+| Check | Observed result |
+| --- | --- |
+| `flutter pub get --enforce-lockfile` after restoring pins | `Got dependencies!`; `pubspec.lock` unchanged |
+| `flutter analyze` | `No issues found! (ran in 54.4s)` |
+| `flutter test` | `01:41 +1934 ~6: All tests passed!` |
+| Four focused auth suites | `00:06 +69: All tests passed!` |
+| Three executable iOS workflow outcome regressions | `Ran 3 tests`; `OK` |
+| Modified workflow YAML parsing | All three files parsed |
+| `tool/check_guidelines.sh` | `2 file(s) scanned, 4 generated localization file(s) exempt, 0 violations` |
+| Functions Node 22.23.2 / exact npm 11.14.0 clean install and security verifier | Success with dev dependencies and after production-only pruning |
+| Functions tests / deployment guard scripts | 92 / 51 passed |
+| Production installed tree and production/full audits | Exit 0; `found 0 vulnerabilities` |
+
+The Functions lockfile changed only its root `engines.npm` metadata for this
+follow-up; the resolved dependency graph is unchanged. No production deployment
+was performed. The earlier npm 11 results may have used the machine's separate
+11.12.1 CLI; the follow-up explicitly invoked and verified **11.14.0**.
 
 ## Flutter direct/development inventory
 
@@ -240,7 +308,7 @@ Every retained direct package is current. The following 13 transitive gaps requi
 | `tr46` | 0.0.3 | 6.0.0 | `whatwg-url@5.0.0: ~0.0.3` |
 | `type-is` | 2.1.0 | 3.0.0 | `body-parser@2.3.0: ^2.1.0`; `express@5.2.1: ^2.0.1` |
 | `undici-types` | 8.9.0 | 8.11.2 | `@types/node@26.6.3: ~8.9.0` |
-| `uuid` | 11.1.1 | 14.0.2 | `gaxios@6.7.1: ^9.0.1`; `manifest scoped override: @google-cloud/storage > gaxios > uuid ^11.1.1 (CommonJS security patch)` |
+| `uuid` | 11.1.1 | 14.0.2 | `gaxios@6.7.1: ^9.0.1`; `manifest immediate-parent override: gaxios > uuid ^11.1.1 wherever Gaxios occurs (CommonJS security patch; Gaxios 7 has no UUID dependency)` |
 | `web-streams-polyfill` | 3.3.3 | 4.3.0 | `fetch-blob@3.2.0: ^3.0.3` |
 | `web-vitals` | 4.2.4 | 6.2.2 | `@firebase/performance@0.7.14: ^4.2.4` |
 | `webidl-conversions` | 3.0.1 | 8.0.1 | `whatwg-url@5.0.0: ^3.0.0` |

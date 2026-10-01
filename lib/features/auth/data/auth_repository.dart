@@ -81,8 +81,9 @@ class AuthService {
       ? GetIt.instance<GoogleSignIn>()
       : GoogleSignIn.instance;
 
-  // Google Sign-In 7 requires one initialization per singleton, including when
-  // authentication requests overlap. Keep a failed future to avoid reinitializing.
+  // initialize() forbids repeated calls and documents no failure retry exception:
+  // https://pub.dev/documentation/google_sign_in/latest/google_sign_in/GoogleSignIn/initialize.html
+  // Share its future for overlapping requests and retain failures for this run.
   static final Expando<Future<void>> _googleSignInInitializations = Expando();
   static final Expando<bool> _googleSignInInitialized = Expando();
 
@@ -146,6 +147,9 @@ class AuthService {
         serverClientId: serverClientId,
       );
     } on GoogleSignInException catch (error) {
+      // Interactive authenticate() throws for every unsuccessful outcome.
+      // Android uses throwForNoAuth: true, so noCredential is an unknownError;
+      // interruptions and unavailable UI must also reach the form's feedback.
       if (error.code == GoogleSignInExceptionCode.canceled) return null;
       rethrow;
     }
@@ -254,6 +258,8 @@ class AuthService {
   /// Signs out Firebase after attempting initialized Google provider cleanup.
   static Future<void> signOut() async {
     final googleSignIn = _googleSignIn;
+    // A restored Firebase session may have no Google flow in this process.
+    // Preserve Firebase-only logout in that case without initializing for cleanup.
     if (_googleSignInInitialized[googleSignIn] ?? false) {
       try {
         await googleSignIn.signOut();

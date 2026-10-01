@@ -5021,6 +5021,13 @@ class AppLocalizationsHe extends AppLocalizations {
   String get authErrorGeneric => 'אירעה שגיאה. נסו שנית.';
 
   @override
+  String get authErrorGoogleInterrupted => 'ההתחברות הופסקה. אפשר לנסות שוב.';
+
+  @override
+  String get authErrorGoogleUiUnavailable =>
+      'לא ניתן לפתוח את חלון ההתחברות. יש לחזור למסך זה ולנסות שוב.';
+
+  @override
   String get authForgotPasswordTitle => 'איפוס סיסמה';
 
   @override

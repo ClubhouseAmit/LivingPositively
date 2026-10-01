@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mazilon/features/auth/ui/auth_error_reporting.dart';
 import 'package:mazilon/pages/forgot_password_page.dart';
 import 'package:mazilon/features/auth/data/auth_repository.dart';
@@ -31,6 +32,14 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
   void _setSocialLoading(bool v);
   void _setSocialError(String? msg);
 
+  String? _googleSignInRetryMessage(Object error) => switch (error) {
+    GoogleSignInException(code: GoogleSignInExceptionCode.interrupted) =>
+      appLocale.authErrorGoogleInterrupted,
+    GoogleSignInException(code: GoogleSignInExceptionCode.uiUnavailable) =>
+      appLocale.authErrorGoogleUiUnavailable,
+    _ => null,
+  };
+
   Future<void> _runSocialSignIn(
     Future<UserCredential?> Function() signIn,
     String providerName,
@@ -53,8 +62,13 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
       if (isSocialSignInCancellation(error)) {
         return;
       }
-      await reportAuthenticationError(error, stackTrace);
-      if (mounted) _setSocialError(appLocale.authErrorGeneric);
+      final retryMessage = _googleSignInRetryMessage(error);
+      if (retryMessage == null) {
+        await reportAuthenticationError(error, stackTrace);
+      }
+      if (mounted) {
+        _setSocialError(retryMessage ?? appLocale.authErrorGeneric);
+      }
     } finally {
       if (mounted) _setSocialLoading(false);
     }

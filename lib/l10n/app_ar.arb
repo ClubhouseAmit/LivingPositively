@@ -699,6 +699,8 @@
   "authErrorUserNotFound": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
   "authErrorEmailInUse": "يوجد حساب بالفعل بهذا البريد الإلكتروني",
   "authErrorGeneric": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+  "authErrorGoogleInterrupted": "تمت مقاطعة تسجيل الدخول. يُرجى المحاولة مرة أخرى.",
+  "authErrorGoogleUiUnavailable": "تعذّر فتح تسجيل الدخول. يُرجى العودة إلى هذه الشاشة والمحاولة مرة أخرى.",
   "authForgotPasswordTitle": "إعادة تعيين كلمة المرور",
   "authForgotPasswordHint": "أدخل عنوان بريدك الإلكتروني",
   "authForgotPasswordButton": "إرسال رابط إعادة التعيين",

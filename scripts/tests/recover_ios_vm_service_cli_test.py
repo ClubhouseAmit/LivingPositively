@@ -373,5 +373,58 @@ flutter() {
         self.assertEqual(signals.count(f"-KILL -- -{owner}"), 1)
 
 
+class WorkflowValidationOutcomeTest(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.path = Path(self.directory.name)
+        self.workflow = (ROOT / ".github/workflows/_ios-integration.yml").read_text()
+        self.bash = shutil.which("bash")
+        if os.name == "nt":
+            # Git's Windows launcher preserves subprocess environment and handles.
+            launcher = Path(self.bash).parents[2] / "bin/bash.exe"
+            if launcher.is_file():
+                self.bash = str(launcher)
+
+    def run_step(self, name, outcome):
+        step = self.workflow.split(f"      - name: {name}\n", 1)[1]
+        body = step.split("        run: |\n", 1)[1].split("\n      - name:", 1)[0]
+        shell = "\n".join(line[10:] for line in body.splitlines() if line.strip())
+        driver = self.path / "validation.sh"
+        driver.write_text('TEST_OUTCOME="${1-}"\nGITHUB_STEP_SUMMARY=summary.md\n' + shell,
+                          newline="\n")
+        return subprocess.run(
+            [self.bash, "-eu", driver.name, outcome], cwd=self.path,
+            capture_output=True, text=True, timeout=10,
+        )
+
+    def test_should_record_actual_outcome_even_when_job_conclusion_is_success(self):
+        for outcome in ("success", "failure", "cancelled", "skipped"):
+            with self.subTest(outcome=outcome):
+                result = self.run_step("Record actual iOS simulator test outcome", outcome)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                actual = self.path / "ci-ios-diagnostics/test-step-outcome.txt"
+                self.assertEqual(actual.read_text().strip(), outcome)
+                self.assertIn("does not authenticate a real Google account",
+                              (self.path / "summary.md").read_text())
+
+    def test_should_require_test_success_for_manual_validation(self):
+        for outcome in ("success", "failure", "cancelled", "skipped", ""):
+            with self.subTest(outcome=outcome):
+                result = self.run_step(
+                    "Require successful simulator test for manual validation", outcome,
+                )
+                self.assertEqual(result.returncode, 0 if outcome == "success" else 1,
+                                 result.stdout + result.stderr)
+
+    def test_should_keep_strict_validation_opt_in(self):
+        step = self.workflow.split(
+            "      - name: Require successful simulator test for manual validation\n", 1,
+        )[1].split("\n      - name:", 1)[0]
+        self.assertIn("always()", step)
+        self.assertIn("github.event_name == 'workflow_dispatch'", step)
+        self.assertIn("inputs.require-simulator-test-success", step)
+
+
 if __name__ == "__main__":
     unittest.main()

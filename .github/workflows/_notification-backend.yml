@@ -90,8 +90,17 @@ jobs:
           NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED: ${{ vars.NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED }}
         run: node scripts/validate_firebase_deployment_config.mjs
 
+      - name: Use the Functions npm version
+        run: |
+          npm_version=$(node -p 'require("./functions/package.json").engines.npm')
+          npm install --global "npm@$npm_version"
+          test "$(npm --version)" = "$npm_version"
+
       - name: Install Functions dependencies
         run: npm --prefix functions ci
+
+      - name: Verify the installed security patches
+        run: npm --prefix functions run verify:dependencies
 
       - name: Reject deployment of a superseded main revision
         run: |

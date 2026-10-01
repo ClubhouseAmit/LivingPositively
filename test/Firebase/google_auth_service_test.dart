@@ -177,16 +177,65 @@ void main() {
       },
     );
 
-    test('should propagate non-cancellation authentication failures', () async {
-      const failure = GoogleSignInException(
-        code: GoogleSignInExceptionCode.clientConfigurationError,
+    for (final code in [
+      GoogleSignInExceptionCode.interrupted,
+      GoogleSignInExceptionCode.uiUnavailable,
+      GoogleSignInExceptionCode.clientConfigurationError,
+      GoogleSignInExceptionCode.providerConfigurationError,
+      GoogleSignInExceptionCode.unknownError,
+      GoogleSignInExceptionCode.userMismatch,
+    ]) {
+      test(
+        'should propagate interactive authentication failure $code',
+        () async {
+          final failure = GoogleSignInException(code: code);
+          when(googleSignIn.authenticate()).thenThrow(failure);
+
+          await expectLater(
+            AuthService.signInWithGoogle(),
+            throwsA(same(failure)),
+          );
+
+          verifyNever(firebaseAuth.signInWithCredential(any));
+        },
       );
-      when(googleSignIn.authenticate()).thenThrow(failure);
+    }
 
-      await expectLater(AuthService.signInWithGoogle(), throwsA(same(failure)));
+    test(
+      'should report interactive Android no-credential outcome as a failure',
+      () async {
+        const failure = GoogleSignInException(
+          code: GoogleSignInExceptionCode.unknownError,
+          description: 'No credential available: no eligible account',
+        );
+        when(googleSignIn.authenticate()).thenThrow(failure);
 
-      verifyNever(firebaseAuth.signInWithCredential(any));
-    });
+        await expectLater(
+          AuthService.signInWithGoogle(),
+          throwsA(same(failure)),
+        );
+
+        verifyNever(firebaseAuth.signInWithCredential(any));
+      },
+    );
+
+    test(
+      'should allow a new authentication attempt after cancellation',
+      () async {
+        when(googleSignIn.authenticate()).thenThrow(
+          const GoogleSignInException(code: GoogleSignInExceptionCode.canceled),
+        );
+        expect(await AuthService.signInWithGoogle(), isNull);
+        when(googleSignIn.authenticate()).thenAnswer((_) async => account);
+
+        expect(await AuthService.signInWithGoogle(), same(firebaseCredential));
+
+        verify(googleSignIn.initialize(serverClientId: 'server-client'))
+            .called(1);
+        verify(googleSignIn.authenticate()).called(2);
+        verify(firebaseAuth.signInWithCredential(any)).called(1);
+      },
+    );
 
     test(
       'should keep initialization failures without reinitializing',
