@@ -86,16 +86,13 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   Future<bool> _enableReminder(UserInformation userInfo) async {
-    // Initialization can still be pending on iOS immediately after a user
-    // grants permission because APNs has not supplied its token yet. The
-    // permission result, rather than FCM initialization, controls this UI.
-    await FcmService.requestPermissionAndInitialize();
+    final ready = await FcmService.requestPermissionAndInitialize();
     if (!await FcmService.hasPermission()) {
       if (!mounted) return false;
       await _checkPermission();
       return false;
     }
-    if (!mounted) return false;
+    if (!mounted || !ready) return false;
     final preference = NotificationRepository.forService(
       userInfo.service,
     ).getPreference('default');
@@ -115,6 +112,11 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     // last lifecycle check.
     if (_hasPermission != true || !await FcmService.hasPermission()) {
       await _checkPermission();
+      return false;
+    }
+    if (!mounted) return false;
+    if (!await FcmService.requestPermissionAndInitialize()) {
+      if (mounted) _showReminderMutationFailure();
       return false;
     }
     if (!mounted) return false;

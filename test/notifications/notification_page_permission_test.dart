@@ -1,9 +1,14 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
+import 'package:mockito/mockito.dart';
+import 'package:mazilon/features/notifications/data/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/design_system/widgets/button.dart';
 import 'package:mazilon/pages/notification_page.dart';
 import 'package:mazilon/features/notifications/ui/notification_toggle_card.dart';
@@ -13,6 +18,7 @@ import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
+import '../Firebase/firebase_auth_service_test.mocks.dart';
 
 NotificationSettings _settings(AuthorizationStatus status) {
   return NotificationSettings(
@@ -40,6 +46,7 @@ void main() {
   setUp(() {
     registerTestServices(locale: 'en');
     FcmService.resetForTesting();
+    FcmScheduledNotificationService.resetForTesting();
     user = UserInformation(loggedIn: true, gender: 'other', localeName: 'en');
     FcmService.debugInitializeLocalNotificationsOverride = () async {};
     FcmService.debugGetCurrentUserIdOverride = () => null;
@@ -48,12 +55,91 @@ void main() {
   });
 
   tearDown(() async {
+    FcmScheduledNotificationService.resetForTesting();
     if (apnsToken case final pending? when !pending.isCompleted) {
       pending.complete(null);
       await Future<void>.delayed(Duration.zero);
     }
     FcmService.resetForTesting();
     resetTestServices();
+  });
+
+  group('NotificationPage push registration', () {
+    for (final changingTime in [false, true]) {
+      testWidgets(
+        'should reject ${changingTime ? 'time changes' : 'enabling'} '
+        'when iOS push registration is unavailable',
+        (tester) async {
+          await _onPlatform(TargetPlatform.iOS, () async {
+            final auth = MockFirebaseAuth();
+            final firebaseUser = MockUser();
+            when(auth.currentUser).thenReturn(firebaseUser);
+            when(firebaseUser.isAnonymous).thenReturn(false);
+            when(firebaseUser.getIdToken()).thenAnswer((_) async => 'id-token');
+            GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+            FcmService.debugGetApnsTokenOverride = () async => null;
+            FcmService.debugGetNotificationSettingsOverride = () async =>
+                _settings(AuthorizationStatus.authorized);
+            FcmService.debugRequestPermissionOverride = () async =>
+                _settings(AuthorizationStatus.authorized);
+            final requests = <String>[];
+            FcmScheduledNotificationService.debugPostOverride =
+                (url, {headers, body, encoding}) async {
+                  requests.add(url.path);
+                  return http.Response(
+                    url.path.endsWith('/getNotificationMutationVersion')
+                        ? '{"mutationVersion":0}'
+                        : '{"mutationVersion":1}',
+                    200,
+                  );
+                };
+            final repository = NotificationRepository.forService(user.service);
+            if (changingTime) {
+              repository.restorePreferences({
+                'default': const NotificationPreference(hour: 17, minute: 36),
+              });
+            }
+            await pumpWithProviders(
+              tester,
+              const NotificationPage(),
+              userInformation: user,
+            );
+            await tester.pump();
+            final card = tester.widget<NotificationToggleCard>(
+              find.byType(NotificationToggleCard),
+            );
+            final applied = changingTime
+                ? await card.onTimeSelected!(
+                    const TimeOfDay(hour: 18, minute: 0),
+                  )
+                : await card.onToggle!(true);
+            await tester.pump();
+            expect(applied, isFalse);
+            expect(requests, isEmpty);
+            expect(find.text('Something went wrong.'), findsOneWidget);
+            expect(
+              repository.getPreference('default')?.hour,
+              changingTime ? 17 : null,
+            );
+            FcmService.debugGetApnsTokenOverride = () async => 'apns-token';
+            final retried = changingTime
+                ? await card.onTimeSelected!(
+                    const TimeOfDay(hour: 18, minute: 0),
+                  )
+                : await card.onToggle!(true);
+            expect(retried, isTrue);
+            expect(requests, [
+              '/getNotificationMutationVersion',
+              '/registerNotification',
+            ]);
+            expect(
+              repository.getPreference('default')?.hour,
+              changingTime ? 18 : 8,
+            );
+          });
+        },
+      );
+    }
   });
 
   testWidgets(
