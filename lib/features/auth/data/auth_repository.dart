@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
@@ -5,6 +7,7 @@ import 'package:flutter/foundation.dart'
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mazilon/util/Firebase/firebase_options.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 
 /// Starts the provider-specific Google authentication flow.
 ///
@@ -73,6 +76,16 @@ class AuthService {
       ? GetIt.instance<FirebaseAuth>()
       : FirebaseAuth.instance;
 
+  static GoogleSignIn get _googleSignIn =>
+      GetIt.instance.isRegistered<GoogleSignIn>()
+      ? GetIt.instance<GoogleSignIn>()
+      : GoogleSignIn.instance;
+
+  // Google Sign-In 7 requires one initialization per singleton, including when
+  // authentication requests overlap. Keep a failed future to avoid reinitializing.
+  static final Expando<Future<void>> _googleSignInInitializations = Expando();
+  static final Expando<bool> _googleSignInInitialized = Expando();
+
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
           .trim();
@@ -124,23 +137,35 @@ class AuthService {
     final clientId = defaultTargetPlatform == TargetPlatform.iOS
         ? iosClientId
         : null;
-    final startGoogleSignIn = debugGoogleSignInStarterOverride;
-    final googleUser = startGoogleSignIn == null
-        ? await GoogleSignIn(
-            clientId: clientId,
-            serverClientId: serverClientId,
-          ).signIn()
-        : await startGoogleSignIn(
-            clientId: clientId,
-            serverClientId: serverClientId,
-          );
+    final GoogleSignInAccount? googleUser;
+    try {
+      final startGoogleSignIn =
+          debugGoogleSignInStarterOverride ?? _startGoogleSignIn;
+      googleUser = await startGoogleSignIn(
+        clientId: clientId,
+        serverClientId: serverClientId,
+      );
+    } on GoogleSignInException catch (error) {
+      if (error.code == GoogleSignInExceptionCode.canceled) return null;
+      rethrow;
+    }
     if (googleUser == null) return null;
-    final googleAuth = await googleUser.authentication;
+    final googleAuth = googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
-    return _auth.signInWithCredential(credential);
+    return await _auth.signInWithCredential(credential);
+  }
+
+  static Future<GoogleSignInAccount> _startGoogleSignIn({
+    required String serverClientId,
+    String? clientId,
+  }) async {
+    final googleSignIn = _googleSignIn;
+    await (_googleSignInInitializations[googleSignIn] ??= googleSignIn
+        .initialize(clientId: clientId, serverClientId: serverClientId));
+    _googleSignInInitialized[googleSignIn] = true;
+    return await googleSignIn.authenticate();
   }
 
   /// Starts Apple Sign-In, returning `null` when it is unavailable.
@@ -152,7 +177,7 @@ class AuthService {
     final appleProvider = AppleAuthProvider()
       ..addScope('email')
       ..addScope('name');
-    return _auth.signInWithProvider(appleProvider);
+    return await _auth.signInWithProvider(appleProvider);
   }
 
   /// Whether Google Sign-In can be offered for the supplied platform and
@@ -226,9 +251,26 @@ class AuthService {
     return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
-  /// Signs out through the registered auth instance, when one is available.
-  static Future<void> signOut() {
-    return _auth.signOut();
+  /// Signs out Firebase after attempting initialized Google provider cleanup.
+  static Future<void> signOut() async {
+    final googleSignIn = _googleSignIn;
+    if (_googleSignInInitialized[googleSignIn] ?? false) {
+      try {
+        await googleSignIn.signOut();
+      } catch (error, stackTrace) {
+        if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+          unawaited(
+            Future<void>.sync(
+              () => GetIt.instance<IncidentLoggerService>().captureLog(
+                error,
+                stackTrace: stackTrace,
+              ),
+            ).catchError((_) {}),
+          );
+        }
+      }
+    }
+    await _auth.signOut();
   }
 
   /// The current registered session, if authentication has been initialized.

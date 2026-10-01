@@ -71,7 +71,7 @@ jobs:
         run: npm --prefix functions ci
 
       - name: Install Firebase CLI
-        run: npm install --global firebase-tools@15.29.0
+        run: npm install --global firebase-tools@15.32.1
 
       - name: Verify Firestore rules against the emulator
         run: npm --prefix functions run test:rules
