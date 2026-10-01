@@ -1,4 +1,4 @@
-# ADR-017: Upgrade Flutter and Functions dependencies to latest stable releases
+# ADR-018: Upgrade Flutter and Functions dependencies to latest stable releases
 
 - **Status**: accepted
 - **Date**: 2026-10-01
@@ -325,3 +325,7 @@ and identify each owning constraint rather than forcing registry majors.
 ## Implementation evidence
 
 The owner accepted this decision on 2026-10-01 and authorized Ruflo/SPARC implementation. See the [dated implementation inventory and validation evidence](../plans/2026-10-01-issue-391-dependency-upgrade.md) for the resulting package graphs, migrations, independent review, and macOS CI artifact. Graphify was installed and its graph refreshed before implementation.
+
+## Record numbering
+
+When integrating main on 2026-10-01, this record was renumbered from ADR-017 to ADR-018 because main introduced ADR-017 for reminder settings. The accepted dependency-upgrade decision is unchanged.

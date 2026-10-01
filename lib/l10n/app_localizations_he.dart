@@ -5805,4 +5805,87 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get breathingStopped => 'הסתיים מוקדם';
+
+  @override
+  String get reminderTitleFirst => 'הזכר';
+
+  @override
+  String get reminderTitleSecond => 'לי';
+
+  @override
+  String get reminderPageSubtitle => 'בחרו תזכורות שיתאימו ליום שלכם';
+
+  @override
+  String get reminderAppSection => 'תזכורת מהאפליקציה';
+
+  @override
+  String get reminderAppTitle => 'מסר חיזוק יומי';
+
+  @override
+  String get reminderAppSubtitle =>
+      'ניצוץ יומי עדין של תקווה ונחמה, להאיר לך את הדרך';
+
+  @override
+  String get reminderQuickSection => 'תזכורות מהירות';
+
+  @override
+  String get reminderCustomSection => 'בחירה או יצירה של תזכורת אישית';
+
+  @override
+  String get reminderActiveSection => 'תזכורות פעילות';
+
+  @override
+  String get reminderEmojiLabel => 'אימוג\'י';
+
+  @override
+  String get reminderLabelLabel => 'שם התזכורת';
+
+  @override
+  String get reminderAdd => 'הוספת תזכורת';
+
+  @override
+  String get reminderLimitReached =>
+      'אפשר להפעיל עד 32 תזכורות. יש לכבות אחת לפני הוספת תזכורת נוספת.';
+
+  @override
+  String get reminderRemove => 'מחיקת תזכורת';
+
+  @override
+  String get reminderHourFormat => '24 שעות';
+
+  @override
+  String get reminderAmPmFormat => 'בוקר/ערב';
+
+  @override
+  String get reminderQuickExercise => 'פעילות גופנית';
+
+  @override
+  String get reminderQuickPills => 'לקחת תרופות';
+
+  @override
+  String get reminderQuickMeditate => 'מדיטציה';
+
+  @override
+  String get reminderQuickWater => 'לשתות מים';
+
+  @override
+  String get reminderQuickRead => 'לקרוא';
+
+  @override
+  String get reminderQuickSleep => 'לישון';
+
+  @override
+  String get reminderQuickJournal => 'לכתוב ביומן';
+
+  @override
+  String get reminderQuickStretch => 'מתיחות';
+
+  @override
+  String get reminderQuickBreathe => 'נשימות';
+
+  @override
+  String get reminderQuickMusic => 'לנגן';
+
+  @override
+  String get reminderQuickFriend => 'לדבר או לבלות עם חבר.ה';
 }

@@ -1,13 +1,13 @@
 # Issue #391: dependency upgrade implementation evidence
 
-Date: 2026-10-01. Accepted decision: [ADR-017](../adr/ADR-017-upgrade-flutter-and-functions-dependencies.md).
+Date: 2026-10-01. Accepted decision: [ADR-018](../adr/ADR-018-upgrade-flutter-and-functions-dependencies.md).
 Baseline: `68d30320`. Branch: `Tovli/adr-upgrade-flutter-functions`.
 
 ## SPARC execution
 
 | Phase | Result |
 | --- | --- |
-| Specification | Owner accepted ADR-017 and expanded scope to every Flutter and Functions package, supporting root Firebase, and required CI tooling. |
+| Specification | Owner accepted ADR-018 and expanded scope to every Flutter and Functions package, supporting root Firebase, and required CI tooling. |
 | Pseudocode | Inventory stable targets; resolve compatible graphs; migrate current consumers; regenerate artifacts; test; independently review; import macOS lockfile; run PR CI. |
 | Architecture | Existing feature boundaries and external APIs retained. Auth owns the identity API migration; Functions owns its TypeScript runtime and data contracts. |
 | Refinement | Separate Ruflo-tracked Functions, auth, and Flutter compatibility agents implemented and validated their owned changes. |
@@ -254,3 +254,19 @@ Every retained direct package is current. The following 13 transitive gaps requi
 | `yocto-queue` | 0.1.0 | 1.2.2 | `p-limit@3.1.0: ^0.1.0` |
 
 The complete Functions installation audit and root audit were clean with this graph. Review each retained override when its parent begins resolving the patched version naturally.
+
+## Main integration checkpoint
+
+Merged main at `92e17e91` after the original implementation and CI validation. Dependency manifest and lockfile conflicts retain the validated latest stable graph and scoped security overrides; main's reminder features, ownership checks, and recovery changes are preserved. The accepted dependency-upgrade record is now ADR-018 to avoid colliding with main's reminder-settings ADR-017. Validation for this combined revision is recorded on PR #420.
+
+Combined-revision local checks:
+
+```text
+No issues found! (ran in 140.4s)
+01:14 +1912 ~6: All tests passed!
+Backend: tests 92, pass 92, fail 0
+Firestore rules: tests 50, pass 50, fail 0
+check_guidelines: 22 file(s) scanned, 4 generated localization file(s) exempt, 0 violations (limits: file 400, method 80, closure indent 6)
+```
+
+The merge resolutions passed independent review. Backend and rules validation used Node 22.23.2; rules tests ran against the current rules on their fixed localhost:8080 endpoint. Dependency manifests and lockfiles are byte-for-byte unchanged from the previously validated branch. PR CI reruns on the merge commit.

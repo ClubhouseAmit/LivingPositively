@@ -329,8 +329,9 @@ void main() {
     user = UserInformation();
     user.gender = 'male';
     user.localeName = 'en';
-    FcmService.debugCancelLegacyLocalNotificationOverride =
-        (notificationId) async {};
+    FcmService.debugCancelLegacyLocalNotificationOverride = (
+      notificationId,
+    ) async {};
   });
 
   tearDown(() {
@@ -1236,14 +1237,18 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(auth.signOut()).called(1);
-      expect(events, [
+      expect(events.take(3), [
         'getIdToken',
         'getNotificationMutationVersion',
         'cancelNotification',
-        'signOut',
       ]);
+      expect(events.last, 'signOut');
+      expect(
+        events.where((event) => event == 'cancelNotification').length,
+        QuickReminderType.values.length + 1,
+      );
       expect(cancellationPayload, {
-        'typeId': 'default',
+        'typeId': QuickReminderType.values.last.id,
         'expectedMutationVersion': 0,
         'resetFence': true,
       });
@@ -1287,6 +1292,11 @@ void main() {
             throw StateError('Expected an encoded notification mutation body.');
           }
           final requestBody = jsonDecode(body) as Map<String, dynamic>;
+          if (requestBody['typeId'] != 'default') {
+            return url.path.endsWith('/getNotificationMutationVersion')
+                ? http.Response('{"mutationVersion":0}', 200)
+                : http.Response('{"mutationVersion":1}', 200);
+          }
           requestBodies.add(requestBody);
           if (url.path.endsWith('/getNotificationMutationVersion')) {
             expect(requestBody, {'typeId': 'default'});
@@ -1726,10 +1736,11 @@ void main() {
       await _settleReset(tester);
 
       expect(find.byType(FirstPage), findsOneWidget);
-      expect(requests, [
+      expect(requests.take(2), [
         '/getNotificationMutationVersion',
         '/cancelNotification',
       ]);
+      expect(requests.length, 2 * (QuickReminderType.values.length + 1));
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

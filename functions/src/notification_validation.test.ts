@@ -7,6 +7,8 @@ import {
   isValidNotificationLocale,
   isValidNotificationScheduleTime,
   isValidNotificationTypeId,
+  isValidUserReminderContent,
+  isUserReminderTypeId,
   isValidNotificationUid,
   normalizeNotificationGender,
 } from "./notification_validation.js";
@@ -41,6 +43,37 @@ describe("notification validation", () => {
     assert.equal(isValidNotificationTypeId("folder/default"), false);
     assert.equal(isValidNotificationTypeId(""), false);
     assert.equal(isValidNotificationTypeId(42), false);
+  });
+
+  it("bounds user reminder IDs and notification text", () => {
+    assert.equal(isUserReminderTypeId("custom_123"), true);
+    assert.equal(isUserReminderTypeId("quick_music"), true);
+    assert.equal(isUserReminderTypeId("default"), false);
+    assert.equal(
+      isValidUserReminderContent("custom_123", "Living Positively", "Drink water"),
+      true,
+    );
+    assert.equal(
+      isValidUserReminderContent("quick_music", "Living Positively", "Play Music"),
+      true,
+    );
+    assert.equal(isValidUserReminderContent("default", "X", "Y"), false);
+    assert.equal(isValidUserReminderContent("custom_../secret", "X", "Y"), false);
+    assert.equal(isValidUserReminderContent("custom_1", " ", "Y"), false);
+    assert.equal(isValidUserReminderContent("custom_1", "X", "x".repeat(241)), false);
+  });
+
+  it("accepts every client quick ID and rejects unknown quick IDs", () => {
+    for (const suffix of ["exercise", "pills", "meditate", "water", "read",
+      "sleep", "journal", "stretch", "breathe", "music", "friend"]) {
+      assert.equal(isUserReminderTypeId(`quick_${suffix}`), true);
+    }
+    for (const id of ["quick_extra", "quick_", "quick_Music", "quick_water_extra"]) {
+      assert.equal(isUserReminderTypeId(id), false);
+      assert.equal(isValidUserReminderContent(id, "Title", "Body"), false);
+    }
+    assert.equal(isUserReminderTypeId(`custom_${"a".repeat(40)}`), true);
+    assert.equal(isUserReminderTypeId(`custom_${"a".repeat(41)}`), false);
   });
 
   it("normalizes unknown genders to the documented fallback", () => {

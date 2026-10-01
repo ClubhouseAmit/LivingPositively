@@ -1,5 +1,159 @@
 part of 'fcm_scheduled_notification_service.dart';
 
+Map<String, String> _notificationHeaders(String idToken) => {
+  'Authorization': 'Bearer $idToken',
+  'Content-Type': 'application/json',
+};
+
+bool _isReminderLimitResponse(http.Response response) {
+  if (response.statusCode != 429) return false;
+  try {
+    final body = jsonDecode(response.body);
+    return body is Map<String, dynamic> &&
+        body['error'] == 'REMINDER_LIMIT_REACHED';
+  } on FormatException {
+    return false;
+  }
+}
+
+/// Reads the server's default reminder without changing its schedule.
+Future<
+  ({bool succeeded, NotificationPreference? schedule, int mutationVersion})
+>
+readDefaultReminderSchedule({
+  required UserInformation userInformation,
+  Future<String?> Function()? idTokenProvider,
+  NotificationHttpPost? post,
+}) {
+  if (!userInformation.loggedIn) {
+    return Future.value((succeeded: false, schedule: null, mutationVersion: 0));
+  }
+  return _enqueue(
+    () => _readDefaultReminderSchedule(
+      idTokenProvider: idTokenProvider,
+      post: post,
+    ),
+  );
+}
+
+Future<
+  ({bool succeeded, NotificationPreference? schedule, int mutationVersion})
+>
+_readDefaultReminderSchedule({
+  Future<String?> Function()? idTokenProvider,
+  NotificationHttpPost? post,
+}) async {
+  try {
+    final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
+      FcmScheduledNotificationService._networkTimeout,
+    );
+    if (idToken == null) {
+      return (succeeded: false, schedule: null, mutationVersion: 0);
+    }
+    final response =
+        await (post ??
+                FcmScheduledNotificationService.debugPostOverride ??
+                http.post)(
+              Uri.parse(
+                '${FcmScheduledNotificationService._functionsBaseUrl}/getNotificationMutationVersion',
+              ),
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({'typeId': 'default'}),
+            )
+            .timeout(FcmScheduledNotificationService._networkTimeout);
+    if (response.statusCode != 200) {
+      return (succeeded: false, schedule: null, mutationVersion: 0);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || !decoded.containsKey('schedule')) {
+      return (succeeded: false, schedule: null, mutationVersion: 0);
+    }
+    final version = decoded['mutationVersion'];
+    if (version is! int || version < 0) {
+      return (succeeded: false, schedule: null, mutationVersion: 0);
+    }
+    if (decoded['schedule'] == null) {
+      return (succeeded: true, schedule: null, mutationVersion: version);
+    }
+    final schedule = decoded['schedule'];
+    if (schedule is! Map<String, dynamic>) {
+      return (succeeded: false, schedule: null, mutationVersion: 0);
+    }
+    final hour = schedule['hour'];
+    final minute = schedule['minute'];
+    if (hour is! int ||
+        hour < 0 ||
+        hour > 23 ||
+        minute is! int ||
+        minute < 0 ||
+        minute > 59) {
+      return (succeeded: false, schedule: null, mutationVersion: 0);
+    }
+    return (
+      succeeded: true,
+      schedule: NotificationPreference(hour: hour, minute: minute),
+      mutationVersion: version,
+    );
+  } catch (error, stackTrace) {
+    _reportNotificationFailure(
+      'Unable to read default reminder',
+      error,
+      stackTrace,
+    );
+    return (succeeded: false, schedule: null, mutationVersion: 0);
+  }
+}
+
+Future<bool> _migrateLegacyDefaultSchedule({
+  required UserInformation userInformation,
+  required NotificationPreference legacyPreference,
+  required int resetEpoch,
+  Future<String?> Function()? idTokenProvider,
+  NotificationHttpPost? post,
+}) async {
+  final status = await _readDefaultReminderSchedule(
+    idTokenProvider: idTokenProvider,
+    post: post,
+  );
+  if (!status.succeeded ||
+      resetEpoch != FcmScheduledNotificationService._resetEpoch) {
+    return false;
+  }
+  final repository = NotificationRepository.forService(userInformation.service);
+  if (status.schedule case final serverSchedule?) {
+    await repository
+        .setPreference('default', serverSchedule)
+        .timeout(
+          FcmScheduledNotificationService._legacyMigrationOperationTimeout,
+        );
+    return true;
+  }
+  if (status.mutationVersion > 0) {
+    await repository
+        .clearPreferenceAfterFailedRegistration(
+          'default',
+          previousDefaultOptOut: repository.defaultOptOut,
+        )
+        .timeout(
+          FcmScheduledNotificationService._legacyMigrationOperationTimeout,
+        );
+    return true;
+  }
+  return _registerNotification(
+    userInformation: userInformation,
+    typeId: 'default',
+    hour: legacyPreference.hour,
+    minute: legacyPreference.minute,
+    idTokenProvider: idTokenProvider,
+    post: post,
+    resetEpoch: resetEpoch,
+    expectedMutationVersion: status.mutationVersion,
+  );
+}
+
 void _log(String message) =>
     debugPrint('[FcmScheduledNotificationService] $message');
 
@@ -198,17 +352,7 @@ NotificationPreference? _cancelledSchedulePreference(
     if (body is! Map<String, dynamic>) return null;
     final schedule = body['schedule'];
     if (schedule is! Map<String, dynamic>) return null;
-    final hour = schedule['hour'];
-    final minute = schedule['minute'];
-    if (hour is! int ||
-        minute is! int ||
-        hour < 0 ||
-        hour > 23 ||
-        minute < 0 ||
-        minute > 59) {
-      return null;
-    }
-    return NotificationPreference(hour: hour, minute: minute);
+    return NotificationPreference.fromJson(schedule);
   } catch (_) {
     return null;
   }

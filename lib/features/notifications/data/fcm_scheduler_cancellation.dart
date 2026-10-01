@@ -57,6 +57,7 @@ Future<bool> _cancelNotification({
         idToken: idToken,
         post: post,
         resetEpoch: resetEpoch,
+        resetFence: resetFence,
         legacyNotificationCanceller: legacyNotificationCanceller,
         onRemoteScheduleCancelled: onRemoteScheduleCancelled,
       );
@@ -79,6 +80,7 @@ Future<bool> _finishCancellation({
   required int expectedMutationVersion,
   required String idToken,
   required int resetEpoch,
+  required bool resetFence,
   NotificationHttpPost? post,
   Future<void> Function(int)? legacyNotificationCanceller,
   void Function(NotificationPreference?)? onRemoteScheduleCancelled,
@@ -112,6 +114,7 @@ Future<bool> _finishCancellation({
     post: post,
     resetEpoch: resetEpoch,
     nextVersion: nextVersion,
+    resetFence: resetFence,
   );
 }
 
@@ -157,14 +160,19 @@ Future<bool> _clearPreferenceAfterCancellation({
   required String idToken,
   required int resetEpoch,
   required int nextVersion,
+  required bool resetFence,
   NotificationHttpPost? post,
 }) async {
   try {
-    await NotificationRepository.forService(userInformation.service)
-        .clearPreference(typeId)
-        .timeout(
-          FcmScheduledNotificationService._legacyMigrationOperationTimeout,
-        );
+    final repository = NotificationRepository.forService(
+      userInformation.service,
+    );
+    final clear = resetFence
+        ? repository.clearPreferenceForAccountTransition(typeId)
+        : repository.clearPreference(typeId);
+    await clear.timeout(
+      FcmScheduledNotificationService._legacyMigrationOperationTimeout,
+    );
     return true;
   } catch (error) {
     _log('Unable to persist cancelled notification: $error');
@@ -214,6 +222,8 @@ Future<bool> _restoreCancelledSchedule({
     typeId: typeId,
     hour: cancelledSchedule.hour,
     minute: cancelledSchedule.minute,
+    staticTitle: cancelledSchedule.staticTitle,
+    staticBody: cancelledSchedule.staticBody,
     idTokenProvider: () async => idToken,
     post: post,
     resetEpoch: resetEpoch,

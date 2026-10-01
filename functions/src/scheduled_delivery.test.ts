@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-import { Timestamp } from "firebase-admin/firestore";
+import { describe, it, mock } from "node:test";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 import {
   buildNotificationDeliveryKey,
   claimAndSendScheduledDelivery,
   classifyDeviceUpdatedAt,
+  dailyQuoteIndex,
   hasValidFCMToken,
   israelLocalDeliveryCandidates,
   israelLocalDeliveryCandidatesSince,
@@ -20,13 +22,77 @@ import {
   staleDeviceScheduleCleanupPlan,
   shouldClearFCMToken,
   shouldAdvanceSchedulerCheckpoint,
+  registerNotification,
 } from "./index.js";
 import {
   schedulerRecoveryWindow,
   scheduledNotificationSummary,
 } from "./scheduler_observability.js";
 
+describe("provisioned reminder registration", () => {
+  for (const typeId of ["quick_music", "quick_legacy", "custom_legacy"]) {
+    it(`retains provisioned ${typeId} without user-authored text`, async () => {
+      process.env.GCLOUD_PROJECT ??= "reminder-tests";
+      const auth = getAuth();
+      const db = getFirestore();
+      const verify = mock.method(auth, "verifyIdToken", async () => ({ uid: "user-1" }));
+      const read = mock.method(db, "getAll", async () => [{
+        exists: true,
+        data: () => ({ messageType: "static", staticTitle: "Legacy", staticBody: "Body" }),
+      }]);
+      const transaction = mock.method(db, "runTransaction", async () => 1);
+      let response: unknown;
+      let status = 200;
+      const res = {
+        status: (code: number) => { status = code; return res; },
+        send: (body: unknown) => { response = body; },
+        on: () => res,
+      };
+      try {
+        await registerNotification({
+          method: "POST", headers: { authorization: "Bearer token" },
+          body: { typeId, hour: 8, minute: 0, locale: "en" },
+        } as Parameters<typeof registerNotification>[0],
+        res as unknown as Parameters<typeof registerNotification>[1]);
+        assert.equal(status, 200);
+        assert.deepEqual(response, { success: true, mutationVersion: 1 });
+        assert.equal(read.mock.callCount(), 1);
+        assert.equal(transaction.mock.callCount(), 1);
+      } finally {
+        verify.mock.restore();
+        read.mock.restore();
+        transaction.mock.restore();
+      }
+    });
+  }
+});
+
 describe("scheduled notification delivery", () => {
+  it("shuffles daily quotes without repeating on consecutive days", () => {
+    for (const count of [2, 3, 10]) {
+      const choices = Array.from({ length: count * 4 }, (_, offset) => {
+        const day = new Date(Date.UTC(2026, 8, 24 + offset))
+          .toISOString().slice(0, 10);
+        return dailyQuoteIndex("user-1", day, count);
+      });
+      for (let index = 1; index < choices.length; index++) {
+        assert.notEqual(choices[index], choices[index - 1]);
+      }
+      const startDay = Math.floor(Date.UTC(2026, 8, 24) / 86_400_000);
+      const cycleStart = startDay + (count - startDay % count) % count;
+      const cycle = Array.from({ length: count }, (_, offset) =>
+        dailyQuoteIndex(
+          "user-1",
+          new Date((cycleStart + offset) * 86_400_000)
+            .toISOString().slice(0, 10),
+          count,
+        ),
+      );
+      assert.equal(new Set(cycle).size, count);
+      assert.equal(dailyQuoteIndex("user-1", "2026-09-25", count), choices[1]);
+    }
+  });
+
   it("clears an invalid FCM token only when it is still current", () => {
     assert.equal(shouldClearFCMToken("old-token", "old-token"), true);
     assert.equal(shouldClearFCMToken("new-token", "old-token"), false);
