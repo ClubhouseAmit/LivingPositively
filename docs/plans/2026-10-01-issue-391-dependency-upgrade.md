@@ -87,7 +87,7 @@ Ruflo SPARC refinement task: `task-1790838086412-dh5pa7`.
   the Storage ancestor. Gaxios 7 currently has no UUID dependency. The security
   explanation and inventory below use this actual manifest scope.
 - Google `interrupted` and `uiUnavailable` outcomes remain retryable errors,
-  with localized guidance rather than incident telemetry. Only `canceled`
+  with localized guidance and outcome analytics rather than incident telemetry. Only `canceled`
   returns the existing neutral result. Android 7.2.17's interactive path uses
   `throwForNoAuth: true`; its untyped no-credential `unknownError` remains visible
   and reported, as do client/provider configuration errors. Do not infer a
@@ -96,10 +96,10 @@ Ruflo SPARC refinement task: `task-1790838086412-dh5pa7`.
   requires exactly one call and defines repeated calls as undefined behavior,
   without a failed-initialization retry exception. Retaining a failed future is
   deliberate contract compliance. After a successful initialization,
-  authentication can be retried without reinitializing. Provider sign-out after
-  a restart remains Firebase-only when this process has never initialized
-  Google; that preserves existing behavior, and no silent authentication path
-  was introduced.
+  authentication can be retried without reinitializing. The second review adds
+  localized restart guidance and one incident report for a cached initialization
+  failure. Configured provider sign-out now initializes the SDK on cold starts
+  before cleanup, while provider failure still permits Firebase logout.
 - Functions now selects npm 11.14.0 through `engines.npm`, the selector
   supported by the [Google Node.js buildpack](https://docs.cloud.google.com/docs/buildpacks/nodejs).
   Backend CI and the release preparation workflow install the same manifest
@@ -109,7 +109,9 @@ Ruflo SPARC refinement task: `task-1790838086412-dh5pa7`.
   Functions manifest/lock changes still trigger a backend release by existing
   policy, including dev-only changes. No production deployment or managed
   Cloud Build was run for this review. The next authorized managed build must
-  confirm npm selection, production graph and audit before release.
+  confirm npm selection, production graph and audit before release. The second
+  review adds a `gcp-build` hook to assert the actual Node/npm versions, compile,
+  prune, verify and audit inside that managed build before deployment.
 
 ### Validation of the review corrections
 
@@ -130,6 +132,36 @@ The Functions lockfile changed only its root `engines.npm` metadata for this
 follow-up; the resolved dependency graph is unchanged. No production deployment
 was performed. The earlier npm 11 results may have used the machine's separate
 11.12.1 CLI; the follow-up explicitly invoked and verified **11.14.0**.
+
+### Second review safeguards
+
+The second review adds guarded managed compilation and production verification,
+privacy-preserving Google outcome analytics, localized restart feedback with a
+shared one-time initialization incident, and consistent configured cold-start
+provider cleanup. Its local Node 22.23.2/npm 11.14.0 replay passes compilation,
+production pruning, the consumer graph checks and `found 0 vulnerabilities`.
+All 92 backend tests pass. Verifier regressions reject wrong npm/runtime values,
+unpatched root or nested UUID and a missing CommonJS API. Focused authentication
+tests cover the new feedback, counting, telemetry failure isolation and cleanup.
+These tests do not close the managed-build or device evidence gates above.
+
+Second-review local validation:
+
+```text
+check_guidelines: 4 file(s) scanned, 4 generated localization file(s) exempt, 0 violations (limits: file 400, method 80, closure indent 6)
+No issues found! (ran in 127.9s)
+01:09 +1947 ~6: All other tests passed!
+Node verifier/deployment-policy tests: 57 passed, 0 failed
+Functions Node 22.23.2/npm 11.14.0 tests: 92 passed, 0 failed
+Build toolchain verified: Node 22.23.2; npm 11.14.0
+Dependency graph verified: Storage/Gaxios 6.7.1 -> UUID 11.1.1 (CommonJS v4); Firestore -> gRPC 1.14.5
+found 0 vulnerabilities
+```
+
+The fresh-context reviewer found no actionable implementation defect, checked
+each changed/new Dart file individually against section 0 and independently
+passed all six dependency-verifier tests. Managed/device observations remain
+NOT RUN, including production receipt of the auth analytics events.
 
 ## Flutter direct/development inventory
 

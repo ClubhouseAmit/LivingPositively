@@ -45,6 +45,7 @@ jobs:
           node --test ../scripts/tests/functions_deployment_changes.test.mjs
           ../scripts/tests/check_firestore_rules_drift.test.mjs
           ../scripts/tests/check_firestore_collection_policy.test.mjs
+          scripts/verify_dependency_graph.test.mjs
 
       - name: Test iOS Google Sign-In pre-build configuration
         run: bash ../scripts/tests/prepare_ios_google_sign_in_config_test.sh
@@ -52,12 +53,8 @@ jobs:
       - name: Verify Firestore collection policy coverage
         run: node ../scripts/check_firestore_collection_policy.mjs
 
-      - name: Audit production dependencies
-        run: |
-          npm prune --omit=dev
-          npm run verify:dependencies -- --production
-          npm ls --omit=dev --all
-          npm audit --omit=dev --audit-level=low
+      - name: Replay managed Functions build and production audit
+        run: npm run gcp-build
 
   firestore-rules-test:
     name: Firestore security rules

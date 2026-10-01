@@ -6,7 +6,9 @@ import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mazilon/features/auth/data/google_auth_models.dart';
 import 'package:mazilon/util/Firebase/firebase_options.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mazilon/util/async/logger_service.dart';
 
 /// Starts the provider-specific Google authentication flow.
@@ -139,6 +141,7 @@ class AuthService {
         ? iosClientId
         : null;
     final GoogleSignInAccount? googleUser;
+    _trackGoogleSignInOutcome('started');
     try {
       final startGoogleSignIn =
           debugGoogleSignInStarterOverride ?? _startGoogleSignIn;
@@ -146,19 +149,44 @@ class AuthService {
         clientId: clientId,
         serverClientId: serverClientId,
       );
+      if (googleUser == null) {
+        _trackGoogleSignInOutcome('canceled');
+        return null;
+      }
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleUser.authentication.idToken,
+      );
+      final result = await _auth.signInWithCredential(credential);
+      _trackGoogleSignInOutcome('success');
+      return result;
+    } on GoogleSignInInitializationFailure {
+      _trackGoogleSignInOutcome('initializationFailed');
+      rethrow;
     } on GoogleSignInException catch (error) {
       // Interactive authenticate() throws for every unsuccessful outcome.
       // Android uses throwForNoAuth: true, so noCredential is an unknownError;
       // interruptions and unavailable UI must also reach the form's feedback.
+      _trackGoogleSignInOutcome(error.code.name);
       if (error.code == GoogleSignInExceptionCode.canceled) return null;
       rethrow;
+    } catch (_) {
+      _trackGoogleSignInOutcome('failed');
+      rethrow;
     }
-    if (googleUser == null) return null;
-    final googleAuth = googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
+  }
+
+  static void _trackGoogleSignInOutcome(String outcome) {
+    if (!GetIt.instance.isRegistered<AnalyticsService>()) return;
+    // Count ambiguous cancellations and recoverable outcomes without credentials
+    // or provider descriptions, and never let telemetry block authentication.
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<AnalyticsService>().trackEvent(
+          'Google sign-in outcome',
+          {'outcome': outcome, 'platform': defaultTargetPlatform.name},
+        ),
+      ).catchError((_) {}),
     );
-    return await _auth.signInWithCredential(credential);
   }
 
   static Future<GoogleSignInAccount> _startGoogleSignIn({
@@ -166,10 +194,29 @@ class AuthService {
     String? clientId,
   }) async {
     final googleSignIn = _googleSignIn;
-    await (_googleSignInInitializations[googleSignIn] ??= googleSignIn
-        .initialize(clientId: clientId, serverClientId: serverClientId));
-    _googleSignInInitialized[googleSignIn] = true;
+    await _initializeGoogleSignIn(
+      googleSignIn,
+      clientId: clientId,
+      serverClientId: serverClientId,
+    );
     return await googleSignIn.authenticate();
+  }
+
+  static Future<void> _initializeGoogleSignIn(
+    GoogleSignIn googleSignIn, {
+    required String serverClientId,
+    String? clientId,
+  }) async {
+    await (_googleSignInInitializations[googleSignIn] ??=
+        Future<void>.sync(
+          () => googleSignIn.initialize(
+            clientId: clientId,
+            serverClientId: serverClientId,
+          ),
+        ).catchError((Object error, StackTrace stackTrace) {
+          throw GoogleSignInInitializationFailure(error, stackTrace);
+        }));
+    _googleSignInInitialized[googleSignIn] = true;
   }
 
   /// Starts Apple Sign-In, returning `null` when it is unavailable.
@@ -255,21 +302,35 @@ class AuthService {
     return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
-  /// Signs out Firebase after attempting initialized Google provider cleanup.
+  /// Signs out Firebase after attempting cleanup of the configured Google SDK.
   static Future<void> signOut() async {
     final googleSignIn = _googleSignIn;
-    // A restored Firebase session may have no Google flow in this process.
-    // Preserve Firebase-only logout in that case without initializing for cleanup.
-    if (_googleSignInInitialized[googleSignIn] ?? false) {
+    // Cold-start restored sessions use the same configured SDK cleanup as sessions
+    // created here; failed provider setup must still permit Firebase logout.
+    if (isGoogleSignInAvailable ||
+        (_googleSignInInitialized[googleSignIn] ?? false)) {
       try {
+        await _initializeGoogleSignIn(
+          googleSignIn,
+          serverClientId: _configuredGoogleSignInServerClientId,
+          clientId: defaultTargetPlatform == TargetPlatform.iOS
+              ? _configuredGoogleSignInIosClientId
+              : null,
+        );
         await googleSignIn.signOut();
       } catch (error, stackTrace) {
-        if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        if (GetIt.instance.isRegistered<IncidentLoggerService>() &&
+            (error is! GoogleSignInInitializationFailure ||
+                error.claimReport())) {
           unawaited(
             Future<void>.sync(
               () => GetIt.instance<IncidentLoggerService>().captureLog(
-                error,
-                stackTrace: stackTrace,
+                error is GoogleSignInInitializationFailure
+                    ? error.cause
+                    : error,
+                stackTrace: error is GoogleSignInInitializationFailure
+                    ? error.stackTrace
+                    : stackTrace,
               ),
             ).catchError((_) {}),
           );

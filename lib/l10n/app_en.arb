@@ -2107,6 +2107,7 @@
   "authErrorGeneric": "An error occurred. Please try again.",
   "authErrorGoogleInterrupted": "Sign-in was interrupted. Please try again.",
   "authErrorGoogleUiUnavailable": "Sign-in could not open. Return to this screen and try again.",
+  "authErrorGoogleRestart": "Google sign-in could not start. Close and reopen the app before trying again. If it still fails, contact support.",
   "authForgotPasswordTitle": "Reset Password",
   "authForgotPasswordHint": "Enter your email address",
   "authForgotPasswordButton": "Send Reset Link",

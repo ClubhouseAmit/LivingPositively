@@ -2,6 +2,7 @@
   "name": "functions",
   "scripts": {
     "build": "tsc",
+    "gcp-build": "npm run verify:dependencies -- --managed && npm run build && npm prune --omit=dev && npm run verify:dependencies -- --production --managed && npm ls --omit=dev --all && npm audit --omit=dev --audit-level=low",
     "verify:dependencies": "node scripts/verify_dependency_graph.mjs",
     "test": "npm run build && node --test lib/http_cors.test.js lib/notification_validation.test.js lib/notification_provisioning.test.js lib/scheduled_delivery.test.js",
     "provision:notifications": "npm run build && node lib/provision_notifications.js",

@@ -5033,6 +5033,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign-in could not open. Return to this screen and try again.';
 
   @override
+  String get authErrorGoogleRestart =>
+      'Google sign-in could not start. Close and reopen the app before trying again. If it still fails, contact support.';
+
+  @override
   String get authForgotPasswordTitle => 'Reset Password';
 
   @override

@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
 import {createRequire} from "node:module";
+import {execFileSync} from "node:child_process";
 
 const require = createRequire(import.meta.url);
+if (process.argv.includes("--managed")) {
+  assert.ok(process.env.npm_execpath, "Run managed verification through npm");
+  const npmVersion = execFileSync(process.execPath,
+    [process.env.npm_execpath, "--version"], {encoding: "utf8"}).trim();
+  assert.equal(npmVersion, require("../package.json").engines.npm,
+    "Managed build must use the tested npm version");
+  assert.equal(process.versions.node.split(".")[0], "22",
+    "Managed build must use the deployment Node runtime");
+  console.log(`Build toolchain verified: Node ${process.versions.node}; npm ${npmVersion}`);
+}
 const storageRequire = createRequire(require.resolve("@google-cloud/storage"));
 const gaxiosPath = storageRequire.resolve("gaxios/package.json");
 const gaxios = require(gaxiosPath);

@@ -5029,6 +5029,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذّر فتح تسجيل الدخول. يُرجى العودة إلى هذه الشاشة والمحاولة مرة أخرى.';
 
   @override
+  String get authErrorGoogleRestart =>
+      'تعذّر بدء تسجيل الدخول باستخدام Google. أغلق التطبيق وافتحه مجددًا قبل المحاولة مرة أخرى. إذا استمرت المشكلة، تواصل مع الدعم.';
+
+  @override
   String get authForgotPasswordTitle => 'إعادة تعيين كلمة المرور';
 
   @override

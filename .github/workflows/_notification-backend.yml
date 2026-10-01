@@ -141,6 +141,20 @@ jobs:
         if: needs.plan.outputs.functions_required == 'true'
         run: firebase deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
 
+      - name: Record managed-build evidence requirement
+        if: always() && needs.plan.outputs.functions_required == 'true'
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### Managed Functions build evidence
+          The managed `gcp-build` hook must verify Node 22/npm 11.14.0, compile TypeScript,
+          prune development dependencies, verify Gaxios/UUID 11.1.1 and Firestore/gRPC
+          1.14.5, and pass the production audit before deployment can succeed.
+          Retain the Cloud Build ID, source revision and log with the release record.
+          CI's local replay does not establish that this managed build ran.
+          App rollout remains blocked until the managed evidence in
+          `functions/SECURITY.md` and real-account checks in `docs/auth-provider-rollout.md` exist.
+          EOF
+
   gate:
     name: Verify notification backend release
     runs-on: ubuntu-latest

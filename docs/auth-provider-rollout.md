@@ -136,6 +136,7 @@ Successful real-account authentication is required on each platform.
 | Interrupt the flow/background the app, return, and retry | NOT RUN | NOT RUN |
 | Android with no Google account: record the actual add-account flow or error and subsequent recovery | NOT RUN | N/A |
 | After success, FCM token registration and legacy reminder migration still run | NOT RUN | NOT RUN |
+| Configured analytics receives started/success/canceled/interrupted/uiUnavailable outcomes with platform, without account data | NOT RUN | NOT RUN |
 
 Record actual SDK exception codes for dismissal/interruption/no-account outcomes.
 Do not infer them from mocks. A configuration failure is a failed validation,
@@ -155,3 +156,36 @@ Download `ios-integration-diagnostics`, check `test-step-outcome.txt` and
 requires the actual test outcome to be `success`; ordinary PR telemetry retains
 its ADR-006 policy. These tests cover notifications/persistence, not Google
 account authentication. They cannot close the device rows above.
+
+### Authentication observability and recovery
+
+`Google sign-in outcome` uses the existing `AnalyticsService`/Mixpanel channel.
+Each offered attempt records `started` and its result: `success`, `canceled`,
+the SDK error code, `initializationFailed`, or `failed` for other failures.
+The only explicit properties are `outcome` and `platform`; provider descriptions,
+tokens, client IDs and account details are excluded. Telemetry failure cannot
+block sign-in. An unavailable analytics service or absent Mixpanel token sends
+no event; verify receipt in the production telemetry project before rollout.
+
+Operators can group the event by platform and outcome for the candidate app
+version using their Mixpanel release metadata. Compare started and successful
+attempts with cancellations and unavailable-UI outcomes. A sustained increase
+without successful Android sign-in requires checking the release signing SHA,
+package name and server client ID. The SDK cannot tell an individual dismissal
+apart from its configuration-related `canceled` result, so no cancellation is
+reclassified as a confirmed configuration error. The analytics signal enables
+investigation; the real-account success row remains necessary.
+
+`interrupted` and `uiUnavailable` retain localized retry guidance and analytics
+counts without creating an incident per dismissal. Unknown and configuration
+errors still go to incident telemetry. A failed initialization is cached under
+the SDK's exactly-once contract; it shows localized close/reopen guidance and
+reports the original error/stack once per SDK instance, shared with sign-out.
+There is no verified device evidence classifying such failures as transient or
+permanent. Restart permits a new initialization, and persistent failure requires
+support/configuration investigation rather than repeated taps.
+
+Configured Google provider cleanup now initializes the SDK on cold-start
+sign-out too. Firebase sign-out still runs if Google initialization or cleanup
+fails. The cold-start unit coverage establishes the call sequence, while the
+device account-picker/retry row remains NOT RUN.

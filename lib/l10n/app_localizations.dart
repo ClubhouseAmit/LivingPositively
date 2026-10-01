@@ -3316,6 +3316,12 @@ abstract class AppLocalizations {
   /// **'Sign-in could not open. Return to this screen and try again.'**
   String get authErrorGoogleUiUnavailable;
 
+  /// No description provided for @authErrorGoogleRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-in could not start. Close and reopen the app before trying again. If it still fails, contact support.'**
+  String get authErrorGoogleRestart;
+
   /// No description provided for @authForgotPasswordTitle.
   ///
   /// In en, this message translates to:

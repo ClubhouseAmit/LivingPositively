@@ -44,9 +44,14 @@ workflow install that exact version from the manifest before `npm ci` and
 verify the installed dependency graph using `npm run verify:dependencies`.
 The script checks Storage/Gaxios's resolved UUID version and CommonJS `v4`
 API, Admin Firestore's gRPC version, and the Firestore test SDK's gRPC version.
-Backend quality also prunes development dependencies and runs the script with
-`--production`, which skips the test SDK check. These checks run in CI and
-before release, not inside a deployed function.
+The `gcp-build` hook runs the verifier with `--managed` to assert the actual
+executing Node 22 and npm 11.14.0, compiles the source with TypeScript, prunes
+development dependencies, then verifies and audits the production tree. CI
+replays that same hook after backend tests. The `--production` verifier skips
+the absent test SDK and resolves UUID/gRPC from their production consumers.
+These are build-time checks, including in managed Cloud Build; a mismatch,
+compiler failure, or failed audit aborts the build before a revision can deploy.
+An npm download failure also aborts the build; do not bypass it with a fallback.
 
 Google's [Node.js buildpack documentation](https://docs.cloud.google.com/docs/buildpacks/nodejs)
 supports selecting npm with `engines.npm`. The inspected
@@ -55,5 +60,23 @@ reads that field, and the [npm buildpack](https://github.com/GoogleCloudPlatform
 installs the requested version before dependency installation. Local clean
 installs demonstrate compatibility with the pin; they do not establish that
 the managed Firebase Cloud Build image used in a future deployment has run it.
-Confirm its selected npm version, build, production dependency graph, and
-audit in an authorized managed build before release.
+The buildpack supports the [custom `gcp-build` hook](https://docs.cloud.google.com/docs/buildpacks/nodejs#execute_custom_build_steps_during_deployment).
+Do not override it through `GOOGLE_NODE_RUN_SCRIPTS`, install with ignored
+scripts, or vendor dependencies for this release. The buildpack's later prune
+is redundant with the hook's explicit production prune.
+
+For the next approved `firebase-production` release, retain the Cloud Build ID,
+region, source revision and successful build log. The managed log must show:
+
+```text
+Build toolchain verified: Node 22.<patch>; npm 11.14.0
+Dependency graph verified: Storage/Gaxios 6.7.1 -> UUID 11.1.1 (CommonJS v4); Firestore -> gRPC 1.14.5
+found 0 vulnerabilities
+```
+
+Require these markers after the production prune and a successful TypeScript
+build. Download the log with `gcloud builds log BUILD_ID --region REGION
+--project mezilondb` using the release owner's existing access. Missing evidence
+keeps the app rollout blocked even if the release workflow is green. No managed
+build or production deployment was run for this review; the local replay is
+proof that the guard works, not managed-build evidence.

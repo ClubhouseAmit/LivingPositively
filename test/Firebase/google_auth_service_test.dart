@@ -6,10 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mazilon/features/auth/data/auth_repository.dart';
+import 'package:mazilon/features/auth/data/google_auth_models.dart';
+import 'package:mazilon/features/auth/ui/auth_error_reporting.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mockito/mockito.dart';
 
 import 'firebase_auth_service_test.mocks.dart';
+import '../helpers/widget_test_scaffold.dart' show NoopAnalyticsService;
 
 class _MockGoogleSignIn extends Mock implements GoogleSignIn {
   @override
@@ -54,6 +58,14 @@ class _GoogleAccount implements GoogleSignInAccount {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FailingAnalytics extends NoopAnalyticsService {
+  @override
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async => throw StateError('offline');
 }
 
 class _MockIncidentLoggerService extends Mock implements IncidentLoggerService {
@@ -178,6 +190,74 @@ void main() {
     );
 
     for (final code in [
+      GoogleSignInExceptionCode.canceled,
+      GoogleSignInExceptionCode.interrupted,
+      GoogleSignInExceptionCode.uiUnavailable,
+    ]) {
+      test('should count $code without sending provider details', () async {
+        final analytics = NoopAnalyticsService();
+        GetIt.instance.registerSingleton<AnalyticsService>(analytics);
+        when(googleSignIn.authenticate()).thenThrow(
+          GoogleSignInException(
+            code: code,
+            description: 'private provider description',
+          ),
+        );
+        try {
+          await AuthService.signInWithGoogle();
+        } on GoogleSignInException {
+          // The repository preserves these retryable errors for the form.
+        }
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          analytics.events.map((event) => event.key),
+          everyElement('Google sign-in outcome'),
+        );
+        expect(analytics.events.map((event) => event.value), [
+          {'outcome': 'started', 'platform': 'android'},
+          {'outcome': code.name, 'platform': 'android'},
+        ]);
+        verifyNever(firebaseAuth.signInWithCredential(any));
+      });
+    }
+
+    test('should count completed Firebase authentication', () async {
+      final analytics = NoopAnalyticsService();
+      GetIt.instance.registerSingleton<AnalyticsService>(analytics);
+      await AuthService.signInWithGoogle();
+      await Future<void>.delayed(Duration.zero);
+      expect(analytics.events.last.value, {
+        'outcome': 'success',
+        'platform': 'android',
+      });
+    });
+
+    test('should preserve sign-in when outcome analytics fails', () async {
+      GetIt.instance.registerSingleton<AnalyticsService>(_FailingAnalytics());
+      expect(await AuthService.signInWithGoogle(), same(firebaseCredential));
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test('should cache synchronous initialization failures too', () async {
+      when(googleSignIn.initialize(serverClientId: 'server-client'))
+          .thenThrow(StateError('setup failed'));
+      Object? cachedFailure;
+      try {
+        await AuthService.signInWithGoogle();
+        fail('Initialization should fail');
+      } on GoogleSignInInitializationFailure catch (error) {
+        cachedFailure = error;
+      }
+      await expectLater(
+        AuthService.signInWithGoogle(),
+        throwsA(same(cachedFailure)),
+      );
+      verify(googleSignIn.initialize(serverClientId: 'server-client'))
+          .called(1);
+      verifyNever(googleSignIn.authenticate());
+    });
+
+    for (final code in [
       GoogleSignInExceptionCode.interrupted,
       GoogleSignInExceptionCode.uiUnavailable,
       GoogleSignInExceptionCode.clientConfigurationError,
@@ -248,11 +328,23 @@ void main() {
 
         await expectLater(
           AuthService.signInWithGoogle(),
-          throwsA(same(failure)),
+          throwsA(
+            isA<GoogleSignInInitializationFailure>().having(
+              (error) => error.cause,
+              'cause',
+              same(failure),
+            ),
+          ),
         );
         await expectLater(
           AuthService.signInWithGoogle(),
-          throwsA(same(failure)),
+          throwsA(
+            isA<GoogleSignInInitializationFailure>().having(
+              (error) => error.cause,
+              'cause',
+              same(failure),
+            ),
+          ),
         );
 
         verify(googleSignIn.initialize(serverClientId: 'server-client'))
@@ -273,13 +365,47 @@ void main() {
         ).thenAnswer((_) async => throw failure);
         await expectLater(
           AuthService.signInWithGoogle(),
-          throwsA(same(failure)),
+          throwsA(
+            isA<GoogleSignInInitializationFailure>().having(
+              (error) => error.cause,
+              'cause',
+              same(failure),
+            ),
+          ),
         );
 
         await AuthService.signOut();
 
         verifyNever(googleSignIn.signOut());
         verify(firebaseAuth.signOut()).called(1);
+      },
+    );
+
+    test(
+      'should report initialization once across cleanup and later sign-in',
+      () async {
+        final logger = _MockIncidentLoggerService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        const failure = GoogleSignInException(
+          code: GoogleSignInExceptionCode.clientConfigurationError,
+        );
+        when(googleSignIn.initialize(serverClientId: 'server-client'))
+            .thenAnswer((_) async => throw failure);
+        await AuthService.signOut();
+        await AuthService.signOut();
+        try {
+          await AuthService.signInWithGoogle();
+          fail('Initialization should remain failed');
+        } on GoogleSignInInitializationFailure catch (error) {
+          await reportAuthenticationError(error, StackTrace.current);
+        }
+        await Future<void>.delayed(Duration.zero);
+        verify(logger.captureLog(failure, stackTrace: anyNamed('stackTrace')))
+            .called(1);
+        verify(googleSignIn.initialize(serverClientId: 'server-client'))
+            .called(1);
+        verifyNever(googleSignIn.authenticate());
+        verify(firebaseAuth.signOut()).called(2);
       },
     );
 
@@ -296,12 +422,46 @@ void main() {
     );
 
     test(
-      'should sign out Firebase without initializing an unused provider',
+      'should clean up Google on sign-out after a cold start',
       () async {
         await AuthService.signOut();
 
         verify(firebaseAuth.signOut()).called(1);
+        verify(googleSignIn.initialize(serverClientId: 'server-client'))
+            .called(1);
+        verify(googleSignIn.signOut()).called(1);
+        verifyNever(googleSignIn.authenticate());
+      },
+    );
+
+    test(
+      'should skip unconfigured Google cleanup after a cold start',
+      () async {
+        AuthService.debugGoogleSignInServerClientIdOverride = '';
+        await AuthService.signOut();
         verifyZeroInteractions(googleSignIn);
+        verify(firebaseAuth.signOut()).called(1);
+      },
+    );
+
+    test(
+      'should use the configured iOS client for cold-start sign-out',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        AuthService.debugGoogleSignInIosClientIdOverride = 'ios-client';
+        AuthService.debugFirebaseIosClientIdOverride = 'ios-client';
+        AuthService.debugFirebaseIosBundleIdOverride =
+            'com.clubhouse.livingpositively';
+        await AuthService.signOut();
+        verify(
+          googleSignIn.initialize(
+            clientId: 'ios-client',
+            serverClientId: 'server-client',
+          ),
+        ).called(1);
+        verify(googleSignIn.signOut()).called(1);
+        verifyNever(googleSignIn.authenticate());
+        verify(firebaseAuth.signOut()).called(1);
       },
     );
 

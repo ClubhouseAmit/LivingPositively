@@ -701,6 +701,7 @@
   "authErrorGeneric": "حدث خطأ. يرجى المحاولة مرة أخرى.",
   "authErrorGoogleInterrupted": "تمت مقاطعة تسجيل الدخول. يُرجى المحاولة مرة أخرى.",
   "authErrorGoogleUiUnavailable": "تعذّر فتح تسجيل الدخول. يُرجى العودة إلى هذه الشاشة والمحاولة مرة أخرى.",
+  "authErrorGoogleRestart": "تعذّر بدء تسجيل الدخول باستخدام Google. أغلق التطبيق وافتحه مجددًا قبل المحاولة مرة أخرى. إذا استمرت المشكلة، تواصل مع الدعم.",
   "authForgotPasswordTitle": "إعادة تعيين كلمة المرور",
   "authForgotPasswordHint": "أدخل عنوان بريدك الإلكتروني",
   "authForgotPasswordButton": "إرسال رابط إعادة التعيين",

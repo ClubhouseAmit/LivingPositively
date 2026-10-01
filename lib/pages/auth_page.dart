@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mazilon/features/auth/ui/auth_error_reporting.dart';
 import 'package:mazilon/pages/forgot_password_page.dart';
 import 'package:mazilon/features/auth/data/auth_repository.dart';
+import 'package:mazilon/features/auth/data/google_auth_models.dart';
 import 'package:mazilon/features/notifications/data/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/features/shell/ui/LP_extended_state.dart';
@@ -33,6 +34,7 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
   void _setSocialError(String? msg);
 
   String? _googleSignInRetryMessage(Object error) => switch (error) {
+    GoogleSignInInitializationFailure() => appLocale.authErrorGoogleRestart,
     GoogleSignInException(code: GoogleSignInExceptionCode.interrupted) =>
       appLocale.authErrorGoogleInterrupted,
     GoogleSignInException(code: GoogleSignInExceptionCode.uiUnavailable) =>
@@ -63,7 +65,7 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
         return;
       }
       final retryMessage = _googleSignInRetryMessage(error);
-      if (retryMessage == null) {
+      if (retryMessage == null || error is GoogleSignInInitializationFailure) {
         await reportAuthenticationError(error, stackTrace);
       }
       if (mounted) {

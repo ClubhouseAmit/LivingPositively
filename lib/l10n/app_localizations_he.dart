@@ -5028,6 +5028,10 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן לפתוח את חלון ההתחברות. יש לחזור למסך זה ולנסות שוב.';
 
   @override
+  String get authErrorGoogleRestart =>
+      'לא ניתן להתחיל התחברות עם Google. יש לסגור ולפתוח מחדש את האפליקציה לפני ניסיון נוסף. אם הבעיה נמשכת, יש לפנות לתמיכה.';
+
+  @override
   String get authForgotPasswordTitle => 'איפוס סיסמה';
 
   @override
