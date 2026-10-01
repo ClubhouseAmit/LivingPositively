@@ -208,6 +208,106 @@ void main() {
       },
     );
 
+    for (final metadata in [
+      {'__activeAccountUid': 42},
+      {'__activeAccountUid': ''},
+      {'__pausedAccountOwnerUid': false},
+      {'__pausedAccountOwnerUid': ' '},
+      {'__accountSnapshots': []},
+      {
+        '__accountSnapshots': {'account-a': 42},
+      },
+      {
+        '__accountSnapshots': {'account-a': '{broken'},
+      },
+      {
+        '__accountSnapshots': {'account-a': '[]'},
+      },
+      {
+        '__accountSnapshots': {'': '{}'},
+      },
+      {
+        '__accountSnapshots': {
+          'account-a': '{"__activeAccountUid":"account-b"}',
+        },
+      },
+    ]) {
+      test('should recover primary state for invalid ownership $metadata', () {
+        repository.restorePersistedJson(
+          '{"quick_water":{"hour":21,"minute":30},"__defaultOptOut":true}',
+          jsonEncode({
+            'default': {'hour': 8, 'minute': 0},
+            ...metadata,
+          }),
+        );
+        expect(repository.getPreference('quick_water')?.hour, 21);
+        expect(repository.getPreference('default'), isNull);
+        expect(repository.defaultOptOut, isTrue);
+        expect(repository.isActiveAccount('account-a'), isFalse);
+      });
+    }
+
+    for (final owner in [
+      {'__activeAccountUid': 'account-a'},
+      {'__pausedAccountOwnerUid': 'account-a'},
+      {
+        '__accountSnapshots': {'account-a': '{}'},
+      },
+    ]) {
+      test('should preserve each valid ownership marker $owner', () {
+        repository.restorePersistedJson(
+          '{"default":{"hour":21,"minute":30}}',
+          jsonEncode({
+            'default': {'hour': 8, 'minute': 0},
+            '__defaultOptOut': false,
+            ...owner,
+          }),
+        );
+        expect(repository.getPreference('default')?.hour, 8);
+        expect(repository.defaultOptOut, isFalse);
+      });
+    }
+
+    test(
+      'should import identified same-account edits and default removal',
+      () async {
+        await repository.activateAccount('account-a');
+        await repository.setPreference(
+          'default',
+          const NotificationPreference(hour: 8, minute: 0),
+        );
+        await repository.setUse24HourFormat(false);
+        final expanded = memory.expanded;
+        repository.restorePersistedJson(
+          '{"__activeAccountUid":"account-a",'
+          '"default":{"hour":21,"minute":30}}',
+          expanded,
+        );
+        expect(repository.getPreference('default')?.hour, 21);
+        expect(repository.defaultOptOut, isFalse);
+        expect(repository.use24HourFormat, isFalse);
+        repository.restorePersistedJson(
+          '{"__activeAccountUid":"account-a"}',
+          expanded,
+        );
+        expect(repository.getPreference('default'), isNull);
+        expect(repository.defaultOptOut, isTrue);
+        expect(repository.isActiveAccount('account-a'), isTrue);
+      },
+    );
+
+    for (final optOut in [true, false]) {
+      test('should preserve explicit legacy default opt-out $optOut', () {
+        repository.restorePersistedJson(
+          jsonEncode({'__defaultOptOut': optOut}),
+          '{"__use24HourFormat":false}',
+        );
+        expect(repository.defaultOptOut, optOut);
+        expect(repository.use24HourFormat, isFalse);
+        expect(repository.getPreference('default'), isNull);
+      });
+    }
+
     for (final expandedFailure in [false, true]) {
       test(
         'should roll back custom time on failure (expanded: $expandedFailure)',
