@@ -22,7 +22,7 @@ Ruflo swarm: `swarm-1790828261782-j88sgg`; task: `task-1790828283752-9upl9d`. Th
 - Generated ten Mockito outputs for the updated FirebaseAuth API, including `migrateCurrentUser`. Flutter tooling also regenerated localization output without a semantic diff.
 - Functions uses Firebase Admin 14.5.0, Firebase Functions 7.4.0, TypeScript 7.0.2, and explicit development Firebase 12.19.0 for its rules tests. Root Firebase is also 12.19.0 with a new reproducible lockfile.
 - Confirmed unused typescript-eslint parser/plugin declarations and their orphan config were removed. Their latest release still excludes TypeScript 7.
-- Security overrides now target only their affected parents. Storage resolves 8.2.0 naturally; its Gaxios consumer receives CommonJS UUID 11.1.1. Firebase Firestore receives patched grpc-js 1.14.5. See [Functions security rationale](../../functions/SECURITY.md).
+- Security overrides now target only their affected parents. Storage resolves 8.2.0 naturally; its Gaxios consumer receives CommonJS UUID 11.1.1 through an immediate-parent override compatible with both npm 10 and npm 11. Firebase Firestore receives patched grpc-js 1.14.5. See [Functions security rationale](../../functions/SECURITY.md).
 - Firebase CLI testing and release pins move together to 15.32.1. Node 22 remains the deployment and test runtime.
 - very_good_analysis is upgraded to 11.0.0 while `analysis_options.yaml` retains its deliberately versioned 10.3 lint profile and existing baseline. No new suppression or disabled rule was introduced. Trying the 11.0 profile exposed unrelated repository-wide policy debt; that additional policy migration is outside this dependency update.
 - Current native requirements are already met: Android minSdk 24 through Flutter 3.47, iOS target 16. The existing iOS CI retains CocoaPods deployment verification; a manual macOS lock-refresh job generates the updated lockfile artifact.
@@ -37,7 +37,7 @@ Ruflo swarm: `swarm-1790828261782-j88sgg`; task: `task-1790828283752-9upl9d`. Th
 | Non-auth export/image/notification regressions | `00:08 +115: All tests passed!` |
 | Auth migration regressions after review correction | `00:03 +47: All tests passed!` |
 | `dart run build_runner build` | `Built with build_runner/aot in 58s; wrote 10 outputs.` |
-| Functions `npm ci` and `npm ls --all`, Node 22.23.3 | Both exit 0; 310 installed packages; no invalid/required missing peers |
+| Functions `npm ci` and `npm ls --all`, Node 22.23.2/22.23.3, npm 10.9.8/11.14.0 | Both exit 0; 310 installed packages; no invalid/required missing peers |
 | Functions `npm test`, TypeScript 7.0.2 | `tests 86`, `pass 86`, `fail 0` |
 | Functions `npm run test:rules`, CLI 15.32.1 | `tests 47`, `pass 47`, `fail 0`; root node_modules absent during this run |
 | Functions production and complete development audits | `found 0 vulnerabilities` |
@@ -61,7 +61,7 @@ check_guidelines: 1 file(s) scanned, 0 generated localization file(s) exempt, 0 
 
 [macOS lockfile refresh run](https://github.com/ClubhouseAmit/LivingPositively/actions/runs/36815392143) runs `pod update --repo-update` on macos-15 with Flutter 3.47.5, then uploads `ios-podfile-lock`. The run succeeded, and artifact `11141571346` was imported into `ios/Podfile.lock`. The independent reviewer downloaded the artifact separately and confirmed its SHA-256 matches the repository file. Native dependencies now include Firebase 12.19.0, GoogleSignIn 9.2.0, Sentry 8.58.4, and file_picker_darwin 1.0.0. This manual refresh runs no production deployment and skips the simulator job; ordinary reusable integration continues to use `pod install --deployment`.
 
-Native verification is pending. Check the iOS simulator test step outcome directly: this repository intentionally marks its telemetry test step as continue-on-error, so a green aggregate job alone cannot prove the simulator test passed.
+[Draft PR #420](https://github.com/ClubhouseAmit/LivingPositively/pull/420) runs the existing platform pipeline. The first run found npm 10.9.8 discarding the ancestor-scoped UUID override after shared Gaxios hoisting. Moving the override to the immediate Gaxios parent fixes clean installation without changing the resolved lockfile; both npm toolchains are explicitly checked. Code quality, inventory, iOS deployment-mode CocoaPods installation, and simulator boot passed that run. Final native build/runtime verification remains pending the corrected PR run. Check the iOS simulator test step outcome directly: this repository intentionally marks its telemetry test step as continue-on-error, so a green aggregate job alone cannot prove the simulator test passed.
 
 ## Flutter direct/development inventory
 
