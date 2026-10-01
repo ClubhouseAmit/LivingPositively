@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -311,7 +313,7 @@ void main() {
       await signIn;
 
       expect(tokenRequests, 2);
-      expect(savedTokens, ['uid-123:fcm-token']);
+      expect(savedTokens, ['uid-123:fcm-token', 'uid-123:fcm-token']);
       expect(listenerRegistrations, 1);
     });
 
@@ -320,6 +322,7 @@ void main() {
       () async {
         debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
         var fcmTokenRequests = 0;
+        var listenerRegistrations = 0;
         _configureSuccessfulInitialization(
           apnsToken: null,
           getToken: () async {
@@ -327,10 +330,79 @@ void main() {
             return 'fcm-token';
           },
         );
+        FcmService.debugRegisterListenersOverride = () {
+          listenerRegistrations++;
+        };
 
+        await expectLater(FcmService.initialize(), completes);
         await expectLater(FcmService.initialize(), completes);
 
         expect(fcmTokenRequests, 0);
+        expect(listenerRegistrations, 1);
+      },
+    );
+
+    test(
+      'should register Apple push after Dart startup and save a late token',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        setupFirebaseCoreMocks();
+        await Firebase.initializeApp();
+        const channel = MethodChannel('plugins.flutter.io/firebase_messaging');
+        final calls = <MethodCall>[];
+        final savedToken = Completer<String>();
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+              calls.add(call);
+              return switch (call.method) {
+                'Messaging#setAutoInitEnabled' => {'isAutoInitEnabled': true},
+                'Messaging#getAPNSToken' => {'token': null},
+                'Messaging#getInitialMessage' => null,
+                _ => throw StateError(
+                  'Unexpected messaging call: ${call.method}',
+                ),
+              };
+            });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(channel, null);
+          TestFirebaseCoreHostApi.setUp(null);
+        });
+        FcmService.debugInitializeLocalNotificationsOverride = () async {};
+        FcmService.debugGetCurrentUserIdOverride = () => 'ios-user';
+        FcmService.debugSaveTokenOverride = (uid, token) async {
+          savedToken.complete('$uid:$token');
+          return true;
+        };
+
+        await FcmService.initialize();
+
+        expect(
+          calls.map((call) => call.method),
+          containsAllInOrder([
+            'Messaging#setAutoInitEnabled',
+            'Messaging#getAPNSToken',
+          ]),
+        );
+        final registration = calls.singleWhere(
+          (call) => call.method == 'Messaging#setAutoInitEnabled',
+        );
+        expect((registration.arguments as Map)['enabled'], isTrue);
+        expect(
+          calls.any((call) => call.method == 'Messaging#getToken'),
+          isFalse,
+        );
+        ServicesBinding.instance.channelBuffers.push(
+          channel.name,
+          channel.codec.encodeMethodCall(
+            const MethodCall('Messaging#onTokenRefresh', 'late-fcm-token'),
+          ),
+          (_) {},
+        );
+        expect(
+          await savedToken.future.timeout(const Duration(seconds: 2)),
+          'ios-user:late-fcm-token',
+        );
       },
     );
 

@@ -53,7 +53,7 @@ void main() {
     expect(permissionRequests, 1);
     expect(apnsTokenRequests, 1);
     expect(fcmTokenRequests, 0);
-    expect(listenerRegistrations, 0);
+    expect(listenerRegistrations, 1);
   });
 }
 

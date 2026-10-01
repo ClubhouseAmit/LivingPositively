@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart'
@@ -219,6 +220,8 @@ class FcmService {
     _log('Local notifications initialized.');
     if (resetGeneration != _testResetGeneration) return false;
 
+    // Capture token updates even when APNs registration is still pending.
+    _registerListenersOnce();
     final tokenResult = await _getTokenWhenPlatformReady();
     if (!tokenResult.isPlatformReady) {
       return false;
@@ -227,12 +230,7 @@ class FcmService {
     final uid = _currentUserId();
     final token = tokenResult.token;
 
-    _log('=== FCM Ready ===');
-    _log('UID       : $uid');
     _log('FCM token available: ${token != null}');
-    _log('=================');
-
-    _registerListenersOnce();
 
     if (token == null) {
       _log('FCM token is not ready; initialization will be retried.');
@@ -294,8 +292,7 @@ class FcmService {
   _getTokenWhenPlatformReady() async {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final apnsToken =
-          await (debugGetApnsTokenOverride ??
-              FirebaseMessaging.instance.getAPNSToken)();
+          await (debugGetApnsTokenOverride ?? _registerForApplePush)();
       if (apnsToken == null) {
         _log('APNs token is not ready; deferring the FCM token request.');
         return (isPlatformReady: false, token: null);
@@ -305,6 +302,13 @@ class FcmService {
     final token =
         await (debugGetTokenOverride ?? FirebaseMessaging.instance.getToken)();
     return (isPlatformReady: true, token: token);
+  }
+
+  static Future<String?> _registerForApplePush() async {
+    // Messaging 16.5 skips APNs registration with Dart-only Firebase startup.
+    // Enabling auto-init after startup explicitly requests native registration.
+    await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    return FirebaseMessaging.instance.getAPNSToken();
   }
 
   static String? _currentUserId() {
@@ -390,10 +394,6 @@ class FcmService {
     _log(
       'App launched from terminated state via notification — data: ${message.data}',
     );
-    _handleNotificationTap(message);
-  }
-
-  static void _handleNotificationTap(RemoteMessage message) {
     onNotificationTap?.call();
   }
 }
