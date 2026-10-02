@@ -322,11 +322,6 @@ class NotificationRepository {
     return _persist();
   }
 
-  Future<void> setUse24HourFormat(bool value) {
-    _use24HourFormat = value;
-    return _persist();
-  }
-
   String _encodePreferences({required bool includeSnapshots}) => jsonEncode({
     ..._preferences.map((key, value) => MapEntry(key, value.toJson())),
     '__customReminders': _customReminders.map((item) => item.toJson()).toList(),

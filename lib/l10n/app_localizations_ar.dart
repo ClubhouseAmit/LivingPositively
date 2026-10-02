@@ -5896,12 +5896,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reminderRemove => 'حذف التذكير';
 
   @override
-  String get reminderHourFormat => '24 ساعة';
-
-  @override
-  String get reminderAmPmFormat => 'ص/م';
-
-  @override
   String get reminderQuickExercise => 'تمارين رياضية';
 
   @override

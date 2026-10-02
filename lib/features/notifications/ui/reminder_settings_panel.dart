@@ -15,7 +15,6 @@ class ReminderSettingsPanel extends StatefulWidget {
     required this.onRegister,
     required this.onCancel,
     required this.onFailure,
-    required this.onFormatChanged,
     super.key,
   });
 
@@ -23,7 +22,6 @@ class ReminderSettingsPanel extends StatefulWidget {
   final Future<bool> Function(String, TimeOfDay, String, String) onRegister;
   final Future<bool> Function(String) onCancel;
   final VoidCallback onFailure;
-  final VoidCallback onFormatChanged;
 
   @override
   State<ReminderSettingsPanel> createState() => _ReminderSettingsPanelState();
@@ -161,18 +159,6 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
     return true;
   }
 
-  Future<void> _changeFormat(bool use24Hour) async {
-    try {
-      await widget.repository.setUse24HourFormat(use24Hour);
-    } catch (_) {
-      widget.onFailure();
-      return;
-    }
-    if (!mounted) return;
-    setState(() {});
-    widget.onFormatChanged();
-  }
-
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context)!;
@@ -181,10 +167,6 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: AppSpacing.xxl),
-        if (MediaQuery.sizeOf(context).width < 600) ...[
-          _formatControl(locale),
-          const SizedBox(height: AppSpacing.xxl),
-        ],
         _sectionLabel('⚡ ${locale.reminderQuickSection}'),
         const SizedBox(height: AppSpacing.sm),
         for (final preset in quick) ...[
@@ -200,7 +182,7 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
         _sectionLabel(locale.reminderCustomSection),
         const SizedBox(height: AppSpacing.sm),
         CustomReminderForm(
-          use24HourFormat: widget.repository.use24HourFormat,
+          use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
           onAdd: _addCustom,
         ),
         const SizedBox(height: AppSpacing.md),
@@ -212,18 +194,6 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
       ],
     );
   }
-
-  Widget _formatControl(AppLocalizations locale) => Row(
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-      Text(locale.reminderAmPmFormat, style: AppTextStyle.labelSmall),
-      Switch(
-        value: widget.repository.use24HourFormat,
-        onChanged: _changeFormat,
-      ),
-      Text(locale.reminderHourFormat, style: AppTextStyle.labelSmall),
-    ],
-  );
 
   Widget _sectionLabel(String value) => Text(
     value.toUpperCase(),
@@ -237,7 +207,7 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
     label: preset.label,
     time: _timeFor(preset.id),
     enabled: widget.repository.getPreference(preset.id) != null,
-    use24HourFormat: widget.repository.use24HourFormat,
+    use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
     onToggle: (value) => _setEnabled(
       preset.id,
       preset.label,
@@ -258,7 +228,7 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
       label: reminder.label,
       time: time,
       enabled: enabled,
-      use24HourFormat: widget.repository.use24HourFormat,
+      use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
       onToggle: (value) => _setEnabled(
         reminder.id,
         reminder.label,
@@ -342,10 +312,7 @@ class _ReminderSettingsPanelState extends State<ReminderSettingsPanel> {
 
   Widget _summaryRow(String label, NotificationPreference preference) {
     final time = TimeOfDay(hour: preference.hour, minute: preference.minute);
-    final formatted = MaterialLocalizations.of(context).formatTimeOfDay(
-      time,
-      alwaysUse24HourFormat: widget.repository.use24HourFormat,
-    );
+    final formatted = time.format(context);
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.xs),
       child: Row(

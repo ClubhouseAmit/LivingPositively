@@ -272,10 +272,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       child: SingleChildScrollView(
         child: Column(
           children: [
-            ReminderPageHeader(
-              onFormatChanged: () => setState(() {}),
-              onFailure: _showReminderMutationFailure,
-            ),
+            const ReminderPageHeader(),
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
@@ -343,7 +340,6 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       onRegister: _registerTextReminder,
       onCancel: _cancelTextReminder,
       onFailure: _showReminderMutationFailure,
-      onFormatChanged: () => setState(() {}),
     );
   }
 
@@ -373,24 +369,19 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     if (_hasPermission == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        alwaysUse24HourFormat: repository.use24HourFormat,
-      ),
-      child: NotificationToggleCard(
-        emoji: '✨',
-        badgeText: 'LP',
-        title: appLocale.reminderAppTitle,
-        subtitle: appLocale.reminderAppSubtitle,
-        setTimeLabel: appLocale.notificationsSetTime,
-        initialEnabled: preference != null,
-        initialTime: switch (repository.getSavedTime('default')) {
-          final saved? => TimeOfDay(hour: saved.hour, minute: saved.minute),
-          null => NotificationToggleCard.defaultReminderTime,
-        },
-        onTimeSelected: _onPickedTime,
-        onToggle: (value) => _onToggle(value, userInfo),
-      ),
+    return NotificationToggleCard(
+      emoji: '✨',
+      badgeText: 'LP',
+      title: appLocale.reminderAppTitle,
+      subtitle: appLocale.reminderAppSubtitle,
+      setTimeLabel: appLocale.notificationsSetTime,
+      initialEnabled: preference != null,
+      initialTime: switch (repository.getSavedTime('default')) {
+        final saved? => TimeOfDay(hour: saved.hour, minute: saved.minute),
+        null => NotificationToggleCard.defaultReminderTime,
+      },
+      onTimeSelected: _onPickedTime,
+      onToggle: (value) => _onToggle(value, userInfo),
     );
   }
 

@@ -65,6 +65,14 @@ final class _Memory implements PersistentMemoryService {
   Future<void> reset() async {}
 }
 
+void _restoreLegacyFormat(NotificationRepository repository, _Memory memory) {
+  memory.expanded = jsonEncode({
+    ...jsonDecode(memory.expanded!) as Map<String, dynamic>,
+    '__use24HourFormat': false,
+  });
+  repository.restoreJson(memory.expanded!);
+}
+
 void main() {
   group('NotificationRepository', () {
     late _Memory memory;
@@ -96,7 +104,7 @@ void main() {
             staticBody: 'Practice',
           ),
         );
-        await repository.setUse24HourFormat(false);
+        _restoreLegacyFormat(repository, memory);
         await repository.setSavedTime(
           'quick_water',
           const NotificationPreference(hour: 9, minute: 15),
@@ -167,7 +175,7 @@ void main() {
         );
         await repository.clearPreferenceForAccountTransition('quick_water');
         await repository.clearPreference('default');
-        await repository.setUse24HourFormat(false);
+        _restoreLegacyFormat(repository, memory);
         final expanded = memory.expanded;
         repository.restorePersistedJson(
           '{"default":{"hour":22,"minute":45},'
@@ -276,7 +284,7 @@ void main() {
           'default',
           const NotificationPreference(hour: 8, minute: 0),
         );
-        await repository.setUse24HourFormat(false);
+        _restoreLegacyFormat(repository, memory);
         final expanded = memory.expanded;
         repository.restorePersistedJson(
           '{"__activeAccountUid":"account-a",'
@@ -365,21 +373,26 @@ void main() {
           minute: 30,
         ),
       );
-      final format = repository.setUse24HourFormat(false);
+      final savedTime = repository.setSavedTime(
+        'quick_read',
+        const NotificationPreference(hour: 11, minute: 20),
+      );
       final quick = repository.setPreference(
         'quick_water',
         const NotificationPreference(hour: 10, minute: 15),
       );
       final failed = expectLater(edit, throwsStateError);
       memory.gate!.complete();
-      await Future.wait([failed, format, quick]);
+      await Future.wait([failed, savedTime, quick]);
       expect(repository.customReminders.single.hour, 8);
-      expect(repository.use24HourFormat, isFalse);
+      expect(repository.getSavedTime('quick_read')?.hour, 11);
+      expect(repository.getSavedTime('quick_read')?.minute, 20);
       expect(repository.getPreference('quick_water')?.hour, 10);
       final restored = NotificationRepository.forService(_Memory())
         ..restoreJson(memory.writes.last);
       expect(restored.customReminders.single.hour, 8);
-      expect(restored.use24HourFormat, isFalse);
+      expect(restored.getSavedTime('quick_read')?.hour, 11);
+      expect(restored.getSavedTime('quick_read')?.minute, 20);
       expect(restored.getPreference('quick_water')?.hour, 10);
     });
 
@@ -775,7 +788,7 @@ void main() {
           minute: 30,
         ),
       );
-      await repository.setUse24HourFormat(false);
+      _restoreLegacyFormat(repository, memory);
       await repository.clearPreference('default');
 
       final restored = NotificationRepository.forService(_Memory())

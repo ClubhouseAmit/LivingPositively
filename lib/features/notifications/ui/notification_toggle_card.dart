@@ -92,17 +92,10 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
 
   Future<void> _selectTime() async {
     if (_isMutating) return;
-    final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
       initialEntryMode: TimePickerEntryMode.dial,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(
-          alwaysUse24HourFormat: use24HourFormat,
-        ),
-        child: child!,
-      ),
     );
     if (picked == null || !mounted) return;
 

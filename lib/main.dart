@@ -10,6 +10,7 @@ import 'package:mazilon/util/async/service_locator.dart';
 import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mazilon/features/shell/ui/async_state_view.dart';
+import 'package:mazilon/features/shell/ui/app_time_format.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/async/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -562,10 +563,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         navigatorKey: _navigatorKey,
         supportedLocales: AppLocalizations.supportedLocales,
         locale: Locale(localeService.getLocale()),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: appLocalizationsDelegates,
+        builder: appTimeFormatBuilder,
         debugShowCheckedModeBanner: false,
-        // Semantic tokens are layered onto Material 2. The user's dark-mode
-        // preference selects the matching accessible palette below.
         theme: buildLightTheme(),
         darkTheme: buildDarkTheme(),
         themeMode: themeMode,

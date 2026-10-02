@@ -1006,8 +1006,6 @@
   "reminderAdd": "إضافة تذكير",
   "reminderLimitReached": "يمكنك تفعيل ما يصل إلى 32 تذكيرًا. أوقف أحدها قبل إضافة تذكير آخر.",
   "reminderRemove": "حذف التذكير",
-  "reminderHourFormat": "24 ساعة",
-  "reminderAmPmFormat": "ص/م",
   "reminderQuickExercise": "تمارين رياضية",
   "reminderQuickPills": "تناول الدواء",
   "reminderQuickMeditate": "التأمل",

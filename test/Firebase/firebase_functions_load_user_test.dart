@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
@@ -524,9 +525,16 @@ void main() {
           const NotificationPreference(hour: 8, minute: 0),
         );
         await repository.clearPreferenceForAccountTransition('custom_old');
-        await repository.setUse24HourFormat(false);
-        await repository.clearPreference('default');
         final memory = userInfo.service as _FakeMemory;
+        repository.restoreJson(
+          jsonEncode({
+            ...jsonDecode(
+              memory.store['notificationReminderSettings'] as String,
+            ) as Map<String, dynamic>,
+            '__use24HourFormat': false,
+          }),
+        );
+        await repository.clearPreference('default');
         memory.store['notificationPreferences'] = '{not-json';
         await loadUserInformation(userInfo, 'en');
 

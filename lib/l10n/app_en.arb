@@ -2416,8 +2416,6 @@
   "reminderAdd": "Add reminder",
   "reminderLimitReached": "You can have up to 32 active reminders. Turn one off before adding another.",
   "reminderRemove": "Remove reminder",
-  "reminderHourFormat": "24h",
-  "reminderAmPmFormat": "AM/PM",
   "reminderQuickExercise": "Exercise",
   "reminderQuickPills": "Take Pills",
   "reminderQuickMeditate": "Meditate",
