@@ -12,6 +12,8 @@ class GoogleAuthLifecycle {
   bool _cleanupWaitExpired = false;
 
   int get generation => _generation;
+  int get sessionGeneration => _endedSessionGeneration;
+  bool get hasPendingFirebaseLogout => _firebaseLogouts.isNotEmpty;
   final _firebaseLogouts = <Future<void>>{};
   final _exchanges = <Future<void>>{};
   final _attempts = <Future<GoogleSignInAccount>>{};
@@ -38,15 +40,13 @@ class GoogleAuthLifecycle {
   ) async {
     final barriers = <Future<void>>[
       ?_cleanup,
-      ..._firebaseLogouts,
+      ..._firebaseLogouts.map(_awaitFirebaseLogout),
     ];
     if (_cleanupWaitExpired && _cleanup != null) {
       throw const GoogleSignInAborted(GoogleSignInAbortReason.cleanupPending);
     }
     if (barriers.isNotEmpty) {
-      await Future.wait(
-        barriers.map((future) => future.catchError((Object _) {})),
-      ).timeout(
+      await Future.wait(barriers, eagerError: true).timeout(
         const Duration(seconds: 5),
         onTimeout: () {
           if (_cleanup != null) _cleanupWaitExpired = true;
@@ -74,6 +74,26 @@ class GoogleAuthLifecycle {
     }
   }
 
+  Future<void> _awaitFirebaseLogout(Future<void> logout) async {
+    try {
+      await logout;
+    } catch (_) {
+      throw const GoogleSignInAborted(GoogleSignInAbortReason.cleanupPending);
+    }
+  }
+
+  /// Fences success publication after the caller resumes from an exchange.
+  void checkSession(int startedSessionGeneration) {
+    if (_firebaseLogouts.isNotEmpty ||
+        startedSessionGeneration != _endedSessionGeneration) {
+      throw const GoogleSignInAborted(GoogleSignInAbortReason.appCanceled);
+    }
+  }
+
+  Future<void> waitForFirebaseLogouts() => Future.wait(
+    _firebaseLogouts.toList().map((future) => future.catchError((Object _) {})),
+  );
+
   Future<T> exchange<T>(
     Future<T> Function() signIn,
     int startedGeneration,
@@ -90,11 +110,7 @@ class GoogleAuthLifecycle {
     final credential = await result;
     // Only a successful Firebase logout invalidates an issued exchange. A
     // failed logout must let its result reach the caller's session handling.
-    await Future.wait(
-      _firebaseLogouts.toList().map(
-        (future) => future.catchError((Object _) {}),
-      ),
-    );
+    await waitForFirebaseLogouts();
     if (sessionGeneration != _endedSessionGeneration) {
       throw const GoogleSignInAborted(GoogleSignInAbortReason.appCanceled);
     }
@@ -133,24 +149,28 @@ class GoogleAuthLifecycle {
       return (firebase: firebaseLogout, provider: pending, started: false);
     }
     final attempts = _attempts.toList();
-    final future = _cleanUp(sdk, firebaseLogout, initialize, attempts);
+    final future = _cleanUp(sdk, initialize, attempts, _endedSessionGeneration);
     _cleanup = future;
     return (firebase: firebaseLogout, provider: future, started: true);
   }
 
   Future<void> _cleanUp(
     GoogleSignIn sdk,
-    Future<void> firebaseLogout,
     Future<void> Function() initialize,
     List<Future<GoogleSignInAccount>> attempts,
+    int startedSessionGeneration,
   ) async {
     try {
-      try {
-        await firebaseLogout;
-      } catch (_) {
-        // Firebase errors belong to the sign-out caller, never this observer.
-        return;
+      // Drain every overlapping logout, so a failed first request cannot mask
+      // a successful later request. Firebase errors stay with each caller.
+      while (_firebaseLogouts.isNotEmpty) {
+        await Future.wait(
+          _firebaseLogouts.toList().map(
+            (future) => future.catchError((Object _) {}),
+          ),
+        );
       }
+      if (startedSessionGeneration == _endedSessionGeneration) return;
       for (final attempt in attempts) {
         try {
           await attempt;

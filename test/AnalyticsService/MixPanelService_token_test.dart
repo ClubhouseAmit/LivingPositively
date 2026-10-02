@@ -46,6 +46,77 @@ void main() {
   });
 
   group('MixPanelService — token present', () {
+    for (final lateFailure in [false, true]) {
+      for (final staleFirst in [false, true]) {
+        testWidgets(
+          'should retry timed-out startup and ignore stale '
+          '${lateFailure ? "failure" : "success"} '
+          '${staleFirst ? "before" : "after"} recovery',
+          (tester) async {
+            var now = DateTime(2026);
+            MixPanelService.debugClock = () => now;
+            final oldStartup = Completer<void>();
+            final retryStartup = Completer<void>();
+            var initializations = 0;
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+                .setMockMethodCallHandler(channel, (call) async {
+                  calls.add(call);
+                  if (call.method == 'initialize') {
+                    initializations++;
+                    await (initializations == 1
+                        ? oldStartup.future
+                        : retryStartup.future);
+                  }
+                  return null;
+                });
+            final svc = MixPanelService();
+            final original = svc.trackEvent('original');
+            await tester.pump(const Duration(seconds: 5));
+            await original;
+            await svc.trackEvent('buffered');
+            expect(initializations, 1);
+            now = now.add(const Duration(minutes: 1));
+            final retry = svc.trackEvent('retry');
+            await tester.pump();
+            expect(initializations, 2);
+
+            if (staleFirst) {
+              if (lateFailure) {
+                oldStartup.completeError(StateError('stale startup'));
+              } else {
+                oldStartup.complete();
+              }
+              await tester.pump();
+              expect(calls.where((call) => call.method == 'track'), isEmpty);
+            }
+            retryStartup.complete();
+            await tester.pump();
+            await retry;
+            final recovered = svc.mixpanel;
+            if (!staleFirst) {
+              if (lateFailure) {
+                oldStartup.completeError(StateError('stale startup'));
+              } else {
+                oldStartup.complete();
+              }
+              await tester.pump();
+            }
+            expect(svc.mixpanel, same(recovered));
+            await svc.trackEvent('after');
+            expect(initializations, 2);
+            expect(
+              calls
+                  .where((call) => call.method == 'track')
+                  .map(
+                    (call) => (call.arguments as Map)['eventName'],
+                  ),
+              ['original', 'buffered', 'retry', 'after'],
+            );
+          },
+        );
+      }
+    }
+
     testWidgets('should deliver MyApp cold-start Session started', (
       tester,
     ) async {

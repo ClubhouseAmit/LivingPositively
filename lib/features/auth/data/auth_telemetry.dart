@@ -58,25 +58,37 @@ void _observeAndroidOutcome(String outcome, IncidentLoggerService logger) {
 }
 
 Future<void> observeGoogleCleanup(Future<void> cleanup) async {
-  try {
-    await cleanup.timeout(const Duration(seconds: 5));
-  } catch (error, stackTrace) {
-    if (GetIt.instance.isRegistered<IncidentLoggerService>() &&
-        (error is! GoogleSignInInitializationFailure || error.claimReport())) {
-      unawaited(
-        Future<void>.sync(
-          () => GetIt.instance<IncidentLoggerService>().captureLog(
-            error is GoogleSignInInitializationFailure ? error.cause : error,
-            stackTrace: error is GoogleSignInInitializationFailure
-                ? error.stackTrace
-                : stackTrace,
-          ),
-        ).catchError((_) {
-          if (error is GoogleSignInInitializationFailure) {
-            error.releaseReport();
-          }
-        }),
-      );
-    }
+  final observed = cleanup.then<void>(
+    (_) {},
+    onError: (Object error, StackTrace stackTrace) {
+      _reportGoogleCleanup(error, stackTrace);
+    },
+  );
+  await observed.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => _reportGoogleCleanup(
+      TimeoutException('Google provider cleanup timed out'),
+      StackTrace.current,
+    ),
+  );
+}
+
+void _reportGoogleCleanup(Object error, StackTrace stackTrace) {
+  if (GetIt.instance.isRegistered<IncidentLoggerService>() &&
+      (error is! GoogleSignInInitializationFailure || error.claimReport())) {
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error is GoogleSignInInitializationFailure ? error.cause : error,
+          stackTrace: error is GoogleSignInInitializationFailure
+              ? error.stackTrace
+              : stackTrace,
+        ),
+      ).catchError((_) {
+        if (error is GoogleSignInInitializationFailure) {
+          error.releaseReport();
+        }
+      }),
+    );
   }
 }

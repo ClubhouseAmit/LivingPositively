@@ -148,19 +148,18 @@ jobs:
         if: needs.plan.outputs.functions_required == 'true'
         run: firebase deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
 
-      - name: Record managed-build evidence requirement
+      - name: Record Functions validation policy
         if: always() && needs.plan.outputs.functions_required == 'true'
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### Managed Functions build evidence
-          The managed `gcp-build` hook must verify Node 22, assert the selected npm version, compile TypeScript,
-          prune development dependencies, verify Gaxios/UUID 11.1.1 and Firestore/gRPC
-          1.14.5. The production advisory audit runs in CI and the managed build;
-          CI-only audit acceptance remains pending.
-          Retain the Cloud Build ID, source revision and log with the release record.
-          CI's local replay does not establish that this managed build ran.
-          App rollout remains blocked until the managed evidence in
-          `functions/SECURITY.md` and real-account checks in `docs/auth-provider-rollout.md` exist.
+          ### Functions validation policy
+          Owner-approved policy (2026-10-02): CI and the pre-release runner execute
+          full/production audits, Node/npm and consumer-graph verification,
+          TypeScript compilation and production pruning before release mutations.
+          Firebase CLI 15.32.1 disables managed npm scripts; the pipeline is not
+          claimed to run inside Cloud Build. Firebase deployment status determines
+          deployment completion. See `functions/SECURITY.md` for accepted limits.
+          Real-account checks in `docs/auth-provider-rollout.md` still gate app rollout.
           EOF
 
   gate:

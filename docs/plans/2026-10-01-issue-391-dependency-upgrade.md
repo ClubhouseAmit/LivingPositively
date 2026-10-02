@@ -102,10 +102,12 @@ Ruflo SPARC refinement task: `task-1790838086412-dh5pa7`.
   before cleanup, while provider failure still permits Firebase logout.
 - The latest review restores `engines.npm: 11.14.0` and a managed toolchain
   assertion, removes `packageManager`, and retains live advisory audits in CI
-  and the managed build pending explicit approval of CI-only auditing.
+  and the pre-release runner. On 2026-10-02 the owner explicitly accepted these
+  checks and removed the managed-audit/evidence requirement after verification
+  that Firebase CLI 15.32.1 disables managed npm scripts.
   The release job replays compilation, pruning and graph verification before
   mutations, then restores dev dependencies and releases rules, content, Functions.
-  No managed build was run; managed evidence remains required before rollout.
+  No managed build was run. Real-account device evidence remains required before rollout.
 - Android cancellations stay in analytics; three unsuccessful retries trigger
   at most one incident per logger instance/app run. Firebase logout returns
   immediately while provider cleanup continues, and a new Google attempt waits
@@ -134,7 +136,7 @@ was performed. The earlier npm 11 results may have used the machine's separate
 
 ### Second review safeguards
 
-The second review adds guarded managed compilation and production verification,
+The second review adds a shared compilation and production-verification pipeline,
 privacy-preserving Google outcome analytics, localized restart feedback with a
 shared one-time initialization incident, and consistent configured cold-start
 provider cleanup. Its local Node 22.23.2/npm 11.14.0 replay passes compilation,
@@ -142,7 +144,8 @@ production pruning, the consumer graph checks and `found 0 vulnerabilities`.
 All 92 backend tests pass. Verifier regressions reject wrong npm/runtime values,
 unpatched root or nested UUID and a missing CommonJS API. Focused authentication
 tests cover the new feedback, counting, telemetry failure isolation and cleanup.
-These tests do not close the managed-build or device evidence gates above.
+These tests do not close the device evidence gates above. The later owner-approved
+CI/pre-release policy in `functions/SECURITY.md` replaces the managed-build gate.
 
 Second-review local validation:
 

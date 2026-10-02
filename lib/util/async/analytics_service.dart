@@ -21,6 +21,8 @@ class MixPanelService implements AnalyticsService {
   late Mixpanel _mixpanel;
   bool _isInitialized = false;
   Future<void>? _initialization;
+  int _startupGeneration = 0;
+  bool _startupTimedOut = false;
   final _pendingEvents = <({String name, Map<String, dynamic>? properties})>[];
   DateTime? _lastFailure;
   final _reportedStartupConditions = <String>{};
@@ -28,6 +30,7 @@ class MixPanelService implements AnalyticsService {
   String key = "";
   @override
   Future<void> init() {
+    if (_isInitialized) return Future<void>.value();
     if (_lastFailure case final failed?) {
       if (debugClock().difference(failed) < const Duration(minutes: 1)) {
         return Future<void>.value();
@@ -40,37 +43,53 @@ class MixPanelService implements AnalyticsService {
     final token = debugProjectTokenOverride ?? _mixpanelProjectToken;
     if (token.isEmpty || _isInitialized) return;
     key = token;
-    // Bound callers' wait, retaining the native result and startup events.
-    await _startNative().timeout(
+    final generation = ++_startupGeneration;
+    // Retain late results until a retry supersedes this startup attempt.
+    await _startNative(generation).timeout(
       const Duration(seconds: 5),
-      onTimeout: () => _reportStartupCondition('Mixpanel startup timed out'),
+      onTimeout: () {
+        if (generation != _startupGeneration || _isInitialized) return;
+        _startupTimedOut = true;
+        _lastFailure = debugClock();
+        _initialization = null;
+        _reportStartupCondition('Mixpanel startup timed out');
+      },
     );
   }
 
-  Future<void> _startNative() async {
+  Future<void> _startNative(int generation) async {
+    final Mixpanel mixpanel;
     try {
-      _mixpanel = await Mixpanel.init(key, trackAutomaticEvents: false);
+      mixpanel = await Mixpanel.init(key, trackAutomaticEvents: false);
     } catch (_) {
+      if (generation != _startupGeneration) return;
+      _startupTimedOut = false;
       _lastFailure = debugClock();
       _pendingEvents.clear();
       _initialization = null;
       _reportStartupCondition('Mixpanel initialization failed');
       return;
     }
+    if (generation != _startupGeneration) return;
+    _mixpanel = mixpanel;
     // Keep new events in the same FIFO until every older startup event settles.
-    while (_pendingEvents.isNotEmpty) {
+    while (generation == _startupGeneration && _pendingEvents.isNotEmpty) {
       final event = _pendingEvents.removeAt(0);
       try {
-        await _mixpanel.track(event.name, properties: event.properties);
+        await mixpanel.track(event.name, properties: event.properties);
       } catch (_) {
         // A rejected event must not discard the rest or invalidate a ready SDK.
-        if (!_deliveryFailureReported) {
+        if (generation == _startupGeneration && !_deliveryFailureReported) {
           _deliveryFailureReported = true;
           _reportDiagnostic('Mixpanel startup event delivery failed');
         }
       }
     }
-    _isInitialized = true;
+    if (generation == _startupGeneration) {
+      _isInitialized = true;
+      _lastFailure = null;
+      _startupTimedOut = false;
+    }
   }
 
   void _reportStartupCondition(String message) {
@@ -103,7 +122,10 @@ class MixPanelService implements AnalyticsService {
       return;
     }
     if (_lastFailure case final failed?) {
-      if (debugClock().difference(failed) < const Duration(minutes: 1)) return;
+      if (!_startupTimedOut &&
+          debugClock().difference(failed) < const Duration(minutes: 1)) {
+        return;
+      }
     }
     if (_pendingEvents.length == 64) {
       _pendingEvents.removeAt(0);

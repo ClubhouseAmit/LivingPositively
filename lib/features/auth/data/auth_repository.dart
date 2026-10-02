@@ -169,10 +169,15 @@ class AuthService {
         );
       }
       final credential = GoogleAuthProvider.credential(idToken: idToken);
+      final sessionGeneration = lifecycle.sessionGeneration;
       final result = await lifecycle.exchange(
         () => _auth.signInWithCredential(credential),
         generation,
       );
+      while (lifecycle.hasPendingFirebaseLogout) {
+        await lifecycle.waitForFirebaseLogouts();
+      }
+      lifecycle.checkSession(sessionGeneration);
       trackGoogleSignInOutcome('success');
       return result;
     } on GoogleSignInAborted catch (error) {

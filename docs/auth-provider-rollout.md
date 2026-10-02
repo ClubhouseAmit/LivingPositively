@@ -207,7 +207,12 @@ keeps the logged-in UI. A timed-out exchange wait schedules no later Firebase
 logout. If the exchange later succeeds after failed logout, its credential is
 returned through normal sign-in success handling, so the app handles that account
 instead of silently discarding its Firebase session. Logout can then be retried.
-Only successful Firebase logout cancels an already-issued exchange. This prevents an
+Only successful Firebase logout cancels an already-issued exchange. Success
+publication also drains late-started Firebase logouts before checking session
+state; failed logouts still permit the issued credential to reach its caller.
+New authentication attempts waiting on a failed logout receive `cleanupPending`
+instead of starting a competing session. Shared provider cleanup waits for all
+overlapping logouts and proceeds if any succeeds. This prevents an
 exchange from restoring a session after successful logout. Firebase
 failures belong to the caller; the cleanup observer reports only provider work.
 Firebase logout returns without waiting for optional provider cleanup. Cleanup
@@ -215,7 +220,9 @@ continues in the background even if initialization takes longer than five
 seconds. The observer's five-second clock starts only when provider setup and
 native sign-out begin, after Firebase logout and captured interactive attempts
 settle. An open account picker alone therefore does not cause a cleanup timeout
-incident. The observer reports slow native cleanup without cancelling it.
+incident. The observer reports slow native cleanup without cancelling it and
+retains an error listener so a later provider failure is reported once with its
+original stack.
 A new Google authentication attempt waits for pending cleanup, with a bounded
 five-second wait and a `cleanupPending` interruption if cleanup is still
 pending. The auth page shows localized guidance to retry shortly, and to close
@@ -259,9 +266,12 @@ telemetry when registered. A timeout does not suppress a later buffer-overflow
 report. Each distinct startup condition reports at most once per service instance
 in an app run, including across failed initialization retries. This does not
 establish a quota or sampling policy across devices or app restarts; that rollout
-evidence remains required. Pending native initialization is not restarted concurrently: a timeout
-cannot cancel it safely. A late result can still recover the queue. A failed native initialization clears the buffer; a later event
-retries after a one-minute backoff without polling or periodic timers. All current
+evidence remains required. A startup timeout releases the cached future and
+permits a retry after a one-minute backoff without cancelling native work. A late
+result can still recover the queue until a newer startup supersedes it; stale
+results cannot replace the active SDK, clear its buffer or deliver queued events.
+A failed current native initialization clears the buffer; a later event
+retries after the same backoff without polling or periodic timers. All current
 trackEvent callers use this behavior, including cold-start Session started,
 Home opened, startup journal views, and interaction events. The tests exercise
 this startup sequence and native initialization failure in the default suite;
