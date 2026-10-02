@@ -4832,18 +4832,6 @@ abstract class AppLocalizations {
   /// **'Remove reminder'**
   String get reminderRemove;
 
-  /// No description provided for @reminderHourFormat.
-  ///
-  /// In en, this message translates to:
-  /// **'24h'**
-  String get reminderHourFormat;
-
-  /// No description provided for @reminderAmPmFormat.
-  ///
-  /// In en, this message translates to:
-  /// **'AM/PM'**
-  String get reminderAmPmFormat;
-
   /// No description provided for @reminderQuickExercise.
   ///
   /// In en, this message translates to:

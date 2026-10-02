@@ -7,29 +7,23 @@ import 'package:mazilon/util/userInformation.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 void main() {
-  testWidgets('wide header changes the persisted clock format', (tester) async {
-    final memory = FakePersistentMemoryService();
-    final user = UserInformation(service: memory);
-    final repository = NotificationRepository.forService(memory);
-    var changed = 0;
+  group('ReminderPageHeader', () {
+    testWidgets('should omit the wide clock format control', (tester) async {
+      final memory = FakePersistentMemoryService();
+      final user = UserInformation(service: memory);
+      final repository = NotificationRepository.forService(memory);
 
-    await pumpWithProviders(
-      tester,
-      ReminderPageHeader(
-        onFormatChanged: () => changed++,
-        onFailure: () => fail('format save failed'),
-      ),
-      userInformation: user,
-      surfaceSize: const Size(900, 600),
-      ignoreOverflow: false,
-    );
+      await pumpWithProviders(
+        tester,
+        const ReminderPageHeader(),
+        userInformation: user,
+        surfaceSize: const Size(900, 600),
+        ignoreOverflow: false,
+      );
 
-    expect(find.text('24h'), findsOneWidget);
-    await tester.tap(find.text('24h'));
-    await tester.pumpAndSettle();
-
-    expect(repository.use24HourFormat, isFalse);
-    expect(find.text('AM/PM'), findsOneWidget);
-    expect(changed, 1);
+      expect(find.text('24h'), findsNothing);
+      expect(find.text('AM/PM'), findsNothing);
+      expect(repository.use24HourFormat, isTrue);
+    });
   });
 }

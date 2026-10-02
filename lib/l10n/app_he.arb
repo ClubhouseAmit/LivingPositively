@@ -1094,8 +1094,6 @@
   "reminderAdd": "הוספת תזכורת",
   "reminderLimitReached": "אפשר להפעיל עד 32 תזכורות. יש לכבות אחת לפני הוספת תזכורת נוספת.",
   "reminderRemove": "מחיקת תזכורת",
-  "reminderHourFormat": "24 שעות",
-  "reminderAmPmFormat": "בוקר/ערב",
   "reminderQuickExercise": "פעילות גופנית",
   "reminderQuickPills": "לקחת תרופות",
   "reminderQuickMeditate": "מדיטציה",

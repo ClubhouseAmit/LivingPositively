@@ -5873,12 +5873,6 @@ class AppLocalizationsHe extends AppLocalizations {
   String get reminderRemove => 'מחיקת תזכורת';
 
   @override
-  String get reminderHourFormat => '24 שעות';
-
-  @override
-  String get reminderAmPmFormat => 'בוקר/ערב';
-
-  @override
   String get reminderQuickExercise => 'פעילות גופנית';
 
   @override

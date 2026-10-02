@@ -5885,12 +5885,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderRemove => 'Remove reminder';
 
   @override
-  String get reminderHourFormat => '24h';
-
-  @override
-  String get reminderAmPmFormat => 'AM/PM';
-
-  @override
   String get reminderQuickExercise => 'Exercise';
 
   @override

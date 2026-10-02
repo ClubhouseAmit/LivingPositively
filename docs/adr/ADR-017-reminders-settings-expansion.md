@@ -1,6 +1,9 @@
 # ADR-017: Expand the existing reminders settings page
 
 - **Status:** proposed
+- **Partly superseded:** [ADR-019](ADR-019-reminder-time-format-follows-os.md)
+  replaces the page-owned time-format choice in decision 4 and the clock-format
+  controls in decision 6. Their remaining layout and picker decisions still apply.
 - **Date:** 2026-09-25
 - **Issue:** [#237](https://github.com/ClubhouseAmit/LivingPositively/issues/237)
 
@@ -35,6 +38,7 @@ schedule without a valid authenticated user and permission.
 4. Reuse Flutter's Material dial time picker. It already has hour-to-minute
    progression, hour/minute header selection, 24-hour inner/outer rings, and
    AM/PM controls. Apply the page's format choice via `MediaQuery`.
+   This page-owned format choice is superseded by ADR-019's app-wide policy.
 5. Keep the app's existing language control; do not add one on the reminders
    page, per the collaborator's clarification. On a language change, refresh
    every active built-in schedule so quick reminder push text and the dynamic
@@ -45,6 +49,7 @@ schedule without a valid authenticated user and permission.
    Use the app's color scheme for the header, enabled borders, and LP badge.
    Put the time-format control in the header on wider screens and above the
    quick list on phones. Keep the language control in the app shell.
+   The clock-format controls described here are superseded by ADR-019 and removed.
 
 ## Pseudocode and refinement
 
