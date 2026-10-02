@@ -55,14 +55,63 @@ void main() {
           (tester) async {
             var now = DateTime(2026);
             MixPanelService.debugClock = () => now;
+            final originalTime = now.millisecondsSinceEpoch;
+            final retryTime = now
+                .add(const Duration(minutes: 1))
+                .millisecondsSinceEpoch;
+            final expectedTracks = [
+              {
+                'eventName': 'original',
+                'properties': {'time': originalTime},
+              },
+              {
+                'eventName': 'buffered',
+                'properties': {'time': originalTime},
+              },
+              {
+                'eventName': 'retry',
+                'properties': {'time': retryTime},
+              },
+              {'eventName': 'after', 'properties': null},
+            ];
+            final nativeCallFailures = <Object>[];
+            var tracks = 0;
             final oldStartup = Completer<void>();
             final retryStartup = Completer<void>();
             var initializations = 0;
             TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
                 .setMockMethodCallHandler(channel, (call) async {
                   calls.add(call);
+                  try {
+                    switch (call.method) {
+                      case 'initialize':
+                        expectSync(call.arguments, {
+                          'token': _kToken,
+                          'optOutTrackingDefault': false,
+                          'trackAutomaticEvents': false,
+                          'mixpanelProperties': {
+                            r'$lib_version': '2.14.0',
+                            'mp_lib': 'flutter',
+                          },
+                          'superProperties': null,
+                          'config': null,
+                        });
+                        initializations++;
+                        expectSync(initializations, lessThanOrEqualTo(2));
+                      case 'track':
+                        expectSync(tracks, lessThan(expectedTracks.length));
+                        expectSync(call.arguments, expectedTracks[tracks++]);
+                      default:
+                        fail(
+                          'Unexpected Mixpanel native method: ${call.method}',
+                        );
+                    }
+                  } catch (failure) {
+                    // The messenger encodes errors that analytics may catch.
+                    nativeCallFailures.add(failure);
+                    rethrow;
+                  }
                   if (call.method == 'initialize') {
-                    initializations++;
                     await (initializations == 1
                         ? oldStartup.future
                         : retryStartup.future);
@@ -74,6 +123,7 @@ void main() {
             await tester.pump(const Duration(seconds: 5));
             await original;
             await svc.trackEvent('buffered');
+            expect(nativeCallFailures, isEmpty);
             expect(initializations, 1);
             now = now.add(const Duration(minutes: 1));
             final retry = svc.trackEvent('retry');
@@ -92,6 +142,7 @@ void main() {
             retryStartup.complete();
             await tester.pump();
             await retry;
+            expect(nativeCallFailures, isEmpty);
             final recovered = svc.mixpanel;
             if (!staleFirst) {
               if (lateFailure) {
@@ -103,6 +154,8 @@ void main() {
             }
             expect(svc.mixpanel, same(recovered));
             await svc.trackEvent('after');
+            expect(nativeCallFailures, isEmpty);
+            expect(tracks, expectedTracks.length);
             expect(initializations, 2);
             expect(
               calls
