@@ -5032,6 +5032,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrorGeneric => 'An error occurred. Please try again.';
 
   @override
+  String get authErrorGoogleInterrupted =>
+      'Sign-in was interrupted. Please try again.';
+
+  @override
+  String get authErrorGoogleUiUnavailable =>
+      'Sign-in could not open. Return to this screen and try again.';
+
+  @override
+  String get authErrorGoogleRestart =>
+      'Google sign-in could not start. Close and reopen the app before trying again. If it still fails, contact support.';
+
+  @override
+  String get authErrorGoogleCleanupPending =>
+      'Google sign-out is still finishing. Try again shortly. If sign-in remains unavailable, close and reopen the app.';
+
+  @override
   String get authForgotPasswordTitle => 'Reset Password';
 
   @override

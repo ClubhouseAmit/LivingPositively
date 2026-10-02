@@ -90,8 +90,17 @@ jobs:
           NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED: ${{ vars.NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED }}
         run: node scripts/validate_firebase_deployment_config.mjs
 
+      - name: Use the Functions npm version
+        run: |
+          npm_version=$(node -p 'require("./functions/package.json").engines.npm')
+          npm install --global "npm@$npm_version"
+          test "$(npm --version)" = "$npm_version"
+
       - name: Install Functions dependencies
         run: npm --prefix functions ci
+
+      - name: Verify the installed security patches
+        run: npm --prefix functions run verify:dependencies
 
       - name: Reject deployment of a superseded main revision
         run: |
@@ -111,7 +120,14 @@ jobs:
 
       - name: Install Firebase CLI
         if: needs.plan.outputs.functions_required == 'true' || needs.plan.outputs.rules_required == 'true'
-        run: npm install --global firebase-tools@15.29.0
+        run: npm install --global firebase-tools@15.32.1
+
+      - name: Check Functions build before release mutations
+        if: needs.plan.outputs.functions_required == 'true'
+        run: |
+          npm --prefix functions run gcp-build
+          npm --prefix functions ci --no-audit
+          npm --prefix functions run verify:dependencies
 
       - name: Deploy Firestore rules
         if: needs.plan.outputs.rules_required == 'true'
@@ -131,6 +147,20 @@ jobs:
       - name: Deploy Functions
         if: needs.plan.outputs.functions_required == 'true'
         run: firebase deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
+
+      - name: Record Functions validation policy
+        if: always() && needs.plan.outputs.functions_required == 'true'
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### Functions validation policy
+          Owner-approved policy (2026-10-02): CI and the pre-release runner execute
+          full/production audits, Node/npm and consumer-graph verification,
+          TypeScript compilation and production pruning before release mutations.
+          Firebase CLI 15.32.1 disables managed npm scripts; the pipeline is not
+          claimed to run inside Cloud Build. Firebase deployment status determines
+          deployment completion. See `functions/SECURITY.md` for accepted limits.
+          Real-account checks in `docs/auth-provider-rollout.md` still gate app rollout.
+          EOF
 
   gate:
     name: Verify notification backend release

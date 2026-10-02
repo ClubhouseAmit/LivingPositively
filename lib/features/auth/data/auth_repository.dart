@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mazilon/features/auth/data/google_auth_models.dart';
+import 'package:mazilon/features/auth/data/google_auth_lifecycle.dart';
 import 'package:mazilon/util/Firebase/firebase_options.dart';
+import 'package:mazilon/features/auth/data/auth_telemetry.dart';
 
 /// Starts the provider-specific Google authentication flow.
 ///
@@ -73,6 +78,21 @@ class AuthService {
       ? GetIt.instance<FirebaseAuth>()
       : FirebaseAuth.instance;
 
+  static GoogleSignIn get _googleSignIn =>
+      GetIt.instance.isRegistered<GoogleSignIn>()
+      ? GetIt.instance<GoogleSignIn>()
+      : GoogleSignIn.instance;
+
+  // initialize() forbids repeated calls and documents no failure retry exception:
+  // https://pub.dev/documentation/google_sign_in/latest/google_sign_in/GoogleSignIn/initialize.html
+  // Share its future for overlapping requests and retain failures for this run.
+  static final Expando<Future<void>> _googleSignInInitializations = Expando();
+  static final Expando<bool> _googleSignInInitialized = Expando();
+  static final Expando<GoogleAuthLifecycle> _googleLifecycles = Expando();
+
+  static GoogleAuthLifecycle _googleLifecycle(GoogleSignIn sdk) =>
+      _googleLifecycles[sdk] ??= GoogleAuthLifecycle();
+
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
           .trim();
@@ -124,23 +144,92 @@ class AuthService {
     final clientId = defaultTargetPlatform == TargetPlatform.iOS
         ? iosClientId
         : null;
-    final startGoogleSignIn = debugGoogleSignInStarterOverride;
-    final googleUser = startGoogleSignIn == null
-        ? await GoogleSignIn(
-            clientId: clientId,
-            serverClientId: serverClientId,
-          ).signIn()
-        : await startGoogleSignIn(
-            clientId: clientId,
-            serverClientId: serverClientId,
-          );
-    if (googleUser == null) return null;
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
+    final lifecycle = _googleLifecycle(_googleSignIn);
+    final generation = lifecycle.generation;
+    trackGoogleSignInOutcome('started');
+    try {
+      final startGoogleSignIn =
+          debugGoogleSignInStarterOverride ?? _startGoogleSignIn;
+      final googleUser = await startGoogleSignIn(
+        clientId: clientId,
+        serverClientId: serverClientId,
+      );
+      if (generation != lifecycle.generation) {
+        trackGoogleSignInOutcome('appCanceled');
+        return null;
+      }
+      if (googleUser == null) {
+        trackGoogleSignInOutcome('canceled');
+        return null;
+      }
+      final idToken = googleUser.authentication.idToken;
+      if (idToken == null || idToken.trim().isEmpty) {
+        throw const GoogleSignInException(
+          code: GoogleSignInExceptionCode.clientConfigurationError,
+        );
+      }
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      final sessionGeneration = lifecycle.sessionGeneration;
+      final result = await lifecycle.exchange(
+        () => _auth.signInWithCredential(credential),
+        generation,
+      );
+      while (lifecycle.hasPendingFirebaseLogout) {
+        await lifecycle.waitForFirebaseLogouts();
+      }
+      lifecycle.checkSession(sessionGeneration);
+      trackGoogleSignInOutcome('success');
+      return result;
+    } on GoogleSignInAborted catch (error) {
+      trackGoogleSignInOutcome(error.outcome.name);
+      if (error.outcome == GoogleSignInAbortReason.cleanupPending) rethrow;
+      return null;
+    } on GoogleSignInInitializationFailure {
+      trackGoogleSignInOutcome('initializationFailed');
+      rethrow;
+    } on GoogleSignInException catch (error) {
+      // Interactive authenticate() throws for every unsuccessful outcome.
+      // Android uses throwForNoAuth: true, so noCredential is an unknownError;
+      // interruptions and unavailable UI must also reach the form's feedback.
+      trackGoogleSignInOutcome(error.code.name);
+      if (error.code == GoogleSignInExceptionCode.canceled) return null;
+      rethrow;
+    } catch (_) {
+      trackGoogleSignInOutcome('failed');
+      rethrow;
+    }
+  }
+
+  static Future<GoogleSignInAccount> _startGoogleSignIn({
+    required String serverClientId,
+    String? clientId,
+  }) async {
+    final googleSignIn = _googleSignIn;
+    return _googleLifecycle(googleSignIn).authenticate(
+      googleSignIn,
+      () => _initializeGoogleSignIn(
+        googleSignIn,
+        clientId: clientId,
+        serverClientId: serverClientId,
+      ),
     );
-    return _auth.signInWithCredential(credential);
+  }
+
+  static Future<void> _initializeGoogleSignIn(
+    GoogleSignIn googleSignIn, {
+    required String serverClientId,
+    String? clientId,
+  }) async {
+    await (_googleSignInInitializations[googleSignIn] ??=
+        Future<void>.sync(
+          () => googleSignIn.initialize(
+            clientId: clientId,
+            serverClientId: serverClientId,
+          ),
+        ).catchError((Object error, StackTrace stackTrace) {
+          throw GoogleSignInInitializationFailure(error, stackTrace);
+        }));
+    _googleSignInInitialized[googleSignIn] = true;
   }
 
   /// Starts Apple Sign-In, returning `null` when it is unavailable.
@@ -152,7 +241,7 @@ class AuthService {
     final appleProvider = AppleAuthProvider()
       ..addScope('email')
       ..addScope('name');
-    return _auth.signInWithProvider(appleProvider);
+    return await _auth.signInWithProvider(appleProvider);
   }
 
   /// Whether Google Sign-In can be offered for the supplied platform and
@@ -226,9 +315,28 @@ class AuthService {
     return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
-  /// Signs out through the registered auth instance, when one is available.
-  static Future<void> signOut() {
-    return _auth.signOut();
+  /// Ends the Firebase session and starts provider cleanup in the background.
+  static Future<void> signOut() async {
+    final googleSignIn = _googleSignIn;
+    // Cold-start restored sessions use the same configured SDK cleanup as sessions
+    // created here; failed provider setup must still permit Firebase logout.
+    if (isGoogleSignInAvailable ||
+        (_googleSignInInitialized[googleSignIn] ?? false)) {
+      final cleanup = _googleLifecycle(googleSignIn).startCleanup(
+        googleSignIn,
+        _auth.signOut,
+        () => _initializeGoogleSignIn(
+          googleSignIn,
+          serverClientId: _configuredGoogleSignInServerClientId,
+          clientId: defaultTargetPlatform == TargetPlatform.iOS
+              ? _configuredGoogleSignInIosClientId
+              : null,
+        ),
+      );
+      await cleanup.firebase;
+    } else {
+      await _auth.signOut();
+    }
   }
 
   /// The current registered session, if authentication has been initialized.

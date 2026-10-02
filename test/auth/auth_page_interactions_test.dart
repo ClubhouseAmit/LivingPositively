@@ -9,9 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/design_system/widgets/button.dart';
 import 'package:get_it/get_it.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/auth_page.dart';
 import 'package:mazilon/pages/forgot_password_page.dart';
 import 'package:mazilon/features/auth/data/auth_repository.dart';
+import 'package:mazilon/features/auth/data/google_auth_models.dart';
 import 'package:mazilon/features/notifications/data/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -599,6 +602,134 @@ void main() {
         debugDefaultTargetPlatformOverride = null;
       }
     });
+
+    for (final language in ['en', 'he', 'ar']) {
+      for (final code in [
+        GoogleSignInExceptionCode.canceled,
+        GoogleSignInExceptionCode.interrupted,
+        GoogleSignInExceptionCode.uiUnavailable,
+        GoogleSignInExceptionCode.clientConfigurationError,
+        GoogleSignInExceptionCode.unknownError,
+      ]) {
+        testWidgets('should handle $code with $language feedback', (
+          tester,
+        ) async {
+          debugDefaultTargetPlatformOverride = TargetPlatform.android;
+          try {
+            AuthService.debugGoogleSignInServerClientIdOverride =
+                'server-client';
+            final failure = GoogleSignInException(
+              code: code,
+              description: code == GoogleSignInExceptionCode.unknownError
+                  ? 'No credential available: no eligible account'
+                  : null,
+            );
+            AuthService.debugGoogleSignInStarterOverride = ({
+              required serverClientId,
+              clientId,
+            }) async => throw failure;
+            final locale = Locale(language);
+            final strings = await AppLocalizations.delegate.load(locale);
+
+            await pumpWithProviders(
+              tester,
+              const AuthPage(),
+              locale: locale,
+              surfaceSize: const Size(1024, 1800),
+            );
+            await tester.tap(find.text(strings.authGoogleButton));
+            await tester.pumpAndSettle();
+
+            final message = switch (code) {
+              GoogleSignInExceptionCode.canceled => null,
+              GoogleSignInExceptionCode.interrupted =>
+                strings.authErrorGoogleInterrupted,
+              GoogleSignInExceptionCode.uiUnavailable =>
+                strings.authErrorGoogleUiUnavailable,
+              _ => strings.authErrorGeneric,
+            };
+            if (message != null) {
+              expect(find.text(message), findsOneWidget);
+            }
+            if (message == strings.authErrorGeneric) {
+              expect(services.logger.captured, [same(failure)]);
+            } else if (code == GoogleSignInExceptionCode.canceled) {
+              expect(services.logger.captured, isEmpty);
+              expect(find.text(strings.authErrorGeneric), findsNothing);
+            } else {
+              expect(services.logger.captured, isEmpty);
+              expect(find.text(strings.authErrorGeneric), findsNothing);
+            }
+            final button = tester.widget<OutlinedButton>(
+              find.ancestor(
+                of: find.text(strings.authGoogleButton),
+                matching: find.byType(OutlinedButton),
+              ),
+            );
+            expect(button.onPressed, isNotNull);
+          } finally {
+            debugDefaultTargetPlatformOverride = null;
+          }
+        });
+      }
+    }
+
+    for (final language in ['en', 'he', 'ar']) {
+      testWidgets(
+        'should show conditional cleanup retry guidance in $language',
+        (
+          tester,
+        ) async {
+          debugDefaultTargetPlatformOverride = TargetPlatform.android;
+          try {
+            AuthService.debugGoogleSignInServerClientIdOverride =
+                'server-client';
+            AuthService.debugGoogleSignInStarterOverride =
+                ({
+                  required serverClientId,
+                  clientId,
+                }) async => throw const GoogleSignInAborted(
+                  GoogleSignInAbortReason.cleanupPending,
+                );
+            final locale = Locale(language);
+            final strings = await AppLocalizations.delegate.load(locale);
+            final expectedScript = switch (language) {
+              'he' => RegExp(r'[֐-׿]'),
+              'ar' => RegExp(r'[؀-ۿ]'),
+              _ => RegExp(r'Try again shortly'),
+            };
+            expect(
+              strings.authErrorGoogleCleanupPending,
+              matches(expectedScript),
+            );
+            expect(strings.authErrorGoogleCleanupPending, isNot(contains('?')));
+            await pumpWithProviders(
+              tester,
+              const AuthPage(),
+              locale: locale,
+              surfaceSize: const Size(1024, 1800),
+            );
+            await tester.tap(find.text(strings.authGoogleButton));
+            await tester.pumpAndSettle();
+            expect(
+              find.text(strings.authErrorGoogleCleanupPending),
+              findsOneWidget,
+            );
+            expect(find.text(strings.authErrorGeneric), findsNothing);
+            expect(services.logger.captured, isEmpty);
+            final button = tester.widget<OutlinedButton>(
+              find.ancestor(
+                of: find.text(strings.authGoogleButton),
+                matching: find.byType(OutlinedButton),
+              ),
+            );
+            expect(button.onPressed, isNotNull);
+          } finally {
+            debugDefaultTargetPlatformOverride = null;
+          }
+        },
+      );
+    }
 
     testWidgets('should report password-reset failures', (tester) async {
       AuthService.debugSendPasswordResetOverride = (email) async {

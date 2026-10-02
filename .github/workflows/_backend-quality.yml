@@ -25,17 +25,27 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
+      - name: Use the Functions npm version
+        run: |
+          npm_version=$(node -p 'require("./package.json").engines.npm')
+          npm install --global "npm@$npm_version"
+          test "$(npm --version)" = "$npm_version"
+
       - name: Install Functions dependencies
         run: npm ci
 
       - name: Run Functions tests
         run: npm test
 
+      - name: Verify the installed security patches
+        run: npm run verify:dependencies
+
       - name: Test backend deployment guards
         run: >-
           node --test ../scripts/tests/functions_deployment_changes.test.mjs
           ../scripts/tests/check_firestore_rules_drift.test.mjs
           ../scripts/tests/check_firestore_collection_policy.test.mjs
+          scripts/verify_dependency_graph.test.mjs
 
       - name: Test iOS Google Sign-In pre-build configuration
         run: bash ../scripts/tests/prepare_ios_google_sign_in_config_test.sh
@@ -43,8 +53,8 @@ jobs:
       - name: Verify Firestore collection policy coverage
         run: node ../scripts/check_firestore_collection_policy.mjs
 
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=low
+      - name: Validate Functions build and audit full and production dependencies
+        run: npm run gcp-build
 
   firestore-rules-test:
     name: Firestore security rules
@@ -67,11 +77,20 @@ jobs:
           distribution: temurin
           java-version: "21.x"
 
+      - name: Use the Functions npm version
+        run: |
+          npm_version=$(node -p 'require("./functions/package.json").engines.npm')
+          npm install --global "npm@$npm_version"
+          test "$(npm --version)" = "$npm_version"
+
       - name: Install Functions dependencies
         run: npm --prefix functions ci
 
+      - name: Verify the installed security patches
+        run: npm --prefix functions run verify:dependencies
+
       - name: Install Firebase CLI
-        run: npm install --global firebase-tools@15.29.0
+        run: npm install --global firebase-tools@15.32.1
 
       - name: Verify Firestore rules against the emulator
         run: npm --prefix functions run test:rules

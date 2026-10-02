@@ -2,6 +2,8 @@
   "name": "functions",
   "scripts": {
     "build": "tsc",
+    "gcp-build": "npm run verify:dependencies -- --managed && npm audit --include=dev --audit-level=low && npm run build && npm prune --omit=dev --no-audit && npm run verify:dependencies -- --production --managed && npm ls --omit=dev --all && npm audit --omit=dev --audit-level=low",
+    "verify:dependencies": "node scripts/verify_dependency_graph.mjs",
     "test": "npm run build && node --test lib/http_cors.test.js lib/notification_validation.test.js lib/notification_provisioning.test.js lib/scheduled_delivery.test.js",
     "provision:notifications": "npm run build && node lib/provision_notifications.js",
     "build:watch": "tsc --watch",
@@ -13,22 +15,26 @@
     "test:rules": "npm run build && firebase emulators:exec --only firestore --project mazilon-rules-test --config ../firebase.json \"node --test lib/firestore_rules.test.js\""
   },
   "engines": {
-    "node": "22"
+    "node": "22",
+    "npm": "11.14.0"
   },
   "main": "lib/index.js",
   "dependencies": {
     "firebase-admin": "^14.5.0",
-    "firebase-functions": "^7.3.2"
+    "firebase-functions": "^7.4.0"
   },
   "overrides": {
-    "@google-cloud/storage": "^8.2.0",
-    "uuid": "^14.0.2"
+    "gaxios": {
+      "uuid": "^11.1.1"
+    },
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "^1.14.5"
+    }
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
-    "@typescript-eslint/eslint-plugin": "^8.71.0",
-    "@typescript-eslint/parser": "^8.71.0",
-    "typescript": "~6.0.3"
+    "firebase": "^12.19.0",
+    "typescript": "^7.0.2"
   },
   "private": true
 }

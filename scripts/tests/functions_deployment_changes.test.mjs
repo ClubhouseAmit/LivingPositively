@@ -379,3 +379,18 @@ test('deploys rules conservatively when no baseline run exists', (t) => {
   // Without a comparison point the plan must not assume rules are current.
   assert.equal(result.rulesRequired, true);
 });
+
+
+test('replays the local build before rules, content and Functions publishing', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/_notification-backend.yml', import.meta.url), 'utf8');
+  const names = [
+    'Check Functions build before release mutations',
+    'Deploy Firestore rules',
+    'Verify deployed rules match the repository',
+    'Provision changed notification content',
+    'Deploy Functions',
+  ];
+  const positions = names.map((name) => workflow.indexOf(`- name: ${name}`));
+  assert.ok(positions.every((position) => position >= 0));
+  assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+});

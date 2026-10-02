@@ -3316,6 +3316,30 @@ abstract class AppLocalizations {
   /// **'An error occurred. Please try again.'**
   String get authErrorGeneric;
 
+  /// No description provided for @authErrorGoogleInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in was interrupted. Please try again.'**
+  String get authErrorGoogleInterrupted;
+
+  /// No description provided for @authErrorGoogleUiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in could not open. Return to this screen and try again.'**
+  String get authErrorGoogleUiUnavailable;
+
+  /// No description provided for @authErrorGoogleRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-in could not start. Close and reopen the app before trying again. If it still fails, contact support.'**
+  String get authErrorGoogleRestart;
+
+  /// No description provided for @authErrorGoogleCleanupPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-out is still finishing. Try again shortly. If sign-in remains unavailable, close and reopen the app.'**
+  String get authErrorGoogleCleanupPending;
+
   /// No description provided for @authForgotPasswordTitle.
   ///
   /// In en, this message translates to:

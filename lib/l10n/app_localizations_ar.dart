@@ -5028,6 +5028,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get authErrorGeneric => 'حدث خطأ. يرجى المحاولة مرة أخرى.';
 
   @override
+  String get authErrorGoogleInterrupted =>
+      'تمت مقاطعة تسجيل الدخول. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get authErrorGoogleUiUnavailable =>
+      'تعذّر فتح تسجيل الدخول. يُرجى العودة إلى هذه الشاشة والمحاولة مرة أخرى.';
+
+  @override
+  String get authErrorGoogleRestart =>
+      'تعذّر بدء تسجيل الدخول باستخدام Google. أغلق التطبيق وافتحه مجددًا قبل المحاولة مرة أخرى. إذا استمرت المشكلة، تواصل مع الدعم.';
+
+  @override
+  String get authErrorGoogleCleanupPending =>
+      'لا يزال تسجيل الخروج من Google قيد الإكمال. حاول مجددًا بعد قليل. إذا ظل تسجيل الدخول غير متاح، أغلق التطبيق وافتحه مجددًا.';
+
+  @override
   String get authForgotPasswordTitle => 'إعادة تعيين كلمة المرور';
 
   @override
