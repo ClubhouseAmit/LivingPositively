@@ -144,14 +144,13 @@ class AuthService {
     final clientId = defaultTargetPlatform == TargetPlatform.iOS
         ? iosClientId
         : null;
-    final GoogleSignInAccount? googleUser;
     final lifecycle = _googleLifecycle(_googleSignIn);
     final generation = lifecycle.generation;
     trackGoogleSignInOutcome('started');
     try {
       final startGoogleSignIn =
           debugGoogleSignInStarterOverride ?? _startGoogleSignIn;
-      googleUser = await startGoogleSignIn(
+      final googleUser = await startGoogleSignIn(
         clientId: clientId,
         serverClientId: serverClientId,
       );
@@ -163,9 +162,13 @@ class AuthService {
         trackGoogleSignInOutcome('canceled');
         return null;
       }
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleUser.authentication.idToken,
-      );
+      final idToken = googleUser.authentication.idToken;
+      if (idToken == null || idToken.trim().isEmpty) {
+        throw const GoogleSignInException(
+          code: GoogleSignInExceptionCode.clientConfigurationError,
+        );
+      }
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
       final result = await lifecycle.exchange(
         () => _auth.signInWithCredential(credential),
         generation,

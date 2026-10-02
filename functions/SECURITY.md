@@ -46,7 +46,9 @@ verify the installed dependency graph using `npm run verify:dependencies`.
 The script checks Storage/Gaxios's resolved UUID version and CommonJS `v4`
 API, Admin Firestore's gRPC version, and the Firestore test SDK's gRPC version.
 The `gcp-build` hook runs the verifier with `--managed` to assert Node 22 and
-npm 11.14.0, compiles TypeScript, prunes development
+npm 11.14.0, audits the complete installed graph with
+`--include=dev --audit-level=low` even under `NODE_ENV=production`,
+compiles TypeScript, prunes development
 dependencies with implicit auditing disabled, then verifies the production tree
 and runs `npm audit --omit=dev --audit-level=low`. CI also audits the production
 graph. The `--production` verifier skips the absent test SDK and resolves

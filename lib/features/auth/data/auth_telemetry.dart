@@ -71,7 +71,11 @@ Future<void> observeGoogleCleanup(Future<void> cleanup) async {
                 ? error.stackTrace
                 : stackTrace,
           ),
-        ).catchError((_) {}),
+        ).catchError((_) {
+          if (error is GoogleSignInInitializationFailure) {
+            error.releaseReport();
+          }
+        }),
       );
     }
   }

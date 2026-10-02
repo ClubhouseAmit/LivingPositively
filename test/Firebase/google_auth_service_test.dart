@@ -51,11 +51,13 @@ class _MockGoogleSignIn extends Mock implements GoogleSignIn {
 }
 
 class _GoogleAccount implements GoogleSignInAccount {
-  const new();
+  const new({this.idToken = 'google-id-token'});
+
+  final String? idToken;
 
   @override
   GoogleSignInAuthentication get authentication =>
-      const GoogleSignInAuthentication(idToken: 'google-id-token');
+      GoogleSignInAuthentication(idToken: idToken);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -79,10 +81,7 @@ class _MockIncidentLoggerService extends Mock implements IncidentLoggerService {
     Invocation.method(
       #captureLog,
       [exception],
-      {
-        #stackTrace: stackTrace,
-        #exceptionData: exceptionData,
-      },
+      {#stackTrace: stackTrace, #exceptionData: exceptionData},
     ),
     returnValue: Future<void>.value(),
     returnValueForMissingStub: Future<void>.value(),
@@ -142,6 +141,29 @@ void main() {
         }
       },
     );
+
+    for (final idToken in <String?>[null, '', ' \t\n ']) {
+      test(
+        'should reject an unusable ID token ($idToken) before Firebase',
+        () async {
+          when(googleSignIn.authenticate())
+              .thenAnswer((_) async => _GoogleAccount(idToken: idToken));
+
+          await expectLater(
+            AuthService.signInWithGoogle(),
+            throwsA(
+              isA<GoogleSignInException>().having(
+                (error) => error.code,
+                'code',
+                GoogleSignInExceptionCode.clientConfigurationError,
+              ),
+            ),
+          );
+
+          verifyNever(firebaseAuth.signInWithCredential(any));
+        },
+      );
+    }
 
     test('should await one initialization for overlapping requests', () async {
       final initialization = Completer<void>();
@@ -362,9 +384,8 @@ void main() {
         const failure = GoogleSignInException(
           code: GoogleSignInExceptionCode.clientConfigurationError,
         );
-        when(
-          googleSignIn.initialize(serverClientId: 'server-client'),
-        ).thenAnswer((_) async => throw failure);
+        when(googleSignIn.initialize(serverClientId: 'server-client'))
+            .thenAnswer((_) async => throw failure);
         await expectLater(
           AuthService.signInWithGoogle(),
           throwsA(
@@ -414,6 +435,78 @@ void main() {
       },
     );
 
+    for (final asynchronous in [false, true]) {
+      test(
+        'should retry a rejected initialization report (async: $asynchronous)',
+        () async {
+          final logger = _MockIncidentLoggerService();
+          GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+          final cause = StateError('initialization failed');
+          final originalStack = StackTrace.current;
+          when(googleSignIn.initialize(serverClientId: 'server-client'))
+              .thenAnswer((_) => Future<void>.error(cause, originalStack));
+          when(logger.captureLog(cause, stackTrace: originalStack))
+              .thenAnswer((_) {
+                final failure = StateError('logger failed');
+                if (asynchronous) return Future<void>.error(failure);
+                throw failure;
+              });
+
+          await AuthService.signOut();
+          await Future<void>.delayed(Duration.zero);
+          verify(firebaseAuth.signOut()).called(1);
+
+          when(logger.captureLog(cause, stackTrace: originalStack))
+              .thenAnswer((_) async {});
+          try {
+            await AuthService.signInWithGoogle();
+            fail('Initialization should remain failed');
+          } on GoogleSignInInitializationFailure catch (error) {
+            await reportAuthenticationError(error, StackTrace.current);
+            await reportAuthenticationError(error, StackTrace.current);
+          }
+
+          verify(logger.captureLog(cause, stackTrace: originalStack)).called(2);
+          verifyNever(googleSignIn.authenticate());
+          verifyNever(firebaseAuth.signInWithCredential(any));
+        },
+      );
+    }
+
+    test(
+      'should preserve Flutter fallback after a rejected cleanup report',
+      () async {
+        final logger = _MockIncidentLoggerService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        final cause = StateError('initialization failed');
+        final originalStack = StackTrace.current;
+        when(googleSignIn.initialize(serverClientId: 'server-client'))
+            .thenAnswer((_) => Future<void>.error(cause, originalStack));
+        when(logger.captureLog(cause, stackTrace: originalStack))
+            .thenAnswer((_) async => throw StateError('logger failed'));
+        await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
+        await GetIt.instance.unregister<IncidentLoggerService>();
+        final reports = <FlutterErrorDetails>[];
+        final originalHandler = FlutterError.onError;
+        FlutterError.onError = reports.add;
+        addTearDown(() => FlutterError.onError = originalHandler);
+
+        try {
+          await AuthService.signInWithGoogle();
+          fail('Initialization should remain failed');
+        } on GoogleSignInInitializationFailure catch (error) {
+          await reportAuthenticationError(error, StackTrace.current);
+          await reportAuthenticationError(error, StackTrace.current);
+        }
+
+        expect(reports, hasLength(1));
+        expect(reports.single.exception, same(cause));
+        expect(reports.single.stack, same(originalStack));
+        verify(firebaseAuth.signOut()).called(1);
+      },
+    );
+
     test(
       'should skip the Google lifecycle when the provider is unavailable',
       () async {
@@ -426,19 +519,16 @@ void main() {
       },
     );
 
-    test(
-      'should clean up Google on sign-out after a cold start',
-      () async {
-        await AuthService.signOut();
-        await Future<void>.delayed(Duration.zero);
+    test('should clean up Google on sign-out after a cold start', () async {
+      await AuthService.signOut();
+      await Future<void>.delayed(Duration.zero);
 
-        verify(firebaseAuth.signOut()).called(1);
-        verify(googleSignIn.initialize(serverClientId: 'server-client'))
-            .called(1);
-        verify(googleSignIn.signOut()).called(1);
-        verifyNever(googleSignIn.authenticate());
-      },
-    );
+      verify(firebaseAuth.signOut()).called(1);
+      verify(googleSignIn.initialize(serverClientId: 'server-client'))
+          .called(1);
+      verify(googleSignIn.signOut()).called(1);
+      verifyNever(googleSignIn.authenticate());
+    });
 
     test(
       'should skip unconfigured Google cleanup after a cold start',
@@ -495,21 +585,18 @@ void main() {
             .called(1);
       },
     );
-    test(
-      'should sign out Firebase when provider cleanup fails',
-      () async {
-        await AuthService.signInWithGoogle();
-        const failure = GoogleSignInException(
-          code: GoogleSignInExceptionCode.unknownError,
-        );
-        when(googleSignIn.signOut()).thenThrow(failure);
+    test('should sign out Firebase when provider cleanup fails', () async {
+      await AuthService.signInWithGoogle();
+      const failure = GoogleSignInException(
+        code: GoogleSignInExceptionCode.unknownError,
+      );
+      when(googleSignIn.signOut()).thenThrow(failure);
 
-        await AuthService.signOut();
-        await Future<void>.delayed(Duration.zero);
+      await AuthService.signOut();
+      await Future<void>.delayed(Duration.zero);
 
-        verify(firebaseAuth.signOut()).called(1);
-      },
-    );
+      verify(firebaseAuth.signOut()).called(1);
+    });
 
     test(
       'should propagate Firebase failure before provider cleanup',
@@ -933,9 +1020,8 @@ void main() {
           code: GoogleSignInExceptionCode.unknownError,
         );
         when(googleSignIn.signOut()).thenThrow(failure);
-        when(
-          logger.captureLog(failure, stackTrace: anyNamed('stackTrace')),
-        ).thenThrow(StateError('logger failed'));
+        when(logger.captureLog(failure, stackTrace: anyNamed('stackTrace')))
+            .thenThrow(StateError('logger failed'));
 
         await AuthService.signOut();
         await Future<void>.delayed(Duration.zero);
