@@ -790,6 +790,7 @@
   "authErrorGoogleInterrupted": "ההתחברות הופסקה. אפשר לנסות שוב.",
   "authErrorGoogleUiUnavailable": "לא ניתן לפתוח את חלון ההתחברות. יש לחזור למסך זה ולנסות שוב.",
   "authErrorGoogleRestart": "לא ניתן להתחיל התחברות עם Google. יש לסגור ולפתוח מחדש את האפליקציה לפני ניסיון נוסף. אם הבעיה נמשכת, יש לפנות לתמיכה.",
+  "authErrorGoogleCleanupPending": "יציאה מ-Google עדיין מתבצעת. יש לנסות שוב בקרוב. אם ההתחברות עדיין אינה זמינה, יש לסגור ולפתוח מחדש את האפליקציה.",
   "authForgotPasswordTitle": "איפוס סיסמה",
   "authForgotPasswordHint": "הכניסו כתובת אימייל",
   "authForgotPasswordButton": "לקבלת קישור לאיפוס",

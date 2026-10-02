@@ -5032,6 +5032,10 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן להתחיל התחברות עם Google. יש לסגור ולפתוח מחדש את האפליקציה לפני ניסיון נוסף. אם הבעיה נמשכת, יש לפנות לתמיכה.';
 
   @override
+  String get authErrorGoogleCleanupPending =>
+      'יציאה מ-Google עדיין מתבצעת. יש לנסות שוב בקרוב. אם ההתחברות עדיין אינה זמינה, יש לסגור ולפתוח מחדש את האפליקציה.';
+
+  @override
   String get authForgotPasswordTitle => 'איפוס סיסמה';
 
   @override

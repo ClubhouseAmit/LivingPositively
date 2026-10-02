@@ -212,10 +212,29 @@ and **deletes obsolete generated quote IDs**. Other quote IDs are retained.
 There is no dry-run flag, and a failed run can leave partial changes; inspect
 the target before retrying. Keep backup evidence for recovery.
 
-Provisioning before enabling the new scheduler ensures content is available
-for its first run. If a scheduler already operates on these collections, the
-release owner must arrange the maintenance window before provisioning because
-these writes are not atomic.
+The protected job replays the deterministic Functions build before changing
+production resources, then restores development dependencies for provisioning.
+Release order is Firestore rules, rules verification, content, then Functions.
+This preserves the original requirement that a new scheduler sees its content
+on its first run, and a failed managed Functions build does not prevent an
+already reviewed rules fix from being deployed. Existing Functions must tolerate
+the new content during provisioning; the scheduler owner must arrange a
+maintenance window for incompatible combined changes. Provisioning writes are
+not atomic.
+
+Change detection flags Functions, rules and content independently. It detects
+combined releases, but cannot infer semantic compatibility from changed paths.
+The local scheduler reads persisted notification type and quote data and skips
+missing content; this fix does not change that contract. No unprovisioned new
+content requirement was introduced by this diff. This review cannot inspect
+other in-flight branches or prove the current production content state.
+
+Firebase provides no transaction across Functions, rules and content. A failed
+managed build may leave updated rules/content and old Functions; a partially
+successful deployment may leave different function revisions serving. Inspect
+all four revisions and affected resources before recovery. The workflow blocks
+client rollout after failure, and does not roll these resources back. Changes
+requiring simultaneous activation need an approved maintenance plan.
 
 Once prerequisites are ready, merge the tested changes to `main` and watch
 **Release changed notification backend** in Build production artifacts. When

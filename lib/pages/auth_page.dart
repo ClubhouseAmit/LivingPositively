@@ -35,6 +35,8 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
 
   String? _googleSignInRetryMessage(Object error) => switch (error) {
     GoogleSignInInitializationFailure() => appLocale.authErrorGoogleRestart,
+    GoogleSignInAborted(outcome: GoogleSignInAbortReason.cleanupPending) =>
+      appLocale.authErrorGoogleCleanupPending,
     GoogleSignInException(code: GoogleSignInExceptionCode.interrupted) =>
       appLocale.authErrorGoogleInterrupted,
     GoogleSignInException(code: GoogleSignInExceptionCode.uiUnavailable) =>

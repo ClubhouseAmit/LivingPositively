@@ -159,6 +159,10 @@ jobs:
             echo "::error title=Missing Google Sign-In configuration::Set the GOOGLE_SIGN_IN_SERVER_CLIENT_ID repository secret before releasing from main."
             exit 1
           fi
+          if [ -z "$(printf '%s' "$SENTRY_DSN" | tr -d '[:space:]')" ]; then
+            echo "::error title=Missing auth incident telemetry::Set the SENTRY_DSN repository secret before releasing Google Sign-In from main."
+            exit 1
+          fi
           flutter build appbundle --release \
             --build-name="${BUILD_NAME}" \
             --build-number="${BUILD_NUMBER}" \

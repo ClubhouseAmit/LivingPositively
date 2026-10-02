@@ -4,6 +4,7 @@ import {tmpdir} from "node:os";
 import {join, dirname} from "node:path";
 import {spawnSync} from "node:child_process";
 import {test} from "node:test";
+import {verifyBuildToolchain} from "./verify_build_toolchain.mjs";
 
 function fixture(t, uuid = "11.1.1", uuidApi = "exports.v4 = () => '12345678-1234-4234-8234-123456789abc';") {
   const directory = mkdtempSync(join(tmpdir(), "functions-build-graph-"));
@@ -25,6 +26,8 @@ function fixture(t, uuid = "11.1.1", uuidApi = "exports.v4 = () => '12345678-123
   pkg("@grpc/grpc-js", "1.14.5");
   file("package.json", JSON.stringify({engines: {npm: "11.14.0"}}));
   file("scripts/verify.mjs", readFileSync(new URL("./verify_dependency_graph.mjs", import.meta.url)));
+  file("scripts/verify_build_toolchain.mjs",
+    readFileSync(new URL("./verify_build_toolchain.mjs", import.meta.url)));
   return {
     file,
     run(args = [], env = {}) {
@@ -64,23 +67,42 @@ test("rejects a UUID installation without the CommonJS v4 API", (t) => {
   assert.match(result.stderr, /not a function/);
 });
 
-test("rejects the wrong npm in a managed build", (t) => {
-  const graph = fixture(t);
-  graph.file("npm.cjs", "console.log('10.9.8');");
-  const result = graph.run(["--managed"], {npm_execpath: join(graph.directory, "npm.cjs")});
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Managed build must use the tested npm version/);
+test("accepts the selected Node and npm regardless of the test host", () => {
+  assert.doesNotThrow(() => verifyBuildToolchain("22.23.2", "11.14.0", "11.14.0"));
 });
 
-test("rejects a managed build outside the declared deployment Node runtime", (t) => {
+test("rejects an npm different from the manifest selection", () => {
+  assert.throws(() => verifyBuildToolchain("22.23.2", "10.9.8", "11.14.0"),
+    /Managed build must use the selected npm version/);
+});
+
+test("rejects a Node runtime different from the deployment runtime", () => {
+  assert.throws(() => verifyBuildToolchain("24.15.0", "11.14.0", "11.14.0"),
+    /Managed build must use the deployment Node runtime/);
+});
+
+const managedRuntime = Number(process.versions.node.split('.')[0]) === 22;
+const managedSkip = managedRuntime ? false : 'Managed CLI integration requires the deployment Node 22 runtime';
+
+test('managed CLI rejects a missing npm executable', (t) => {
+  const result = fixture(t).run(['--managed'], {npm_execpath: ''});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Run managed verification through npm/);
+});
+
+test('managed CLI reads npm_execpath and accepts the manifest pin', {skip: managedSkip}, (t) => {
   const graph = fixture(t);
-  graph.file("npm.cjs", "console.log('11.14.0');");
-  const result = graph.run(["--managed"], {npm_execpath: join(graph.directory, "npm.cjs")});
-  if (process.versions.node.split(".")[0] === "22") {
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /Build toolchain verified: Node 22.*npm 11\.14\.0/);
-  } else {
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Managed build must use the deployment Node runtime/);
-  }
+  graph.file('npm-probe.cjs', "console.log('11.14.0');");
+  const result = graph.run(['--managed'], {npm_execpath: join(graph.directory, 'npm-probe.cjs')});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Build toolchain verified: Node 22\.[\d.]+; npm 11\.14\.0/);
+});
+
+test('managed CLI rejects an npm executable that disagrees with engines.npm', {skip: managedSkip}, (t) => {
+  const graph = fixture(t);
+  graph.file('npm-probe.cjs', "console.log('11.14.0');");
+  graph.file('package.json', JSON.stringify({engines: {npm: '11.15.0'}}));
+  const result = graph.run(['--managed'], {npm_execpath: join(graph.directory, 'npm-probe.cjs')});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Managed build must use the selected npm version/);
 });

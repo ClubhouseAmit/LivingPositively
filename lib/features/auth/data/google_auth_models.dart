@@ -16,3 +16,11 @@ final class GoogleSignInInitializationFailure implements Exception {
   @override
   String toString() => 'Google Sign-In initialization failed: $cause';
 }
+
+/// An app interruption, distinct from a provider dismissal or failure.
+enum GoogleSignInAbortReason { appCanceled, cleanupPending }
+
+final class GoogleSignInAborted implements Exception {
+  const GoogleSignInAborted(this.outcome);
+  final GoogleSignInAbortReason outcome;
+}

@@ -11,6 +11,8 @@ const directlyDeployedFiles = new Set([
   'functions/tsconfig.json',
   'functions/.gcloudignore',
   'functions/.gitignore',
+  'functions/scripts/verify_dependency_graph.mjs',
+  'functions/scripts/verify_build_toolchain.mjs',
 ]);
 const firestoreRulesFiles = new Set([
   'firestore.rules',

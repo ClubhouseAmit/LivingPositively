@@ -3322,6 +3322,12 @@ abstract class AppLocalizations {
   /// **'Google sign-in could not start. Close and reopen the app before trying again. If it still fails, contact support.'**
   String get authErrorGoogleRestart;
 
+  /// No description provided for @authErrorGoogleCleanupPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-out is still finishing. Try again shortly. If sign-in remains unavailable, close and reopen the app.'**
+  String get authErrorGoogleCleanupPending;
+
   /// No description provided for @authForgotPasswordTitle.
   ///
   /// In en, this message translates to:

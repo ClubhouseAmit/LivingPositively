@@ -100,18 +100,17 @@ Ruflo SPARC refinement task: `task-1790838086412-dh5pa7`.
   localized restart guidance and one incident report for a cached initialization
   failure. Configured provider sign-out now initializes the SDK on cold starts
   before cleanup, while provider failure still permits Firebase logout.
-- Functions now selects npm 11.14.0 through `engines.npm`, the selector
-  supported by the [Google Node.js buildpack](https://docs.cloud.google.com/docs/buildpacks/nodejs).
-  Backend CI and the release preparation workflow install the same manifest
-  version and verify the installed Gaxios/UUID CommonJS and Firestore/gRPC graph.
-  Earlier toolchains demonstrated the npm 10.9.8 hoisting issue; relying on an
-  unspecified managed-build default would not establish equivalence.
-  Functions manifest/lock changes still trigger a backend release by existing
-  policy, including dev-only changes. No production deployment or managed
-  Cloud Build was run for this review. The next authorized managed build must
-  confirm npm selection, production graph and audit before release. The second
-  review adds a `gcp-build` hook to assert the actual Node/npm versions, compile,
-  prune, verify and audit inside that managed build before deployment.
+- The latest review restores `engines.npm: 11.14.0` and a managed toolchain
+  assertion, removes `packageManager`, and retains live advisory audits in CI
+  and the managed build pending explicit approval of CI-only auditing.
+  The release job replays compilation, pruning and graph verification before
+  mutations, then restores dev dependencies and releases rules, content, Functions.
+  No managed build was run; managed evidence remains required before rollout.
+- Android cancellations stay in analytics; three unsuccessful retries trigger
+  at most one incident per logger instance/app run. Firebase logout returns
+  immediately while provider cleanup continues, and a new Google attempt waits
+  for that pending cleanup with a bounded wait. Mixpanel startup events await
+  bounded shared initialization; successful startup preserves Session started.
 
 ### Validation of the review corrections
 

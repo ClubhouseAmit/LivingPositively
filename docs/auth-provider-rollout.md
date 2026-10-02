@@ -133,6 +133,8 @@ Successful real-account authentication is required on each platform.
 | Dismiss/back from account UI leaves Firebase signed out and permits the next attempt | NOT RUN | NOT RUN |
 | Sign-out clears Firebase state; the next sign-in succeeds | NOT RUN | NOT RUN |
 | Restart while signed in, then sign out and sign in again | NOT RUN | NOT RUN |
+| Kill/background immediately after Firebase logout; record prior-account offering/preselection and ensure no automatic Firebase authentication | NOT RUN | NOT RUN |
+| Slow cleanup: Google retry shows close/reopen guidance; a settled cleanup permits retry without restart | NOT RUN | NOT RUN |
 | Interrupt the flow/background the app, return, and retry | NOT RUN | NOT RUN |
 | Android with no Google account: record the actual add-account flow or error and subsequent recovery | NOT RUN | N/A |
 | After success, FCM token registration and legacy reminder migration still run | NOT RUN | NOT RUN |
@@ -162,6 +164,9 @@ account authentication. They cannot close the device rows above.
 `Google sign-in outcome` uses the existing `AnalyticsService`/Mixpanel channel.
 Each offered attempt records `started` and its result: `success`, `canceled`,
 the SDK error code, `initializationFailed`, or `failed` for other failures.
+`appCanceled` identifies attempts superseded by logout; `cleanupPending`
+identifies a retry while native cleanup is still running. Neither counts as a
+provider dismissal or sign-in failure.
 The only explicit properties are `outcome` and `platform`; provider descriptions,
 tokens, client IDs and account details are excluded. Telemetry failure cannot
 block sign-in. An unavailable analytics service or absent Mixpanel token sends
@@ -172,9 +177,17 @@ version using their Mixpanel release metadata. Compare started and successful
 attempts with cancellations and unavailable-UI outcomes. A sustained increase
 without successful Android sign-in requires checking the release signing SHA,
 package name and server client ID. The SDK cannot tell an individual dismissal
-apart from its configuration-related `canceled` result, so no cancellation is
-reclassified as a confirmed configuration error. The analytics signal enables
-investigation; the real-account success row remains necessary.
+apart from its configuration-related `canceled` result, so cancellations are
+counted in analytics as ambiguous results. Individual dismissals produce no
+incident. Three cancellations within five minutes without an intervening success produce a
+credential-free `Repeated Android Google sign-in cancellations` incident with
+a stack trace. Reports are capped at one per incident logger instance (normally
+one app run), independently of Mixpanel. A successful authentication resets the
+retry count. This is a repeated-failure signal, not proof of misconfiguration.
+The Android release build requires `SENTRY_DSN`. Before rollout, verify receipt
+and record the alert owner, threshold and quota/sampling settings. Production
+usage volume and those settings were not available in this review, so no daily
+quota estimate or configured alert is claimed. Device success remains required.
 
 `interrupted` and `uiUnavailable` retain localized retry guidance and analytics
 counts without creating an incident per dismissal. Unknown and configuration
@@ -185,7 +198,71 @@ There is no verified device evidence classifying such failures as transient or
 permanent. Restart permits a new initialization, and persistent failure requires
 support/configuration investigation rather than repeated taps.
 
-Configured Google provider cleanup now initializes the SDK on cold-start
-sign-out too. Firebase sign-out still runs if Google initialization or cleanup
-fails. The cold-start unit coverage establishes the call sequence, while the
-device account-picker/retry row remains NOT RUN.
+Configured Google cleanup initializes the SDK on cold-start sign-out too.
+Every logout clears Firebase, even while an earlier provider cleanup remains
+pending. Already-issued Google credential exchanges must settle within five
+seconds before Firebase is cleared. If that wait expires, logout throws rather
+than reporting success; the settings caller restores cancelled reminders and
+keeps the logged-in UI. A timed-out exchange wait schedules no later Firebase
+logout. If the exchange later succeeds after failed logout, its credential is
+returned through normal sign-in success handling, so the app handles that account
+instead of silently discarding its Firebase session. Logout can then be retried.
+Only successful Firebase logout cancels an already-issued exchange. This prevents an
+exchange from restoring a session after successful logout. Firebase
+failures belong to the caller; the cleanup observer reports only provider work.
+Firebase logout returns without waiting for optional provider cleanup. Cleanup
+continues in the background even if initialization takes longer than five
+seconds. The observer's five-second clock starts only when provider setup and
+native sign-out begin, after Firebase logout and captured interactive attempts
+settle. An open account picker alone therefore does not cause a cleanup timeout
+incident. The observer reports slow native cleanup without cancelling it.
+A new Google authentication attempt waits for pending cleanup, with a bounded
+five-second wait and a `cleanupPending` interruption if cleanup is still
+pending. The auth page shows localized guidance to retry shortly, and to close
+and reopen the app if sign-in remains unavailable;
+subsequent taps fail promptly while that same cleanup remains pending. If the
+native work eventually settles, the guard clears and sign-in can proceed without
+restarting. Settled cleanup failures are consumed by the cleanup observer and do
+not fail a later sign-in. The timeout does not clear the guard or cancel native
+work: releasing it early could let stale cleanup sign out a new Google session.
+This prevents stale cleanup from signing out a new provider session. Native
+operations cannot be forcibly cancelled by this app. Do not equate Firebase
+logout completion with removal of the Google account from the device. Actual
+account-picker behavior on Android/iOS remains NOT RUN. The owner accepted the
+background cleanup trade-off in this review session on 2026-10-02, explicitly
+requiring device validation. The interrupted-cleanup and slow-cleanup rows remain
+open; this finding is not closed until their Android/iOS results are recorded.
+
+The installed Android plugin (7.2.17) awaits Credential Manager's
+`clearCredentialStateAsync` callbacks; it supplies no cancellation signal or
+plugin-level deadline. The iOS plugin (6.3.6) calls `GIDSignIn.signOut()` directly.
+[Google's iOS guide](https://developers.google.com/identity/sign-in/ios/sign-in#4_add_a_sign-out_button)
+describes clearing app sign-in state and Keychain credentials. Those API/source
+checks do not prove that a native operation or an interactive attempt cannot
+stall on a device; neither a native hang nor a five-second completion guarantee
+was established here. Firebase logout remains the boundary for app access.
+
+Mixpanel events sent during initialization share its future and are delivered
+when it succeeds. Callers wait at most five seconds, while a late native result
+can still recover and deliver the retained events. The startup buffer holds at
+most 64 events, dropping the oldest on overflow. Buffered events copy their
+properties and capture occurrence time in Mixpanel's reserved `time` field
+(epoch milliseconds), preserving a caller-supplied timestamp. This follows
+[Mixpanel's event time contract](https://docs.mixpanel.com/docs/data-structure/property-reference/reserved-properties)
+and the native Swift SDK's millisecond representation. New events stay in the
+same FIFO while older startup events are delivered. A rejected track call reports
+a delivery failure and permits the remaining events to drain; it does not reset
+successful initialization. Native/network ingestion order is outside this queue's
+guarantee. Initialization failure, timeout,
+and overflow each write their own credential-free diagnostic to logs and incident
+telemetry when registered. A timeout does not suppress a later buffer-overflow
+report. Each distinct startup condition reports at most once per service instance
+in an app run, including across failed initialization retries. This does not
+establish a quota or sampling policy across devices or app restarts; that rollout
+evidence remains required. Pending native initialization is not restarted concurrently: a timeout
+cannot cancel it safely. A late result can still recover the queue. A failed native initialization clears the buffer; a later event
+retries after a one-minute backoff without polling or periodic timers. All current
+trackEvent callers use this behavior, including cold-start Session started,
+Home opened, startup journal views, and interaction events. The tests exercise
+this startup sequence and native initialization failure in the default suite;
+main's Android workflow also invokes the token-defined test variant.

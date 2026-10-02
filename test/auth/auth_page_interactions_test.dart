@@ -14,6 +14,7 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/auth_page.dart';
 import 'package:mazilon/pages/forgot_password_page.dart';
 import 'package:mazilon/features/auth/data/auth_repository.dart';
+import 'package:mazilon/features/auth/data/google_auth_models.dart';
 import 'package:mazilon/features/notifications/data/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/features/notifications/data/fcm_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -652,6 +653,9 @@ void main() {
             }
             if (message == strings.authErrorGeneric) {
               expect(services.logger.captured, [same(failure)]);
+            } else if (code == GoogleSignInExceptionCode.canceled) {
+              expect(services.logger.captured, isEmpty);
+              expect(find.text(strings.authErrorGeneric), findsNothing);
             } else {
               expect(services.logger.captured, isEmpty);
               expect(find.text(strings.authErrorGeneric), findsNothing);
@@ -668,6 +672,63 @@ void main() {
           }
         });
       }
+    }
+
+    for (final language in ['en', 'he', 'ar']) {
+      testWidgets(
+        'should show conditional cleanup retry guidance in $language',
+        (
+          tester,
+        ) async {
+          debugDefaultTargetPlatformOverride = TargetPlatform.android;
+          try {
+            AuthService.debugGoogleSignInServerClientIdOverride =
+                'server-client';
+            AuthService.debugGoogleSignInStarterOverride =
+                ({
+                  required serverClientId,
+                  clientId,
+                }) async => throw const GoogleSignInAborted(
+                  GoogleSignInAbortReason.cleanupPending,
+                );
+            final locale = Locale(language);
+            final strings = await AppLocalizations.delegate.load(locale);
+            final expectedScript = switch (language) {
+              'he' => RegExp(r'[֐-׿]'),
+              'ar' => RegExp(r'[؀-ۿ]'),
+              _ => RegExp(r'Try again shortly'),
+            };
+            expect(
+              strings.authErrorGoogleCleanupPending,
+              matches(expectedScript),
+            );
+            expect(strings.authErrorGoogleCleanupPending, isNot(contains('?')));
+            await pumpWithProviders(
+              tester,
+              const AuthPage(),
+              locale: locale,
+              surfaceSize: const Size(1024, 1800),
+            );
+            await tester.tap(find.text(strings.authGoogleButton));
+            await tester.pumpAndSettle();
+            expect(
+              find.text(strings.authErrorGoogleCleanupPending),
+              findsOneWidget,
+            );
+            expect(find.text(strings.authErrorGeneric), findsNothing);
+            expect(services.logger.captured, isEmpty);
+            final button = tester.widget<OutlinedButton>(
+              find.ancestor(
+                of: find.text(strings.authGoogleButton),
+                matching: find.byType(OutlinedButton),
+              ),
+            );
+            expect(button.onPressed, isNotNull);
+          } finally {
+            debugDefaultTargetPlatformOverride = null;
+          }
+        },
+      );
     }
 
     testWidgets('should report password-reset failures', (tester) async {

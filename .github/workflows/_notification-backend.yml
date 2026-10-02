@@ -122,6 +122,13 @@ jobs:
         if: needs.plan.outputs.functions_required == 'true' || needs.plan.outputs.rules_required == 'true'
         run: npm install --global firebase-tools@15.32.1
 
+      - name: Check Functions build before release mutations
+        if: needs.plan.outputs.functions_required == 'true'
+        run: |
+          npm --prefix functions run gcp-build
+          npm --prefix functions ci --no-audit
+          npm --prefix functions run verify:dependencies
+
       - name: Deploy Firestore rules
         if: needs.plan.outputs.rules_required == 'true'
         run: >-
@@ -146,9 +153,10 @@ jobs:
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
           ### Managed Functions build evidence
-          The managed `gcp-build` hook must verify Node 22/npm 11.14.0, compile TypeScript,
+          The managed `gcp-build` hook must verify Node 22, assert the selected npm version, compile TypeScript,
           prune development dependencies, verify Gaxios/UUID 11.1.1 and Firestore/gRPC
-          1.14.5, and pass the production audit before deployment can succeed.
+          1.14.5. The production advisory audit runs in CI and the managed build;
+          CI-only audit acceptance remains pending.
           Retain the Cloud Build ID, source revision and log with the release record.
           CI's local replay does not establish that this managed build ran.
           App rollout remains blocked until the managed evidence in

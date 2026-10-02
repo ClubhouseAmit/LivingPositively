@@ -5037,6 +5037,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Google sign-in could not start. Close and reopen the app before trying again. If it still fails, contact support.';
 
   @override
+  String get authErrorGoogleCleanupPending =>
+      'Google sign-out is still finishing. Try again shortly. If sign-in remains unavailable, close and reopen the app.';
+
+  @override
   String get authForgotPasswordTitle => 'Reset Password';
 
   @override

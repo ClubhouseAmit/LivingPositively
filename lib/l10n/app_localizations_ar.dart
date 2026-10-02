@@ -5033,6 +5033,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذّر بدء تسجيل الدخول باستخدام Google. أغلق التطبيق وافتحه مجددًا قبل المحاولة مرة أخرى. إذا استمرت المشكلة، تواصل مع الدعم.';
 
   @override
+  String get authErrorGoogleCleanupPending =>
+      'لا يزال تسجيل الخروج من Google قيد الإكمال. حاول مجددًا بعد قليل. إذا ظل تسجيل الدخول غير متاح، أغلق التطبيق وافتحه مجددًا.';
+
+  @override
   String get authForgotPasswordTitle => 'إعادة تعيين كلمة المرور';
 
   @override

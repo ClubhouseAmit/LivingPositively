@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mixpanel_flutter/mixpanel_flutter.dart';
 
 const _mixpanelProjectToken = String.fromEnvironment('MIXPANEL_PROJECT_TOKEN');
@@ -8,19 +13,83 @@ abstract class AnalyticsService {
 }
 
 class MixPanelService implements AnalyticsService {
+  @visibleForTesting
+  static String? debugProjectTokenOverride;
+  @visibleForTesting
+  static DateTime Function() debugClock = DateTime.now;
+
   late Mixpanel _mixpanel;
   bool _isInitialized = false;
+  Future<void>? _initialization;
+  final _pendingEvents = <({String name, Map<String, dynamic>? properties})>[];
+  DateTime? _lastFailure;
+  final _reportedStartupConditions = <String>{};
+  bool _deliveryFailureReported = false;
   String key = "";
   @override
-  Future<void> init() async {
-    if (_mixpanelProjectToken.isEmpty) {
+  Future<void> init() {
+    if (_lastFailure case final failed?) {
+      if (debugClock().difference(failed) < const Duration(minutes: 1)) {
+        return Future<void>.value();
+      }
+    }
+    return _initialization ??= _initialize();
+  }
+
+  Future<void> _initialize() async {
+    final token = debugProjectTokenOverride ?? _mixpanelProjectToken;
+    if (token.isEmpty || _isInitialized) return;
+    key = token;
+    // Bound callers' wait, retaining the native result and startup events.
+    await _startNative().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => _reportStartupCondition('Mixpanel startup timed out'),
+    );
+  }
+
+  Future<void> _startNative() async {
+    try {
+      _mixpanel = await Mixpanel.init(key, trackAutomaticEvents: false);
+    } catch (_) {
+      _lastFailure = debugClock();
+      _pendingEvents.clear();
+      _initialization = null;
+      _reportStartupCondition('Mixpanel initialization failed');
       return;
     }
-    key = _mixpanelProjectToken;
-
-    // Once you've called this method once, you can access `mixpanel` throughout the rest of your application.
-    _mixpanel = await Mixpanel.init(key, trackAutomaticEvents: false);
+    // Keep new events in the same FIFO until every older startup event settles.
+    while (_pendingEvents.isNotEmpty) {
+      final event = _pendingEvents.removeAt(0);
+      try {
+        await _mixpanel.track(event.name, properties: event.properties);
+      } catch (_) {
+        // A rejected event must not discard the rest or invalidate a ready SDK.
+        if (!_deliveryFailureReported) {
+          _deliveryFailureReported = true;
+          _reportDiagnostic('Mixpanel startup event delivery failed');
+        }
+      }
+    }
     _isInitialized = true;
+  }
+
+  void _reportStartupCondition(String message) {
+    if (!_reportedStartupConditions.add(message)) return;
+    _reportDiagnostic(message);
+  }
+
+  void _reportDiagnostic(String message) {
+    debugPrint(message);
+    final services = GetIt.instance;
+    if (!services.isRegistered<IncidentLoggerService>()) return;
+    unawaited(
+      Future<void>.sync(
+        () => services<IncidentLoggerService>().captureLog(
+          StateError(message),
+          stackTrace: StackTrace.current,
+        ),
+      ).catchError((_) {}),
+    );
   }
 
   @override
@@ -28,14 +97,24 @@ class MixPanelService implements AnalyticsService {
     String eventName, [
     Map<String, dynamic>? properties,
   ]) async {
-    if (key == "") {
+    if ((debugProjectTokenOverride ?? _mixpanelProjectToken).isEmpty) return;
+    if (_isInitialized) {
+      await _mixpanel.track(eventName, properties: properties);
       return;
     }
-    while (!_isInitialized) {
-      await Future.delayed(Duration(milliseconds: 100));
+    if (_lastFailure case final failed?) {
+      if (debugClock().difference(failed) < const Duration(minutes: 1)) return;
     }
-
-    await _mixpanel.track(eventName, properties: properties);
+    if (_pendingEvents.length == 64) {
+      _pendingEvents.removeAt(0);
+      _reportStartupCondition('Mixpanel startup event buffer exceeded');
+    }
+    final capturedProperties = <String, dynamic>{
+      'time': debugClock().millisecondsSinceEpoch,
+      ...?properties,
+    };
+    _pendingEvents.add((name: eventName, properties: capturedProperties));
+    await init();
   }
 
   Mixpanel get mixpanel => _mixpanel;

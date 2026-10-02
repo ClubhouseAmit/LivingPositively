@@ -7,9 +7,9 @@ import 'package:flutter/foundation.dart'
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mazilon/features/auth/data/google_auth_models.dart';
+import 'package:mazilon/features/auth/data/google_auth_lifecycle.dart';
 import 'package:mazilon/util/Firebase/firebase_options.dart';
-import 'package:mazilon/util/async/analytics_service.dart';
-import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/features/auth/data/auth_telemetry.dart';
 
 /// Starts the provider-specific Google authentication flow.
 ///
@@ -88,6 +88,10 @@ class AuthService {
   // Share its future for overlapping requests and retain failures for this run.
   static final Expando<Future<void>> _googleSignInInitializations = Expando();
   static final Expando<bool> _googleSignInInitialized = Expando();
+  static final Expando<GoogleAuthLifecycle> _googleLifecycles = Expando();
+
+  static GoogleAuthLifecycle _googleLifecycle(GoogleSignIn sdk) =>
+      _googleLifecycles[sdk] ??= GoogleAuthLifecycle();
 
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
@@ -141,7 +145,9 @@ class AuthService {
         ? iosClientId
         : null;
     final GoogleSignInAccount? googleUser;
-    _trackGoogleSignInOutcome('started');
+    final lifecycle = _googleLifecycle(_googleSignIn);
+    final generation = lifecycle.generation;
+    trackGoogleSignInOutcome('started');
     try {
       final startGoogleSignIn =
           debugGoogleSignInStarterOverride ?? _startGoogleSignIn;
@@ -149,44 +155,41 @@ class AuthService {
         clientId: clientId,
         serverClientId: serverClientId,
       );
+      if (generation != lifecycle.generation) {
+        trackGoogleSignInOutcome('appCanceled');
+        return null;
+      }
       if (googleUser == null) {
-        _trackGoogleSignInOutcome('canceled');
+        trackGoogleSignInOutcome('canceled');
         return null;
       }
       final credential = GoogleAuthProvider.credential(
         idToken: googleUser.authentication.idToken,
       );
-      final result = await _auth.signInWithCredential(credential);
-      _trackGoogleSignInOutcome('success');
+      final result = await lifecycle.exchange(
+        () => _auth.signInWithCredential(credential),
+        generation,
+      );
+      trackGoogleSignInOutcome('success');
       return result;
+    } on GoogleSignInAborted catch (error) {
+      trackGoogleSignInOutcome(error.outcome.name);
+      if (error.outcome == GoogleSignInAbortReason.cleanupPending) rethrow;
+      return null;
     } on GoogleSignInInitializationFailure {
-      _trackGoogleSignInOutcome('initializationFailed');
+      trackGoogleSignInOutcome('initializationFailed');
       rethrow;
     } on GoogleSignInException catch (error) {
       // Interactive authenticate() throws for every unsuccessful outcome.
       // Android uses throwForNoAuth: true, so noCredential is an unknownError;
       // interruptions and unavailable UI must also reach the form's feedback.
-      _trackGoogleSignInOutcome(error.code.name);
+      trackGoogleSignInOutcome(error.code.name);
       if (error.code == GoogleSignInExceptionCode.canceled) return null;
       rethrow;
     } catch (_) {
-      _trackGoogleSignInOutcome('failed');
+      trackGoogleSignInOutcome('failed');
       rethrow;
     }
-  }
-
-  static void _trackGoogleSignInOutcome(String outcome) {
-    if (!GetIt.instance.isRegistered<AnalyticsService>()) return;
-    // Count ambiguous cancellations and recoverable outcomes without credentials
-    // or provider descriptions, and never let telemetry block authentication.
-    unawaited(
-      Future<void>.sync(
-        () => GetIt.instance<AnalyticsService>().trackEvent(
-          'Google sign-in outcome',
-          {'outcome': outcome, 'platform': defaultTargetPlatform.name},
-        ),
-      ).catchError((_) {}),
-    );
   }
 
   static Future<GoogleSignInAccount> _startGoogleSignIn({
@@ -194,12 +197,14 @@ class AuthService {
     String? clientId,
   }) async {
     final googleSignIn = _googleSignIn;
-    await _initializeGoogleSignIn(
+    return _googleLifecycle(googleSignIn).authenticate(
       googleSignIn,
-      clientId: clientId,
-      serverClientId: serverClientId,
+      () => _initializeGoogleSignIn(
+        googleSignIn,
+        clientId: clientId,
+        serverClientId: serverClientId,
+      ),
     );
-    return await googleSignIn.authenticate();
   }
 
   static Future<void> _initializeGoogleSignIn(
@@ -302,42 +307,28 @@ class AuthService {
     return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
-  /// Signs out Firebase after attempting cleanup of the configured Google SDK.
+  /// Ends the Firebase session and starts provider cleanup in the background.
   static Future<void> signOut() async {
     final googleSignIn = _googleSignIn;
     // Cold-start restored sessions use the same configured SDK cleanup as sessions
     // created here; failed provider setup must still permit Firebase logout.
     if (isGoogleSignInAvailable ||
         (_googleSignInInitialized[googleSignIn] ?? false)) {
-      try {
-        await _initializeGoogleSignIn(
+      final cleanup = _googleLifecycle(googleSignIn).startCleanup(
+        googleSignIn,
+        _auth.signOut,
+        () => _initializeGoogleSignIn(
           googleSignIn,
           serverClientId: _configuredGoogleSignInServerClientId,
           clientId: defaultTargetPlatform == TargetPlatform.iOS
               ? _configuredGoogleSignInIosClientId
               : null,
-        );
-        await googleSignIn.signOut();
-      } catch (error, stackTrace) {
-        if (GetIt.instance.isRegistered<IncidentLoggerService>() &&
-            (error is! GoogleSignInInitializationFailure ||
-                error.claimReport())) {
-          unawaited(
-            Future<void>.sync(
-              () => GetIt.instance<IncidentLoggerService>().captureLog(
-                error is GoogleSignInInitializationFailure
-                    ? error.cause
-                    : error,
-                stackTrace: error is GoogleSignInInitializationFailure
-                    ? error.stackTrace
-                    : stackTrace,
-              ),
-            ).catchError((_) {}),
-          );
-        }
-      }
+        ),
+      );
+      await cleanup.firebase;
+    } else {
+      await _auth.signOut();
     }
-    await _auth.signOut();
   }
 
   /// The current registered session, if authentication has been initialized.

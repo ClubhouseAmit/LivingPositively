@@ -53,7 +53,7 @@ jobs:
       - name: Verify Firestore collection policy coverage
         run: node ../scripts/check_firestore_collection_policy.mjs
 
-      - name: Replay managed Functions build and production audit
+      - name: Replay managed Functions build and audit production dependencies
         run: npm run gcp-build
 
   firestore-rules-test:

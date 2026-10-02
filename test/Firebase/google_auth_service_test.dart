@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mazilon/features/auth/data/auth_repository.dart';
+import 'package:mazilon/features/auth/data/auth_telemetry.dart';
 import 'package:mazilon/features/auth/data/google_auth_models.dart';
 import 'package:mazilon/features/auth/ui/auth_error_reporting.dart';
 import 'package:mazilon/util/async/analytics_service.dart';
@@ -112,6 +113,7 @@ void main() {
     });
 
     tearDown(() async {
+      googleAuthTelemetryClock = DateTime.now;
       debugDefaultTargetPlatformOverride = null;
       AuthService.debugGoogleSignInServerClientIdOverride = null;
       AuthService.debugGoogleSignInIosClientIdOverride = null;
@@ -375,6 +377,7 @@ void main() {
         );
 
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
 
         verifyNever(googleSignIn.signOut());
         verify(firebaseAuth.signOut()).called(1);
@@ -392,7 +395,9 @@ void main() {
         when(googleSignIn.initialize(serverClientId: 'server-client'))
             .thenAnswer((_) async => throw failure);
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
         try {
           await AuthService.signInWithGoogle();
           fail('Initialization should remain failed');
@@ -425,6 +430,7 @@ void main() {
       'should clean up Google on sign-out after a cold start',
       () async {
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
 
         verify(firebaseAuth.signOut()).called(1);
         verify(googleSignIn.initialize(serverClientId: 'server-client'))
@@ -439,6 +445,7 @@ void main() {
       () async {
         AuthService.debugGoogleSignInServerClientIdOverride = '';
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
         verifyZeroInteractions(googleSignIn);
         verify(firebaseAuth.signOut()).called(1);
       },
@@ -453,6 +460,7 @@ void main() {
         AuthService.debugFirebaseIosBundleIdOverride =
             'com.clubhouse.livingpositively';
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
         verify(
           googleSignIn.initialize(
             clientId: 'ios-client',
@@ -466,7 +474,7 @@ void main() {
     );
 
     test(
-      'should await provider sign-out before ending the Firebase session',
+      'should end the Firebase session before provider cleanup finishes',
       () async {
         await AuthService.signInWithGoogle();
         clearInteractions(firebaseAuth);
@@ -476,11 +484,11 @@ void main() {
         final signOut = AuthService.signOut();
         await Future<void>.delayed(Duration.zero);
         verify(googleSignIn.signOut()).called(1);
-        verifyNever(firebaseAuth.signOut());
+        verify(firebaseAuth.signOut()).called(1);
 
         providerSignOut.complete();
         await signOut;
-        verify(firebaseAuth.signOut()).called(1);
+        verifyNever(firebaseAuth.signOut());
 
         await AuthService.signInWithGoogle();
         verify(googleSignIn.initialize(serverClientId: 'server-client'))
@@ -497,13 +505,14 @@ void main() {
         when(googleSignIn.signOut()).thenThrow(failure);
 
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
 
         verify(firebaseAuth.signOut()).called(1);
       },
     );
 
     test(
-      'should propagate Firebase failure after provider cleanup fails',
+      'should propagate Firebase failure before provider cleanup',
       () async {
         await AuthService.signInWithGoogle();
         const googleFailure = GoogleSignInException(
@@ -525,6 +534,374 @@ void main() {
     );
 
     test(
+      'should report repeated Android cancellations without analytics',
+      () async {
+        final logger = _MockIncidentLoggerService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        when(googleSignIn.authenticate()).thenThrow(
+          const GoogleSignInException(code: GoogleSignInExceptionCode.canceled),
+        );
+
+        for (var attempt = 0; attempt < 2; attempt++) {
+          expect(await AuthService.signInWithGoogle(), isNull);
+        }
+        verifyZeroInteractions(logger);
+        for (var attempt = 0; attempt < 4; attempt++) {
+          expect(await AuthService.signInWithGoogle(), isNull);
+        }
+        await Future<void>.delayed(Duration.zero);
+
+        final incident = verify(
+          logger.captureLog(captureAny, stackTrace: anyNamed('stackTrace')),
+        ).captured.single;
+        expect(incident, isA<StateError>());
+        expect(
+          incident.toString(),
+          contains('Repeated Android Google sign-in cancellations'),
+        );
+        verifyNever(firebaseAuth.signInWithCredential(any));
+      },
+    );
+
+    test(
+      'should finish Firebase logout and clean up after late initialization',
+      () async {
+        final initialization = Completer<void>();
+        when(googleSignIn.initialize(serverClientId: 'server-client'))
+            .thenAnswer((_) => initialization.future);
+        await AuthService.signOut().timeout(const Duration(seconds: 1));
+        verify(firebaseAuth.signOut()).called(1);
+        verifyNever(googleSignIn.signOut());
+        initialization.complete();
+        await Future<void>.delayed(Duration.zero);
+        verify(googleSignIn.signOut()).called(1);
+      },
+    );
+
+    test(
+      'should defer new authentication until pending cleanup completes',
+      () async {
+        final cleanup = Completer<void>();
+        when(googleSignIn.signOut()).thenAnswer((_) => cleanup.future);
+        await AuthService.signOut().timeout(const Duration(seconds: 1));
+        final signIn = AuthService.signInWithGoogle();
+        await Future<void>.delayed(Duration.zero);
+        verify(firebaseAuth.signOut()).called(1);
+        verifyNever(googleSignIn.authenticate());
+        cleanup.complete();
+        expect(await signIn, same(firebaseCredential));
+        verify(googleSignIn.authenticate()).called(1);
+      },
+    );
+
+    test(
+      'should cancel a pending initialization attempt when logout begins',
+      () async {
+        final initialized = Completer<void>();
+        when(googleSignIn.initialize(serverClientId: 'server-client'))
+            .thenAnswer((_) => initialized.future);
+        final signIn = AuthService.signInWithGoogle();
+        await Future<void>.delayed(Duration.zero);
+        await AuthService.signOut();
+        initialized.complete();
+        expect(await signIn, isNull);
+        await Future<void>.delayed(Duration.zero);
+        verifyNever(googleSignIn.authenticate());
+        verifyNever(firebaseAuth.signInWithCredential(any));
+        verify(googleSignIn.signOut()).called(1);
+      },
+    );
+
+    test(
+      'should block new Google authentication during Firebase logout',
+      () async {
+        final firebaseLogout = Completer<void>();
+        when(firebaseAuth.signOut()).thenAnswer((_) => firebaseLogout.future);
+        final signOut = AuthService.signOut();
+        final signIn = AuthService.signInWithGoogle();
+        await Future<void>.delayed(Duration.zero);
+        verifyNever(googleSignIn.authenticate());
+        firebaseLogout.complete();
+        await signOut;
+        expect(await signIn, same(firebaseCredential));
+        verifyInOrder([googleSignIn.signOut(), googleSignIn.authenticate()]);
+      },
+    );
+
+    test(
+      'should serialize active authentication with cleanup and the next sign-in',
+      () async {
+        final selected = Completer<GoogleSignInAccount>();
+        when(googleSignIn.authenticate()).thenAnswer((_) => selected.future);
+        final oldSignIn = AuthService.signInWithGoogle();
+        await Future<void>.delayed(Duration.zero);
+        await AuthService.signOut();
+        final newSignIn = AuthService.signInWithGoogle();
+        selected.complete(account);
+        expect(await oldSignIn, isNull);
+        expect(await newSignIn, same(firebaseCredential));
+        verify(firebaseAuth.signInWithCredential(any)).called(1);
+        verifyInOrder([
+          googleSignIn.authenticate(),
+          googleSignIn.signOut(),
+          googleSignIn.authenticate(),
+        ]);
+      },
+    );
+
+    test(
+      'should clear a new email session while provider cleanup is pending',
+      () async {
+        final cleanup = Completer<void>();
+        when(googleSignIn.signOut()).thenAnswer((_) => cleanup.future);
+        await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
+        when(
+          firebaseAuth.signInWithEmailAndPassword(
+            email: 'new@example.com',
+            password: 'password',
+          ),
+        ).thenAnswer((_) async => firebaseCredential);
+        await AuthService.signInWithEmail('new@example.com', 'password');
+        await AuthService.signOut();
+        verify(firebaseAuth.signOut()).called(2);
+        verify(googleSignIn.signOut()).called(1);
+        cleanup.complete();
+        await Future<void>.delayed(Duration.zero);
+      },
+    );
+
+    test(
+      'should block authentication during a second pending Firebase logout',
+      () async {
+        final cleanup = Completer<void>();
+        when(googleSignIn.signOut()).thenAnswer((_) => cleanup.future);
+        await AuthService.signOut();
+        final cleared = Completer<void>();
+        when(firebaseAuth.signOut()).thenAnswer((_) => cleared.future);
+        final logout = AuthService.signOut();
+        cleanup.complete();
+        await Future<void>.delayed(Duration.zero);
+        final signIn = AuthService.signInWithGoogle();
+        await Future<void>.delayed(Duration.zero);
+        verifyNever(googleSignIn.authenticate());
+        cleared.complete();
+        await logout;
+        expect(await signIn, same(firebaseCredential));
+      },
+    );
+
+    test(
+      'should drain an issued credential exchange before Firebase logout',
+      () async {
+        final exchanged = Completer<UserCredential>();
+        when(firebaseAuth.signInWithCredential(any))
+            .thenAnswer((_) => exchanged.future);
+        final signIn = AuthService.signInWithGoogle();
+        await Future<void>.delayed(Duration.zero);
+        final signOut = AuthService.signOut();
+        verifyNever(firebaseAuth.signOut());
+        exchanged.complete(firebaseCredential);
+        expect(await signIn, isNull);
+        await signOut;
+        verify(firebaseAuth.signOut()).called(1);
+      },
+    );
+
+    test(
+      'should deliver an issued credential when Firebase logout fails',
+      () async {
+        final exchanged = Completer<UserCredential>();
+        final failure = StateError('Firebase sign-out failed');
+        when(firebaseAuth.signInWithCredential(any))
+            .thenAnswer((_) => exchanged.future);
+        when(firebaseAuth.signOut()).thenThrow(failure);
+        final signIn = AuthService.signInWithGoogle();
+        await Future<void>.delayed(Duration.zero);
+        final logout = expectLater(
+          AuthService.signOut(),
+          throwsA(same(failure)),
+        );
+        exchanged.complete(firebaseCredential);
+        expect(await signIn, same(firebaseCredential));
+        await logout;
+        verifyNever(googleSignIn.signOut());
+      },
+    );
+
+    testWidgets(
+      'should deliver a late credential after logout times out',
+      (tester) async {
+        try {
+          final exchanged = Completer<UserCredential>();
+          User? currentUser;
+          final authenticatedUser = MockUser();
+          when(firebaseCredential.user).thenReturn(authenticatedUser);
+          when(firebaseAuth.currentUser).thenAnswer((_) => currentUser);
+          when(firebaseAuth.signInWithCredential(any)).thenAnswer((_) async {
+            final credential = await exchanged.future;
+            currentUser = credential.user;
+            return credential;
+          });
+          when(firebaseAuth.signOut()).thenAnswer((_) async {
+            currentUser = null;
+          });
+          final signIn = AuthService.signInWithGoogle();
+          await tester.pump();
+          final failedLogout = expectLater(
+            AuthService.signOut(),
+            throwsA(isA<TimeoutException>()),
+          );
+          await tester.pump(const Duration(seconds: 5));
+          await failedLogout;
+          verifyNever(firebaseAuth.signOut());
+          exchanged.complete(firebaseCredential);
+          await tester.pump();
+          expect(await signIn, same(firebaseCredential));
+          expect(firebaseAuth.currentUser, same(authenticatedUser));
+          // Timeout must not schedule a stale Firebase logout after another login.
+          verifyNever(firebaseAuth.signOut());
+          await AuthService.signOut();
+          await tester.pump();
+          verify(firebaseAuth.signOut()).called(1);
+          expect(firebaseAuth.currentUser, isNull);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+
+    testWidgets(
+      'should not time out cleanup while the account picker is still open',
+      (tester) async {
+        try {
+          final logger = _MockIncidentLoggerService();
+          GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+          final selected = Completer<GoogleSignInAccount>();
+          when(googleSignIn.authenticate()).thenAnswer((_) => selected.future);
+          final signIn = AuthService.signInWithGoogle();
+          await tester.pump();
+          await AuthService.signOut();
+          await tester.pump(const Duration(seconds: 6));
+          verifyZeroInteractions(logger);
+          verifyNever(googleSignIn.signOut());
+          selected.complete(account);
+          await tester.pump();
+          expect(await signIn, isNull);
+          verify(googleSignIn.signOut()).called(1);
+          verifyZeroInteractions(logger);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+
+    test(
+      'should not report Firebase failure through the cleanup observer',
+      () async {
+        final logger = _MockIncidentLoggerService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        final failure = FirebaseAuthException(code: 'network-request-failed');
+        when(firebaseAuth.signOut()).thenThrow(failure);
+        await expectLater(AuthService.signOut(), throwsA(same(failure)));
+        await Future<void>.delayed(Duration.zero);
+        verifyZeroInteractions(logger);
+        verifyNever(googleSignIn.signOut());
+      },
+    );
+
+    test(
+      'should allow sign-in after a pending provider cleanup fails',
+      () async {
+        final cleanup = Completer<void>();
+        when(googleSignIn.signOut()).thenAnswer((_) => cleanup.future);
+        await AuthService.signOut();
+        final signIn = AuthService.signInWithGoogle();
+        cleanup.completeError(StateError('provider cleanup failed'));
+        expect(await signIn, same(firebaseCredential));
+      },
+    );
+
+    test(
+      'should expose retry guidance and fail fast after cleanup wait expires',
+      () async {
+        final cleanup = Completer<void>();
+        when(googleSignIn.signOut()).thenAnswer((_) => cleanup.future);
+        await AuthService.signOut();
+        await expectLater(
+          AuthService.signInWithGoogle(),
+          throwsA(
+            isA<GoogleSignInAborted>().having(
+              (error) => error.outcome,
+              'outcome',
+              GoogleSignInAbortReason.cleanupPending,
+            ),
+          ),
+        );
+        await expectLater(
+          AuthService.signInWithGoogle().timeout(const Duration(seconds: 1)),
+          throwsA(
+            isA<GoogleSignInAborted>().having(
+              (error) => error.outcome,
+              'outcome',
+              GoogleSignInAbortReason.cleanupPending,
+            ),
+          ),
+        );
+        verifyNever(googleSignIn.authenticate());
+        cleanup.complete();
+        await Future<void>.delayed(Duration.zero);
+        expect(await AuthService.signInWithGoogle(), same(firebaseCredential));
+      },
+    );
+
+    test(
+      'should classify native dismissal caused by logout as app cancellation',
+      () async {
+        final logger = _MockIncidentLoggerService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        for (var i = 0; i < 3; i++) {
+          final selected = Completer<GoogleSignInAccount>();
+          when(googleSignIn.authenticate()).thenAnswer((_) => selected.future);
+          final signIn = AuthService.signInWithGoogle();
+          await Future<void>.delayed(Duration.zero);
+          await AuthService.signOut();
+          selected.completeError(
+            const GoogleSignInException(
+              code: GoogleSignInExceptionCode.canceled,
+            ),
+          );
+          expect(await signIn, isNull);
+          await Future<void>.delayed(Duration.zero);
+        }
+        verifyZeroInteractions(logger);
+      },
+    );
+
+    test(
+      'should exclude app interruptions and old dismissals from incidents',
+      () async {
+        final logger = _MockIncidentLoggerService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        var now = DateTime(2026);
+        googleAuthTelemetryClock = () => now;
+        trackGoogleSignInOutcome('canceled');
+        trackGoogleSignInOutcome('canceled');
+        trackGoogleSignInOutcome('appCanceled');
+        trackGoogleSignInOutcome('cleanupPending');
+        now = now.add(const Duration(minutes: 6));
+        trackGoogleSignInOutcome('canceled');
+        trackGoogleSignInOutcome('canceled');
+        await Future<void>.delayed(Duration.zero);
+        verifyZeroInteractions(logger);
+        trackGoogleSignInOutcome('canceled');
+        await Future<void>.delayed(Duration.zero);
+        verify(logger.captureLog(any, stackTrace: anyNamed('stackTrace')))
+            .called(1);
+      },
+    );
+
+    test(
       'should report provider cleanup failure with its stack trace',
       () async {
         await AuthService.signInWithGoogle();
@@ -536,6 +913,7 @@ void main() {
         when(googleSignIn.signOut()).thenThrow(failure);
 
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
 
         final stackTrace = verify(
           logger.captureLog(failure, stackTrace: captureAnyNamed('stackTrace')),
@@ -560,6 +938,7 @@ void main() {
         ).thenThrow(StateError('logger failed'));
 
         await AuthService.signOut();
+        await Future<void>.delayed(Duration.zero);
 
         verify(firebaseAuth.signOut()).called(1);
       },
