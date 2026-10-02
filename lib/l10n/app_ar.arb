@@ -103,6 +103,8 @@
   "darkModeSleepPromoting": "مجدول",
   "darkModeStartTime": "وقت البدء",
   "darkModeEndTime": "وقت الانتهاء",
+  "onboardingAppearanceTitle": "اختر مظهر التطبيق",
+  "onboardingAppearanceSubtitle": "اختر العرض الأكثر راحة لك. يمكنك تغيير ذلك لاحقًا من الإعدادات.",
   "introductionFormFirstPageMainTitle": "{gender,select,male{ما الذي يبقيني آمنًا؟} female{ما الذي يبقيني آمنة؟} other{ما الذي يبقيني آمنًا؟}}",
   "introductionFormFirstPageSubTitle1": "{gender,select,male{Living Positively - من أجل السعادة وتعزيز المرونة وتحسين نوعية الحياة} female{Living Positively - من أجل السعادة وتعزيز المرونة وتحسين نوعية الحياة} other{Living Positively - من أجل السعادة وتعزيز المرونة وتحسين نوعية الحياة}}",
   "introductionFormFirstPageSubTitle2": "{gender,select,male{أدوات ممتازة للدعم الذاتي وتطوير المرونة النفسية.} female{أدوات ممتازة للدعم الذاتي وتطوير المرونة النفسية.} other{أدوات ممتازة للدعم الذاتي وتطوير المرونة النفسية.}}",

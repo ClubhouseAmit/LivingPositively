@@ -24,6 +24,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/pages/onboarding_page.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page1.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page2.dart';
+import 'package:mazilon/features/onboarding/ui/initial_form_appearance_page.dart';
 import 'package:mazilon/features/onboarding/ui/to_form_page.dart';
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -76,6 +77,7 @@ void main() {
   /// 1660:1264 (welcome), 1660:2278 (get-to-know-you), 1660:2313 (safety plan).
   final welcomeSizes = {26.0, 16.0, 18.0};
   final getToKnowSizes = {26.0, 16.0, 14.0, 18.0};
+  final appearanceSizes = {24.0, 16.0, 10.0, 18.0};
   // Frame 19 specifies its two actions at Assistant 17/w600, where frames 2
   // and 28 specify Rubik 18/w500. Now that all three screens draw their
   // actions from the one wizard wrapper, they are 18/w500 everywhere — the
@@ -137,6 +139,13 @@ void main() {
       check('get-to-know-you', getToKnowSizes);
 
       tester.widget<InitialFormPage2>(find.byType(InitialFormPage2)).next();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      drainOverflowExceptions(tester);
+      expect(find.byType(InitialFormAppearancePage), findsOneWidget);
+      check('appearance', appearanceSizes);
+
+      await tester.tap(find.byKey(const Key('wizard-primary-action')));
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       drainOverflowExceptions(tester);
