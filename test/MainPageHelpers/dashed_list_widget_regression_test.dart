@@ -4,6 +4,7 @@ import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/features/home/ui/dashed_list_widget.dart';
 import 'package:mazilon/features/journal/ui/gratitude_section.dart';
 import 'package:mazilon/features/shell/ui/directional_widgets.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -128,5 +129,27 @@ void main() {
     );
     final decoration = container.decoration! as BoxDecoration;
     expect(decoration.borderRadius, BorderRadius.circular(AppRadii.card));
+  });
+
+  group('CardContainer', () {
+    testWidgets('should use the active theme card color', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          darkTheme: buildDarkTheme(),
+          themeMode: ThemeMode.dark,
+          home: const CardContainer(child: SizedBox()),
+        ),
+      );
+
+      final container = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(CardContainer),
+          matching: find.byType(Container),
+        ),
+      );
+      final decoration = container.decoration! as BoxDecoration;
+      expect(decoration.color, AppColors.darkSurfaceContainer);
+    });
   });
 }

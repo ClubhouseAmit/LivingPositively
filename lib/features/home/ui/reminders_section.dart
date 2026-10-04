@@ -29,6 +29,7 @@ class RemindersSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appLocale = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     final isRtl = Directionality.of(context) == TextDirection.rtl;
 
     return Column(
@@ -79,7 +80,7 @@ class RemindersSectionWidget extends StatelessWidget {
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF1A1A1A),
+                                      color: colorScheme.onSurface,
                                     ),
                                 textAlign: TextAlign.start,
                                 overflow: TextOverflow.ellipsis,
@@ -91,7 +92,7 @@ class RemindersSectionWidget extends StatelessWidget {
                                   reminder.subtitle!,
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
-                                        color: const Color(0xFF757575),
+                                          color: colorScheme.outline,
                                       ),
                                   textAlign: TextAlign.start,
                                 ),
@@ -103,10 +104,10 @@ class RemindersSectionWidget extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsetsDirectional.only(end: 4.0),
                         child: IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.edit,
                             size: 18,
-                            color: Color(0xFF757575),
+                            color: colorScheme.outline,
                           ),
                           onPressed: () => onEdit(index),
                           tooltip: appLocale.editEntryTooltip,

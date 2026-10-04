@@ -396,11 +396,22 @@ void main() {
   });
 
   testWidgets('showSheet presents Sheet without Material', (tester) async {
-    await tester.pumpWidget(_sheetHost(const Sheet(child: Text('Drawer'))));
+    await tester.pumpWidget(
+      _sheetHost(
+        const Sheet(color: AppColors.darkSurface, child: Text('Drawer')),
+      ),
+    );
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
     expect(find.text('Drawer'), findsOneWidget);
     expect(find.byType(Sheet), findsOneWidget);
+    final DecoratedBox chrome = tester.widget<DecoratedBox>(
+      find.descendant(
+        of: find.byType(Sheet),
+        matching: find.byType(DecoratedBox),
+      ),
+    );
+    expect((chrome.decoration as BoxDecoration).color, AppColors.darkSurface);
   });
 
   testWidgets('showSheet Escape dismisses the sheet', (tester) async {

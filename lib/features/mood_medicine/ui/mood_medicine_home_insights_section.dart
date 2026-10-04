@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart' hide Card, Text;
 import 'package:mazilon/design_system/widgets/card.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
-import 'package:mazilon/design_system/tokens/colors.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
 
 /// Home entry point for the Mood Medicine insights dashboard.
@@ -58,15 +57,17 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
+      color: theme.cardColor,
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final bool shouldStackAction =
               constraints.maxWidth < 480 ||
               MediaQuery.textScalerOf(context).scale(1) > 1.2;
-          final Widget icon = const Icon(
+          final Widget icon = Icon(
             Icons.insights_outlined,
-            color: AppColors.primary,
+            color: theme.colorScheme.primary,
           );
           final Widget copy = Expanded(
             child: Column(

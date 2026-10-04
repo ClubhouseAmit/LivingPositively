@@ -221,8 +221,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       _popCheckInSheet();
       return;
     }
-    if (mounted &&
-        _viewModel.readyState?.persistence.hasPendingWrite == true) {
+    if (mounted && _viewModel.readyState?.persistence.hasPendingWrite == true) {
       _showWriteFailure(canRetry: true);
     }
   }
@@ -552,6 +551,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     await showSheet<void>(
       context: context,
       sheet: Sheet(
+        color: Theme.of(context).colorScheme.surface,
         child: ChangeNotifierProvider<MoodMedicineViewModel>.value(
           value: viewModel,
           child: _CheckInSheet(page: this),
@@ -867,7 +867,7 @@ class _CheckInSheet extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return Material(
-          color: AppColors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: buildMoodMedicineCheckIn(page, l10n, ready),
         );
       },
