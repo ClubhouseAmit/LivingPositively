@@ -85,9 +85,10 @@ KeyEventResult _onEscape(BuildContext context, KeyEvent event) {
 /// Height caps at 85% of the viewport and width at 500. The child supplies
 /// any Cancel/Done actions.
 class Sheet extends StatelessWidget {
-  const Sheet({super.key, required this.child});
+  const Sheet({super.key, required this.child, this.color = AppColors.white});
 
   final Widget child;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -95,8 +96,7 @@ class Sheet extends StatelessWidget {
     return FocusScope(
       autofocus: true,
       child: Focus(
-        onKeyEvent: (FocusNode _, KeyEvent event) =>
-            _onEscape(context, event),
+        onKeyEvent: (FocusNode _, KeyEvent event) => _onEscape(context, event),
         child: Align(
           alignment: Alignment.bottomCenter,
           child: ConstrainedBox(
@@ -113,8 +113,8 @@ class Sheet extends StatelessWidget {
 
   Widget _chrome(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
+      decoration: BoxDecoration(
+        color: color,
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadii.card),
         ),
