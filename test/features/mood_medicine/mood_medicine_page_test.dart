@@ -747,7 +747,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('should render themed cards and inputs in dark RTL layout', (
+    testWidgets('should update an open check-in sheet when theme changes', (
       WidgetTester tester,
     ) async {
       _setLargeScreen(tester);
@@ -755,47 +755,56 @@ void main() {
         ContractPersistentMemoryService(),
       );
       await viewModel.load(initialView: MoodMedicineInitialView.checkIn);
+      late StateSetter setTheme;
+      ThemeData theme = buildLightTheme();
       await tester.pumpWidget(
-        _app(
-          viewModel: viewModel,
-          initialView: MoodMedicineInitialView.checkIn,
-          locale: const Locale('ar'),
-          theme: buildDarkTheme(),
+        StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            setTheme = setState;
+            return _app(
+              viewModel: viewModel,
+              initialView: MoodMedicineInitialView.checkIn,
+              locale: const Locale('ar'),
+              theme: theme,
+            );
+          },
         ),
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('moodMedicineMood3')));
       await tester.pumpAndSettle();
 
       expect(
         Directionality.of(tester.element(find.byType(MoodMedicinePage))),
         TextDirection.rtl,
       );
-      final Material checkInSurface = tester.widget<Material>(
-        find.byWidgetPredicate(
+      final Finder checkInSurface = find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is Material &&
+            widget.child?.key == const Key('moodMedicineCheckIn'),
+      );
+      final Finder sheetChrome = find.descendant(
+        of: find.byType(Sheet),
+        matching: find.byWidgetPredicate(
           (Widget widget) =>
-              widget is Material &&
-              widget.child?.key == const Key('moodMedicineCheckIn'),
+              widget is DecoratedBox &&
+              widget.decoration is BoxDecoration &&
+              (widget.decoration as BoxDecoration).boxShadow ==
+                  AppShadows.sheet,
         ),
       );
-      expect(checkInSurface.color, AppColors.darkSurface);
-      final DecoratedBox sheetChrome = tester.widget<DecoratedBox>(
-        find.descendant(
-          of: find.byType(Sheet),
-          matching: find.byWidgetPredicate(
-            (Widget widget) =>
-                widget is DecoratedBox &&
-                widget.decoration is BoxDecoration &&
-                (widget.decoration as BoxDecoration).boxShadow ==
-                    AppShadows.sheet,
-          ),
-        ),
-      );
+      expect(tester.widget<Material>(checkInSurface).color, AppColors.white);
+
+      setTheme(() => theme = buildDarkTheme());
+      await tester.pumpAndSettle();
+
       expect(
-        (sheetChrome.decoration as BoxDecoration).color,
+        tester.widget<Material>(checkInSurface).color,
         AppColors.darkSurface,
       );
-      expect(find.byKey(const Key('moodMedicineNoteField')), findsOneWidget);
+      expect(
+        (tester.widget<DecoratedBox>(sheetChrome).decoration as BoxDecoration)
+            .color,
+        AppColors.darkSurface,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -817,31 +826,6 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-
-        final Material checkInSurface = tester.widget<Material>(
-          find.byWidgetPredicate(
-            (Widget widget) =>
-                widget is Material &&
-                widget.child?.key == const Key('moodMedicineCheckIn'),
-          ),
-        );
-        expect(checkInSurface.color, AppColors.white);
-        final DecoratedBox sheetChrome = tester.widget<DecoratedBox>(
-          find.descendant(
-            of: find.byType(Sheet),
-            matching: find.byWidgetPredicate(
-              (Widget widget) =>
-                  widget is DecoratedBox &&
-                  widget.decoration is BoxDecoration &&
-                  (widget.decoration as BoxDecoration).boxShadow ==
-                      AppShadows.sheet,
-            ),
-          ),
-        );
-        expect(
-          (sheetChrome.decoration as BoxDecoration).color,
-          AppColors.white,
-        );
         await tester.tap(find.byKey(const Key('moodMedicineMood3')));
         await tester.pumpAndSettle();
 
