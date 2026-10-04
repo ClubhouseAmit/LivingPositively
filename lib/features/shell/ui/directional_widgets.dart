@@ -109,7 +109,7 @@ class CardContainer extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     Widget cardChild = child;
-    if (backgroundColor != null && bgIsLight && isDark) {
+    if (bgIsLight && isDark) {
       cardChild = Theme(
         data: theme.copyWith(
           textTheme: theme.textTheme.apply(

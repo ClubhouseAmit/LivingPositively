@@ -540,7 +540,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       }
     });
   }
-
   Future<void> _openCheckInSheet({bool leavePageOnDismiss = false}) async {
     if (!mounted || _checkInSheetOpen) {
       return;
@@ -548,13 +547,17 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     _checkInSheetOpen = true;
     _checkInCommitted = false;
     final MoodMedicineViewModel viewModel = _viewModel;
+    final ThemeData theme = Theme.of(context);
+    final Color checkInColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.surface
+        : theme.cardColor;
     await showSheet<void>(
       context: context,
       sheet: Sheet(
-        color: Theme.of(context).colorScheme.surface,
+        color: checkInColor,
         child: ChangeNotifierProvider<MoodMedicineViewModel>.value(
           value: viewModel,
-          child: _CheckInSheet(page: this),
+          child: _CheckInSheet(page: this, color: checkInColor),
         ),
       ),
     );
@@ -564,7 +567,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       await Navigator.of(context).maybePop();
     }
   }
-
   void _popCheckInSheet() {
     if (!_checkInSheetOpen || !mounted) {
       return;
@@ -853,10 +855,9 @@ class _FeatureCard extends StatelessWidget {
 }
 
 class _CheckInSheet extends StatelessWidget {
-  const _CheckInSheet({required this.page});
-
+  const _CheckInSheet({required this.page, required this.color});
   final _MoodMedicinePageState page;
-
+  final Color color;
   @override
   Widget build(BuildContext context) {
     return Consumer<MoodMedicineViewModel>(
@@ -867,14 +868,13 @@ class _CheckInSheet extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return Material(
-          color: Theme.of(context).colorScheme.surface,
+          color: color,
           child: buildMoodMedicineCheckIn(page, l10n, ready),
         );
       },
     );
   }
 }
-
 class _PageHeading extends StatelessWidget {
   const _PageHeading({
     required this.title,

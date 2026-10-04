@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/features/home/ui/reminders_section.dart';
 import 'package:mazilon/features/journal/ui/AddForm.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';
@@ -98,6 +100,45 @@ void main() {
 
   tearDown(() {
     resetTestServices();
+  });
+
+  testWidgets('uses contrast-safe muted colors in light and dark themes', (
+    WidgetTester tester,
+  ) async {
+    for (final ThemeData theme in <ThemeData>[
+      buildLightTheme(),
+      buildDarkTheme(),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: Scaffold(
+            body: RemindersSectionWidget(
+              reminders: <ReminderItemData>[
+                ReminderItemData(
+                  iconAsset: 'assets/images/sun_draw.svg',
+                  title: 'Breathe',
+                  subtitle: 'Suggested',
+                ),
+              ],
+              onEdit: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final Color expected = theme.brightness == Brightness.dark
+          ? theme.colorScheme.outline
+          : AppColors.mutedForeground;
+      expect(
+        tester.widget<Text>(find.text('Suggested')).style?.color,
+        expected,
+      );
+      expect(tester.widget<Icon>(find.byIcon(Icons.edit)).color, expected);
+    }
   });
 
   testWidgets(

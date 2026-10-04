@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mazilon/design_system/tokens/colors.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/shell/ui/directional_widgets.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
@@ -29,7 +30,11 @@ class RemindersSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appLocale = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final mutedForeground = theme.brightness == Brightness.dark
+        ? colorScheme.outline
+        : AppColors.mutedForeground;
     final isRtl = Directionality.of(context) == TextDirection.rtl;
 
     return Column(
@@ -77,11 +82,10 @@ class RemindersSectionWidget extends StatelessWidget {
                             children: [
                               Text(
                                 reminder.title,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: colorScheme.onSurface,
-                                    ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
                                 textAlign: TextAlign.start,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 2,
@@ -90,10 +94,9 @@ class RemindersSectionWidget extends StatelessWidget {
                                 SizedBox(height: AppSpacing.xs),
                                 Text(
                                   reminder.subtitle!,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                          color: colorScheme.outline,
-                                      ),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: mutedForeground,
+                                  ),
                                   textAlign: TextAlign.start,
                                 ),
                               ],
@@ -107,7 +110,7 @@ class RemindersSectionWidget extends StatelessWidget {
                           icon: Icon(
                             Icons.edit,
                             size: 18,
-                            color: colorScheme.outline,
+                            color: mutedForeground,
                           ),
                           onPressed: () => onEdit(index),
                           tooltip: appLocale.editEntryTooltip,

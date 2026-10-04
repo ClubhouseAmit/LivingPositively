@@ -151,5 +151,33 @@ void main() {
       final decoration = container.decoration! as BoxDecoration;
       expect(decoration.color, AppColors.darkSurfaceContainer);
     });
+
+    testWidgets('should adapt a light default card in dark mode', (
+      tester,
+    ) async {
+      final ThemeData theme = buildDarkTheme().copyWith(
+        cardColor: AppColors.white,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: CardContainer(
+            child: Builder(
+              builder: (BuildContext context) => Text(
+                'Readable',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        tester.widget<Text>(find.text('Readable')).style?.color,
+        const Color(0xFF1A1A1A),
+      );
+    });
   });
 }
