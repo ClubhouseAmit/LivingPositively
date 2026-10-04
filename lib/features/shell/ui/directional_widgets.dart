@@ -102,11 +102,11 @@ class CardContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBg = backgroundColor ?? Colors.white;
+    final theme = Theme.of(context);
+    final effectiveBg = backgroundColor ?? theme.cardColor;
     final bgIsLight =
         ThemeData.estimateBrightnessForColor(effectiveBg) == Brightness.light;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     Widget cardChild = child;
     if (bgIsLight && isDark) {
@@ -289,7 +289,7 @@ class SectionHeaderWidget extends StatelessWidget {
 }
 
 /// Pill-shaped item row for traits and gratitude sections.
-/// Numbered purple circle on left, white pill card with text and pencil icon on right.
+/// Numbered purple circle on left, themed pill card with text and actions.
 class PillItemRow extends StatelessWidget {
   final int index;
   final String text;
@@ -317,7 +317,7 @@ class PillItemRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.primary,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: colorScheme.surface, width: 2),
             ),
             child: Center(
               child: Text(
@@ -338,7 +338,7 @@ class PillItemRow extends StatelessWidget {
                 vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
@@ -348,27 +348,27 @@ class PillItemRow extends StatelessWidget {
                       text,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF1A1A1A),
+                        color: colorScheme.onSurface,
                       ),
                       textAlign: TextAlign.start,
                     ),
                   ),
                   GestureDetector(
                     onTap: onEdit,
-                    child: const Icon(
+                    child: Icon(
                       Icons.edit,
                       size: 16,
-                      color: Color(0xFF757575),
+                      color: colorScheme.outline,
                     ),
                   ),
                   if (onRemove != null) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: onRemove,
-                      child: const Icon(
+                      child: Icon(
                         Icons.close,
                         size: 16,
-                        color: Color(0xFF757575),
+                        color: colorScheme.outline,
                       ),
                     ),
                   ],

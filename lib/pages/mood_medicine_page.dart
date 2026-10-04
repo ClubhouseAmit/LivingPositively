@@ -221,8 +221,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       _popCheckInSheet();
       return;
     }
-    if (mounted &&
-        _viewModel.readyState?.persistence.hasPendingWrite == true) {
+    if (mounted && _viewModel.readyState?.persistence.hasPendingWrite == true) {
       _showWriteFailure(canRetry: true);
     }
   }
@@ -541,7 +540,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       }
     });
   }
-
   Future<void> _openCheckInSheet({bool leavePageOnDismiss = false}) async {
     if (!mounted || _checkInSheetOpen) {
       return;
@@ -551,11 +549,9 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     final MoodMedicineViewModel viewModel = _viewModel;
     await showSheet<void>(
       context: context,
-      sheet: Sheet(
-        child: ChangeNotifierProvider<MoodMedicineViewModel>.value(
-          value: viewModel,
-          child: _CheckInSheet(page: this),
-        ),
+      sheet: ChangeNotifierProvider<MoodMedicineViewModel>.value(
+        value: viewModel,
+        child: _CheckInSheet(page: this),
       ),
     );
     _checkInSheetOpen = false;
@@ -564,7 +560,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       await Navigator.of(context).maybePop();
     }
   }
-
   void _popCheckInSheet() {
     if (!_checkInSheetOpen || !mounted) {
       return;
@@ -854,23 +849,28 @@ class _FeatureCard extends StatelessWidget {
 
 class _CheckInSheet extends StatelessWidget {
   const _CheckInSheet({required this.page});
-
   final _MoodMedicinePageState page;
-
   @override
   Widget build(BuildContext context) {
-    return Consumer<MoodMedicineViewModel>(
-      builder: (BuildContext context, MoodMedicineViewModel model, _) {
-        final MoodMedicineReadyState? ready = model.readyState;
-        final AppLocalizations? l10n = AppLocalizations.of(context);
-        if (ready == null || l10n == null) {
-          return const SizedBox.shrink();
-        }
-        return Material(
-          color: AppColors.white,
-          child: buildMoodMedicineCheckIn(page, l10n, ready),
-        );
-      },
+    final ThemeData theme = Theme.of(context);
+    final Color color = theme.brightness == Brightness.dark
+        ? theme.colorScheme.surface
+        : theme.cardColor;
+    return Sheet(
+      color: color,
+      child: Consumer<MoodMedicineViewModel>(
+        builder: (BuildContext context, MoodMedicineViewModel model, _) {
+          final MoodMedicineReadyState? ready = model.readyState;
+          final AppLocalizations? l10n = AppLocalizations.of(context);
+          if (ready == null || l10n == null) {
+            return const SizedBox.shrink();
+          }
+          return Material(
+            color: color,
+            child: buildMoodMedicineCheckIn(page, l10n, ready),
+          );
+        },
+      ),
     );
   }
 }

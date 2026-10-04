@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:mocktail/mocktail.dart';
+import 'package:mazilon/design_system/tokens/shadows.dart';
+import 'package:mazilon/design_system/widgets/sheet.dart';
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
@@ -745,7 +747,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('should render themed cards and inputs in dark RTL layout', (
+    testWidgets('should update an open check-in sheet when theme changes', (
       WidgetTester tester,
     ) async {
       _setLargeScreen(tester);
@@ -753,23 +755,56 @@ void main() {
         ContractPersistentMemoryService(),
       );
       await viewModel.load(initialView: MoodMedicineInitialView.checkIn);
+      late StateSetter setTheme;
+      ThemeData theme = buildLightTheme();
       await tester.pumpWidget(
-        _app(
-          viewModel: viewModel,
-          initialView: MoodMedicineInitialView.checkIn,
-          locale: const Locale('ar'),
-          theme: buildDarkTheme(),
+        StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            setTheme = setState;
+            return _app(
+              viewModel: viewModel,
+              initialView: MoodMedicineInitialView.checkIn,
+              locale: const Locale('ar'),
+              theme: theme,
+            );
+          },
         ),
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('moodMedicineMood3')));
       await tester.pumpAndSettle();
 
       expect(
         Directionality.of(tester.element(find.byType(MoodMedicinePage))),
         TextDirection.rtl,
       );
-      expect(find.byKey(const Key('moodMedicineNoteField')), findsOneWidget);
+      final Finder checkInSurface = find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is Material &&
+            widget.child?.key == const Key('moodMedicineCheckIn'),
+      );
+      final Finder sheetChrome = find.descendant(
+        of: find.byType(Sheet),
+        matching: find.byWidgetPredicate(
+          (Widget widget) =>
+              widget is DecoratedBox &&
+              widget.decoration is BoxDecoration &&
+              (widget.decoration as BoxDecoration).boxShadow ==
+                  AppShadows.sheet,
+        ),
+      );
+      expect(tester.widget<Material>(checkInSurface).color, AppColors.white);
+
+      setTheme(() => theme = buildDarkTheme());
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<Material>(checkInSurface).color,
+        AppColors.darkSurface,
+      );
+      expect(
+        (tester.widget<DecoratedBox>(sheetChrome).decoration as BoxDecoration)
+            .color,
+        AppColors.darkSurface,
+      );
       expect(tester.takeException(), isNull);
     });
 

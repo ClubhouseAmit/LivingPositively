@@ -105,6 +105,9 @@ class AppColors {
   /// Muted text/icon grey. Source: legacy `darkGray`.
   static const Color neutralDark = Color(0xFF9A9EB6);
 
+  /// Contrast-safe muted text/icon colour on light surfaces.
+  static const Color mutedForeground = Color(0xFF757575);
+
   /// Forest-sage success accent that remains legible on the dark surface.
   static const Color darkSuccess = Color(0xFF74AD82);
 
