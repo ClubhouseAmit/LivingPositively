@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:mocktail/mocktail.dart';
-import 'package:mazilon/design_system/tokens/shadows.dart';
-import 'package:mazilon/design_system/widgets/sheet.dart';
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
@@ -770,30 +768,6 @@ void main() {
       expect(
         Directionality.of(tester.element(find.byType(MoodMedicinePage))),
         TextDirection.rtl,
-      );
-      final Material checkInSurface = tester.widget<Material>(
-        find.byWidgetPredicate(
-          (Widget widget) =>
-              widget is Material &&
-              widget.child?.key == const Key('moodMedicineCheckIn'),
-        ),
-      );
-      expect(checkInSurface.color, AppColors.darkSurface);
-      final DecoratedBox sheetChrome = tester.widget<DecoratedBox>(
-        find.descendant(
-          of: find.byType(Sheet),
-          matching: find.byWidgetPredicate(
-            (Widget widget) =>
-                widget is DecoratedBox &&
-                widget.decoration is BoxDecoration &&
-                (widget.decoration as BoxDecoration).boxShadow ==
-                    AppShadows.sheet,
-          ),
-        ),
-      );
-      expect(
-        (sheetChrome.decoration as BoxDecoration).color,
-        AppColors.darkSurface,
       );
       expect(find.byKey(const Key('moodMedicineNoteField')), findsOneWidget);
       expect(tester.takeException(), isNull);

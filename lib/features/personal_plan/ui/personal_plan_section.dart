@@ -158,7 +158,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w500,
                   height: 1.4,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: const Color(0xFF1A1A1A),
                 ),
                 textAlign: TextAlign.start,
                 maxLines: 2,

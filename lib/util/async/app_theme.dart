@@ -185,7 +185,6 @@ ThemeData buildLightTheme() {
     colorScheme: appLightColorScheme,
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.pageBackground,
-    cardColor: AppColors.white,
     bottomAppBarTheme: const BottomAppBarThemeData(color: Colors.white),
     textTheme: _appTextTheme,
     inputDecorationTheme: inputs,

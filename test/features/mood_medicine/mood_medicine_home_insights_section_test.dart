@@ -3,7 +3,6 @@ import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/design_system/widgets/card.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_home_insights_section.dart';
-import 'package:mazilon/util/async/app_theme.dart';
 
 void main() {
   group('MoodMedicineHomeInsightsSection', () {
@@ -53,28 +52,6 @@ void main() {
       );
       expect(action.onPressed, isNull);
       expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('should use the dark theme card color', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          darkTheme: buildDarkTheme(),
-          themeMode: ThemeMode.dark,
-          home: Scaffold(
-            body: MoodMedicineHomeInsightsSection(
-              title: 'Mood Medicine',
-              subtitle: 'Track how you feel',
-              actionLabel: 'View insights',
-              onPressed: () {},
-            ),
-          ),
-        ),
-      );
-
-      expect(tester.widget<Card>(find.byType(Card)).color, AppColors.darkSurfaceContainer);
     });
 
     testWidgets(

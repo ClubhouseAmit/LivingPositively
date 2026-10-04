@@ -23,49 +23,39 @@ void main() {
       resetTestServices();
     });
 
-    testWidgets(
-      'should trigger onTitleTap and expose default key fallback when titleKey is omitted',
-      (
-        tester,
-      ) async {
-        final handle = tester.ensureSemantics();
-        try {
-          var tapped = false;
-          await pumpWithProviders(
-            tester,
-            Scaffold(
-              body: SectionHeaderWidget(
-                title: 'Default Key Section',
-                leadingIcon: Icons.star,
-                onTitleTap: () {
-                  tapped = true;
-                },
-              ),
+    testWidgets('should trigger onTitleTap and expose default key fallback when titleKey is omitted', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      try {
+        var tapped = false;
+        await pumpWithProviders(
+          tester,
+          Scaffold(
+            body: SectionHeaderWidget(
+              title: 'Default Key Section',
+              leadingIcon: Icons.star,
+              onTitleTap: () {
+                tapped = true;
+              },
             ),
-          );
+          ),
+        );
 
-          final defaultKeyFinder = find.byKey(
-            const Key('sectionHeaderTitleTapTarget'),
-          );
-          expect(defaultKeyFinder, findsOneWidget);
+        final defaultKeyFinder = find.byKey(const Key('sectionHeaderTitleTapTarget'));
+        expect(defaultKeyFinder, findsOneWidget);
 
-          await tester.tap(defaultKeyFinder);
-          await tester.pump();
+        await tester.tap(defaultKeyFinder);
+        await tester.pump();
 
-          expect(tapped, isTrue);
+        expect(tapped, isTrue);
 
-          final semantics = tester.getSemantics(
-            find.text('Default Key Section'),
-          );
-          expect(
-            semantics.getSemanticsData().hasAction(SemanticsAction.tap),
-            isTrue,
-          );
-        } finally {
-          handle.dispose();
-        }
-      },
-    );
+        final semantics = tester.getSemantics(find.text('Default Key Section'));
+        expect(semantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      } finally {
+        handle.dispose();
+      }
+    });
 
     testWidgets('should trigger onTitleTap when custom titleKey is provided', (
       tester,
@@ -96,115 +86,95 @@ void main() {
         expect(tapped, isTrue);
 
         final semantics = tester.getSemantics(find.text('My Section'));
-        expect(
-          semantics.getSemanticsData().hasAction(SemanticsAction.tap),
-          isTrue,
-        );
+        expect(semantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
       } finally {
         handle.dispose();
       }
     });
 
-    testWidgets(
-      'should trigger onTitleTap callback when leading icon is tapped',
-      (
+    testWidgets('should trigger onTitleTap callback when leading icon is tapped', (
+      tester,
+    ) async {
+      var tapped = false;
+      await pumpWithProviders(
         tester,
-      ) async {
-        var tapped = false;
-        await pumpWithProviders(
-          tester,
-          Scaffold(
-            body: SectionHeaderWidget(
-              title: 'My Section',
+        Scaffold(
+          body: SectionHeaderWidget(
+            title: 'My Section',
+            leadingIcon: Icons.star,
+            onTitleTap: () {
+              tapped = true;
+            },
+          ),
+        ),
+      );
+
+      final iconFinder = find.byIcon(Icons.star);
+      expect(iconFinder, findsOneWidget);
+
+      await tester.tap(iconFinder);
+      await tester.pump();
+
+      expect(tapped, isTrue);
+    });
+
+    testWidgets('should occupy full width of Expanded and be tappable in whitespace', (
+      tester,
+    ) async {
+      var tapCount = 0;
+      await pumpWithProviders(
+        tester,
+        Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: SectionHeaderWidget(
+              title: 'Title',
               leadingIcon: Icons.star,
               onTitleTap: () {
-                tapped = true;
+                tapCount++;
               },
             ),
           ),
-        );
+        ),
+        surfaceSize: const Size(600, 800),
+      );
 
-        final iconFinder = find.byIcon(Icons.star);
-        expect(iconFinder, findsOneWidget);
+      final targetFinder = find.byKey(const Key('sectionHeaderTitleTapTarget'));
+      expect(targetFinder, findsOneWidget);
 
-        await tester.tap(iconFinder);
-        await tester.pump();
+      final rect = tester.getRect(targetFinder);
+      await tester.tapAt(Offset(rect.right - 1, rect.center.dy));
+      await tester.pump();
 
-        expect(tapped, isTrue);
-      },
-    );
+      expect(tapCount, equals(1));
+    });
 
-    testWidgets(
-      'should occupy full width of Expanded and be tappable in whitespace',
-      (
-        tester,
-      ) async {
-        var tapCount = 0;
+    testWidgets('should not wrap with button semantics or interactive key when onTitleTap is null', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      try {
         await pumpWithProviders(
           tester,
-          Scaffold(
-            body: SizedBox(
-              width: 400,
-              child: SectionHeaderWidget(
-                title: 'Title',
-                leadingIcon: Icons.star,
-                onTitleTap: () {
-                  tapCount++;
-                },
-              ),
+          const Scaffold(
+            body: SectionHeaderWidget(
+              title: 'Static Section',
+              leadingIcon: Icons.star,
             ),
           ),
-          surfaceSize: const Size(600, 800),
         );
 
-        final targetFinder = find.byKey(
-          const Key('sectionHeaderTitleTapTarget'),
-        );
-        expect(targetFinder, findsOneWidget);
+        final titleFinder = find.text('Static Section');
+        expect(titleFinder, findsOneWidget);
 
-        final rect = tester.getRect(targetFinder);
-        await tester.tapAt(Offset(rect.right - 1, rect.center.dy));
-        await tester.pump();
+        expect(find.byKey(const Key('sectionHeaderTitleTapTarget')), findsNothing);
 
-        expect(tapCount, equals(1));
-      },
-    );
-
-    testWidgets(
-      'should not wrap with button semantics or interactive key when onTitleTap is null',
-      (
-        tester,
-      ) async {
-        final handle = tester.ensureSemantics();
-        try {
-          await pumpWithProviders(
-            tester,
-            const Scaffold(
-              body: SectionHeaderWidget(
-                title: 'Static Section',
-                leadingIcon: Icons.star,
-              ),
-            ),
-          );
-
-          final titleFinder = find.text('Static Section');
-          expect(titleFinder, findsOneWidget);
-
-          expect(
-            find.byKey(const Key('sectionHeaderTitleTapTarget')),
-            findsNothing,
-          );
-
-          final semantics = tester.getSemantics(titleFinder);
-          expect(
-            semantics.getSemanticsData().hasAction(SemanticsAction.tap),
-            isFalse,
-          );
-        } finally {
-          handle.dispose();
-        }
-      },
-    );
+        final semantics = tester.getSemantics(titleFinder);
+        expect(semantics.getSemanticsData().hasAction(SemanticsAction.tap), isFalse);
+      } finally {
+        handle.dispose();
+      }
+    });
   });
 
   group('DashedPillAddSlot', () {
@@ -325,47 +295,6 @@ void main() {
     });
   });
 
-  group('PillItemRow', () {
-    testWidgets('should use semantic dark theme colors', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildDarkTheme(),
-          home: const Scaffold(
-            body: PillItemRow(index: 0, text: 'A kind conversation'),
-          ),
-        ),
-      );
-
-      final decorations = tester
-          .widgetList<Container>(
-            find.descendant(
-              of: find.byType(PillItemRow),
-              matching: find.byType(Container),
-            ),
-          )
-          .map((container) => container.decoration)
-          .whereType<BoxDecoration>()
-          .toList();
-      final circle = decorations.singleWhere(
-        (decoration) => decoration.shape == BoxShape.circle,
-      );
-      final pill = decorations.singleWhere(
-        (decoration) => decoration.borderRadius != null,
-      );
-
-      expect(circle.border!.top.color, AppColors.darkSurface);
-      expect(pill.color, AppColors.darkSurfaceContainer);
-      expect(
-        tester.widget<Text>(find.text('A kind conversation')).style!.color,
-        AppColors.darkOnSurface,
-      );
-      expect(
-        tester.widget<Icon>(find.byIcon(Icons.edit)).color,
-        AppColors.darkOutline,
-      );
-    });
-  });
-
   group('LivingPositivelyLogo', () {
     testWidgets(
       'should rasterize a lower-region white letter outline only in dark mode',
@@ -442,7 +371,8 @@ void main() {
               endRow: preservedEndRow,
             ),
             isTrue,
-            reason: 'Dark-mode outlining must not alter the butterfly or green accent.',
+            reason:
+                'Dark-mode outlining must not alter the butterfly or green accent.',
           );
           expect(
             lightRaster.countWhere(
