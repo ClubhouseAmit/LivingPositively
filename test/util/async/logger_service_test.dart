@@ -93,8 +93,13 @@ void main() {
     test(
       'should retain the warning cap when beforeSend drops the event',
       () async {
+        // Event processing may finish after the next event-loop turn.
+        await Sentry.configureScope((scope) {
+          scope.addEventProcessor(_DelayedEventProcessor());
+        });
         debugDefaultTargetPlatformOverride = TargetPlatform.android;
-        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        final warningLogger = _AwaitableWarningLogger();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(warningLogger);
         addTearDown(() async {
           debugDefaultTargetPlatformOverride = null;
           await GetIt.instance.reset();
@@ -103,7 +108,8 @@ void main() {
           for (var attempt = 0; attempt < 3; attempt++) {
             GoogleSignInAttemptTelemetry().record('canceled');
           }
-          await Future<void>.delayed(Duration.zero);
+          await Future.wait(warningLogger.captures);
+          expect(warningLogger.captures, hasLength(1));
           expect(events, hasLength(1));
         }
         expect(events.single.level, SentryLevel.warning);
@@ -203,4 +209,31 @@ void main() {
       },
     );
   });
+}
+
+class _DelayedEventProcessor extends EventProcessor {
+  @override
+  Future<SentryEvent?> apply(SentryEvent event, Hint hint) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    return event;
+  }
+}
+
+class _AwaitableWarningLogger extends SentryServiceImpl {
+  final captures = <Future<void>>[];
+
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) {
+    final capture = super.captureWarning(
+      message,
+      contextName: contextName,
+      context: context,
+    );
+    captures.add(capture);
+    return capture;
+  }
 }
