@@ -12,6 +12,13 @@ import '../../helpers/widget_test_scaffold.dart' show FakePersistentMemoryServic
 import '../../../test_support/contract_persistent_memory_service.dart';
 
 class _RecordingLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final List<dynamic> logs = [];
   @override
   Future<void> initializeSentry(_) async {}
@@ -95,6 +102,13 @@ final class _ThrowingReadSharedPreferencesStore
 
 class _ThrowingLogger implements IncidentLoggerService {
   @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
+  @override
   Future<void> initializeSentry(_) async {}
 
   @override
@@ -108,6 +122,13 @@ class _ThrowingLogger implements IncidentLoggerService {
 }
 
 class _SynchronouslyThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   @override
   Future<void> initializeSentry(_) async {}
 

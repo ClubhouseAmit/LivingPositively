@@ -5,10 +5,24 @@ const _sentryDsn = String.fromEnvironment('SENTRY_DSN');
 
 abstract class IncidentLoggerService {
   Future<void> initializeSentry(Widget MyApp);
+
+  /// Reports an exception through the existing transport.
+  /// Legacy `exceptionData` accepts a map containing `name` and `value`.
+  /// The name is converted to a string; the value, including null, is passed
+  /// to Sentry on this event's scope. Other payloads are ignored, and the
+  /// exception is still reported. Context never persists to subsequent events.
   Future<void> captureLog(
     dynamic exception, {
     StackTrace? stackTrace,
     dynamic exceptionData,
+  });
+
+  /// Reports a warning message with context scoped to this event.
+  /// Completion acknowledges the logger call, not backend delivery.
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
   });
 }
 
@@ -38,16 +52,31 @@ class SentryServiceImpl implements IncidentLoggerService {
     StackTrace? stackTrace,
     dynamic exceptionData,
   }) async {
-    if (Sentry.isEnabled) {
-      if (exceptionData != null &&
-          exceptionData.containsKey("name") &&
-          exceptionData.containsKey("value")) {
-        Sentry.configureScope((scope) {
-          scope.setContexts('${exceptionData["name"]}', exceptionData["value"]);
-        });
-      }
-      await Sentry.captureException(log, stackTrace: stackTrace);
-      return;
+    if (!Sentry.isEnabled) return;
+    await Sentry.captureException(
+      log,
+      stackTrace: stackTrace,
+      withScope: (scope) => _attachContext(scope, exceptionData),
+    );
+  }
+
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) async {
+    if (!Sentry.isEnabled) return;
+    await Sentry.captureMessage(
+      message,
+      level: SentryLevel.warning,
+      withScope: (scope) => scope.setContexts(contextName, context),
+    );
+  }
+
+  void _attachContext(Scope scope, dynamic data) {
+    if (data case {'name': final Object? name, 'value': final Object? value}) {
+      scope.setContexts('$name', value);
     }
   }
 }

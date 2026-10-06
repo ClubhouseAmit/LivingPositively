@@ -12,6 +12,13 @@ import 'package:mazilon/util/userInformation.dart';
 import '../../test_support/contract_persistent_memory_service.dart';
 
 final class _RecordingIncidentLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final List<Object> errors = <Object>[];
 
   @override
@@ -28,6 +35,13 @@ final class _RecordingIncidentLogger implements IncidentLoggerService {
 }
 
 final class _GatedIncidentLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final Completer<void> firstReportStarted = Completer<void>();
   final Completer<void> releaseFirstReport = Completer<void>();
   final List<Object> errors = <Object>[];

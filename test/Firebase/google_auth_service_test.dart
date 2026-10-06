@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -74,6 +75,21 @@ class _FailingAnalytics extends NoopAnalyticsService {
 
 class _MockIncidentLoggerService extends Mock implements IncidentLoggerService {
   @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object>? context,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #captureWarning,
+      [message],
+      {#contextName: contextName, #context: context},
+    ),
+    returnValue: Future<void>.value(),
+    returnValueForMissingStub: Future<void>.value(),
+  ) as Future<void>;
+
+  @override
   Future<void> captureLog(
     dynamic exception, {
     StackTrace? stackTrace,
@@ -88,6 +104,9 @@ class _MockIncidentLoggerService extends Mock implements IncidentLoggerService {
     returnValueForMissingStub: Future<void>.value(),
   ) as Future<void>;
 }
+
+void _recordGoogleOutcome(String outcome) =>
+    GoogleSignInAttemptTelemetry().record(outcome);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -147,6 +166,8 @@ void main() {
       test(
         'should reject an unusable ID token ($idToken) before Firebase',
         () async {
+          final analytics = NoopAnalyticsService();
+          GetIt.instance.registerSingleton<AnalyticsService>(analytics);
           when(googleSignIn.authenticate())
               .thenAnswer((_) async => _GoogleAccount(idToken: idToken));
 
@@ -162,6 +183,14 @@ void main() {
           );
 
           verifyNever(firebaseAuth.signInWithCredential(any));
+          expect(
+            analytics.events.last.value,
+            allOf(
+              containsPair('stage', 'googleTokenValidation'),
+              containsPair('outcome', 'clientConfigurationError'),
+              containsPair('error_code', 'clientConfigurationError'),
+            ),
+          );
         },
       );
     }
@@ -239,9 +268,21 @@ void main() {
           everyElement('Google sign-in outcome'),
         );
         expect(analytics.events.map((event) => event.value), [
-          {'outcome': 'started', 'platform': 'android'},
-          {'outcome': code.name, 'platform': 'android'},
+          allOf(
+            containsPair('outcome', 'started'),
+            containsPair('platform', 'android'),
+          ),
+          allOf(
+            containsPair('outcome', code.name),
+            containsPair('platform', 'android'),
+            containsPair('stage', 'googleAuthentication'),
+            containsPair('error_code', code.name),
+          ),
         ]);
+        expect(
+          analytics.events.toString(),
+          isNot(contains('private provider description')),
+        );
         verifyNever(firebaseAuth.signInWithCredential(any));
       });
     }
@@ -251,10 +292,14 @@ void main() {
       GetIt.instance.registerSingleton<AnalyticsService>(analytics);
       await AuthService.signInWithGoogle();
       await Future<void>.delayed(Duration.zero);
-      expect(analytics.events.last.value, {
-        'outcome': 'success',
-        'platform': 'android',
-      });
+      expect(
+        analytics.events.last.value,
+        allOf(
+          containsPair('outcome', 'success'),
+          containsPair('platform', 'android'),
+          containsPair('stage', 'sessionValidation'),
+        ),
+      );
     });
 
     test('should preserve sign-in when outcome analytics fails', () async {
@@ -262,6 +307,127 @@ void main() {
       expect(await AuthService.signInWithGoogle(), same(firebaseCredential));
       await Future<void>.delayed(Duration.zero);
     });
+
+    test(
+      'should identify Firebase configuration failure after Google sign-in',
+      () async {
+        final analytics = NoopAnalyticsService();
+        GetIt.instance.registerSingleton<AnalyticsService>(analytics);
+        final failure = FirebaseAuthException(
+          code: 'invalid-api-key',
+          message: 'private account details',
+        );
+        when(firebaseAuth.signInWithCredential(any)).thenThrow(failure);
+        await expectLater(
+          AuthService.signInWithGoogle(),
+          throwsA(same(failure)),
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          analytics.events.last.value,
+          allOf(
+            containsPair('outcome', 'failed'),
+            containsPair('stage', 'firebaseAuthentication'),
+            containsPair('error_code', 'invalid-api-key'),
+          ),
+        );
+        expect(analytics.events.toString(), isNot(contains('private')));
+      },
+    );
+
+    for (final asynchronous in [false, true]) {
+      test(
+        'should retain cached platform initialization codes (async: $asynchronous)',
+        () async {
+          final analytics = NoopAnalyticsService();
+          GetIt.instance.registerSingleton<AnalyticsService>(analytics);
+          var now = DateTime.utc(2026, 10, 6);
+          googleAuthTelemetryClock = () => now;
+          final failure = PlatformException(
+            code: 'developer_error',
+            message: 'private client details',
+            details: 'private token',
+          );
+          when(googleSignIn.initialize(serverClientId: 'server-client'))
+              .thenAnswer((_) {
+                now = now.add(const Duration(seconds: 2));
+                if (asynchronous) return Future<void>.error(failure);
+                throw failure;
+              });
+          for (var attempt = 0; attempt < 2; attempt++) {
+            await expectLater(
+              AuthService.signInWithGoogle(),
+              throwsA(
+                isA<GoogleSignInInitializationFailure>().having(
+                  (error) => error.cause,
+                  'cause',
+                  same(failure),
+                ),
+              ),
+            );
+            expect(
+              analytics.events.last.value,
+              allOf(
+                containsPair('outcome', 'initializationFailed'),
+                containsPair('stage', 'initialization'),
+                containsPair('error_code', 'developer_error'),
+                containsPair('duration_ms', attempt == 0 ? 2000 : 0),
+              ),
+            );
+          }
+          expect(analytics.events.toString(), isNot(contains('private')));
+          verify(googleSignIn.initialize(serverClientId: 'server-client'))
+              .called(1);
+          verifyNever(googleSignIn.authenticate());
+          verifyNever(firebaseAuth.signInWithCredential(any));
+        },
+      );
+    }
+
+    test(
+      'should report session validation when logout starts before publication',
+      () async {
+        final analytics = NoopAnalyticsService();
+        GetIt.instance.registerSingleton<AnalyticsService>(analytics);
+        final logoutFinished = Completer<void>();
+        when(firebaseAuth.signOut()).thenAnswer((_) => logoutFinished.future);
+        // Credential deliveries go to the exchange's settled observer, its
+        // await, then AuthService's await. Start logout at that last boundary
+        // to exercise publication fencing without a production test hook.
+        var deliveries = 0;
+        Future<void>? logout;
+        final signIn = runZoned(
+          AuthService.signInWithGoogle,
+          zoneSpecification: ZoneSpecification(
+            registerUnaryCallback:
+                <R, T>(self, parent, zone, R Function(T) callback) {
+                  return parent.registerUnaryCallback(zone, (T value) {
+                    if (identical(value, firebaseCredential) &&
+                        ++deliveries == 3) {
+                      logout = AuthService.signOut();
+                    }
+                    return callback(value);
+                  });
+                },
+          ),
+        );
+        var signInCompleted = false;
+        unawaited(signIn.then((_) => signInCompleted = true));
+        await Future<void>.delayed(Duration.zero);
+        expect(logout, isNotNull);
+        expect(signInCompleted, isFalse);
+        logoutFinished.complete();
+        expect(await signIn, isNull);
+        await logout;
+        expect(
+          analytics.events.last.value,
+          allOf(
+            containsPair('outcome', 'appCanceled'),
+            containsPair('stage', 'sessionValidation'),
+          ),
+        );
+      },
+    );
 
     test('should cache synchronous initialization failures too', () async {
       when(googleSignIn.initialize(serverClientId: 'server-client'))
@@ -622,7 +788,7 @@ void main() {
     );
 
     test(
-      'should report repeated Android cancellations without analytics',
+      'should warn once on repeated cancellations and allow a successful retry',
       () async {
         final logger = _MockIncidentLoggerService();
         GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
@@ -630,24 +796,23 @@ void main() {
           const GoogleSignInException(code: GoogleSignInExceptionCode.canceled),
         );
 
-        for (var attempt = 0; attempt < 2; attempt++) {
-          expect(await AuthService.signInWithGoogle(), isNull);
-        }
-        verifyZeroInteractions(logger);
-        for (var attempt = 0; attempt < 4; attempt++) {
+        for (var attempt = 0; attempt < 6; attempt++) {
           expect(await AuthService.signInWithGoogle(), isNull);
         }
         await Future<void>.delayed(Duration.zero);
 
-        final incident = verify(
-          logger.captureLog(captureAny, stackTrace: anyNamed('stackTrace')),
+        final context = verify(
+          logger.captureWarning(
+            'Possible Google sign-in failure: repeated cancellations',
+            contextName: 'google_sign_in',
+            context: captureAnyNamed('context'),
+          ),
         ).captured.single;
-        expect(incident, isA<StateError>());
-        expect(
-          incident.toString(),
-          contains('Repeated Android Google sign-in cancellations'),
-        );
+        expect(context, containsPair('cancellation_count', 3));
         verifyNever(firebaseAuth.signInWithCredential(any));
+        when(googleSignIn.authenticate()).thenAnswer((_) async => account);
+        expect(await AuthService.signInWithGoogle(), same(firebaseCredential));
+        verifyNoMoreInteractions(logger);
       },
     );
 
@@ -1125,25 +1290,48 @@ void main() {
     );
 
     test(
-      'should exclude app interruptions and old dismissals from incidents',
+      'should retain cancellation analytics when a warning is reported',
       () async {
         final logger = _MockIncidentLoggerService();
         GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
-        var now = DateTime(2026);
-        googleAuthTelemetryClock = () => now;
-        trackGoogleSignInOutcome('canceled');
-        trackGoogleSignInOutcome('canceled');
-        trackGoogleSignInOutcome('appCanceled');
-        trackGoogleSignInOutcome('cleanupPending');
-        now = now.add(const Duration(minutes: 6));
-        trackGoogleSignInOutcome('canceled');
-        trackGoogleSignInOutcome('canceled');
+        final analytics = NoopAnalyticsService();
+        GetIt.instance.registerSingleton<AnalyticsService>(analytics);
+        const outcomes = [
+          'canceled',
+          'canceled',
+          'canceled',
+          'appCanceled',
+          'cleanupPending',
+          'success',
+          'canceled',
+          'canceled',
+          'canceled',
+        ];
+        googleAuthTelemetryClock = () => DateTime.utc(2026, 10, 6);
+        outcomes.forEach(_recordGoogleOutcome);
         await Future<void>.delayed(Duration.zero);
-        verifyZeroInteractions(logger);
-        trackGoogleSignInOutcome('canceled');
-        await Future<void>.delayed(Duration.zero);
-        verify(logger.captureLog(any, stackTrace: anyNamed('stackTrace')))
-            .called(1);
+        final context = verify(
+          logger.captureWarning(
+            'Possible Google sign-in failure: repeated cancellations',
+            contextName: 'google_sign_in',
+            context: captureAnyNamed('context'),
+          ),
+        ).captured.single;
+        expect(context, containsPair('cause', 'unknown'));
+        verifyNoMoreInteractions(logger);
+        expect(
+          analytics.events.map((event) => event.key),
+          everyElement('Google sign-in outcome'),
+        );
+        expect(analytics.events.map((event) => event.value), [
+          for (final outcome in outcomes)
+            {
+              'outcome': outcome,
+              'platform': 'android',
+              'stage': 'googleAuthentication',
+              'duration_ms': 0,
+            },
+        ]);
       },
     );
 

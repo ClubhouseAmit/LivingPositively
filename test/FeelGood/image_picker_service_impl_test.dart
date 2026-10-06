@@ -32,6 +32,13 @@ import 'package:mazilon/util/async/logger_service.dart';
 import '../../test_support/contract_persistent_memory_service.dart';
 
 class _CapturingLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final List<dynamic> captured = [];
   @override
   Future<void> initializeSentry(Widget myApp) async {}
@@ -497,6 +504,13 @@ void main() {
 }
 
 class _ThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   @override
   Future<void> initializeSentry(Widget myApp) async {}
 

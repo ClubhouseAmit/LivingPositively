@@ -27,6 +27,13 @@ import 'firebase_auth_service_test.mocks.dart';
 // ---------------------------------------------------------------------------
 
 class _FakeLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   _FakeLogger({this.captureLogGate, this.throwOnCaptureLog = false});
 
   final Future<void>? captureLogGate;

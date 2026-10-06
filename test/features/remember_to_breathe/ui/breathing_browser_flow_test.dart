@@ -24,6 +24,13 @@ import 'package:mazilon/util/async/app_theme.dart';
 class _Picker extends Mock implements ImagePickerService {}
 
 class _Logger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final List<Object> errors = [];
 
   @override
