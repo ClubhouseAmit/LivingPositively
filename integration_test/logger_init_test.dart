@@ -129,6 +129,11 @@ void main() {
       exceptionData: const {'no-name': true},
     );
 
+    await svc.captureWarning(
+      'disabled warning',
+      contextName: 'google_sign_in',
+      context: const {'cause': 'unknown'},
+    );
     expect(Sentry.isEnabled, isFalse);
   });
 
@@ -241,5 +246,39 @@ void main() {
     // (placeholder mounted via the empty-DSN if-branch) modes; the
     // coverage contribution differs by mode as documented above.
     expect(find.byKey(const Key('logger-captureLog-enabled')), findsOneWidget);
+  });
+
+  testWidgets('captureWarning keeps warning context scoped to its event', (
+    tester,
+  ) async {
+    final events = <SentryEvent>[];
+    await Sentry.init((options) {
+      options.dsn = 'https://public@example.com/1';
+      options.attachStacktrace = false;
+      // Inspect the SDK event and drop it before network delivery.
+      options.beforeSend = (event, hint) {
+        events.add(event);
+        return null;
+      };
+    });
+    expect(Sentry.isEnabled, isTrue);
+    final svc = SentryServiceImpl();
+    await svc.captureWarning(
+      'Possible Google sign-in failure',
+      contextName: 'google_sign_in',
+      context: const {'cause': 'unknown', 'cancellation_count': 3},
+    );
+    final warning = events.single;
+    expect(warning.level, SentryLevel.warning);
+    expect(warning.message?.formatted, 'Possible Google sign-in failure');
+    expect(warning.exceptions, anyOf(isNull, isEmpty));
+    expect(warning.contexts['google_sign_in'], {
+      'cause': 'unknown',
+      'cancellation_count': 3,
+    });
+    await svc.captureLog(StateError('subsequent exception'));
+    expect(events, hasLength(2));
+    expect(events.last.contexts['google_sign_in'], isNull);
+    expect(events.last.exceptions, isNotEmpty);
   });
 }
