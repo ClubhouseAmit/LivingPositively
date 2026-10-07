@@ -56,6 +56,13 @@ class _NoopFileService implements FileService {
 
 class _NoopLogger implements IncidentLoggerService {
   @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
+  @override
   Future<void> captureLog(
     dynamic exception, {
     StackTrace? stackTrace,

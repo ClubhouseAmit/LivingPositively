@@ -167,7 +167,13 @@ the SDK error code, `initializationFailed`, or `failed` for other failures.
 `appCanceled` identifies attempts superseded by logout; `cleanupPending`
 identifies a retry while native cleanup is still running. Neither counts as a
 provider dismissal or sign-in failure.
-The only explicit properties are `outcome` and `platform`; provider descriptions,
+`started` events contain only `outcome` and `platform`. Completed attempt events
+also include `stage`, `duration_ms`, and an `error_code` when known. Google error
+codes use the SDK enum. Firebase code identifiers are preserved when they are
+lowercase alphanumeric segments separated by hyphens, at most 80 characters;
+malformed values become `unknown`. This retains configuration/session codes
+such as `app-not-authorized`, `invalid-api-key`, and `user-token-expired` without
+maintaining a partial SDK code list. Provider descriptions, messages,
 tokens, client IDs and account details are excluded. Telemetry failure cannot
 block sign-in. An unavailable analytics service or absent Mixpanel token sends
 no event; verify receipt in the production telemetry project before rollout.
@@ -178,12 +184,49 @@ attempts with cancellations and unavailable-UI outcomes. A sustained increase
 without successful Android sign-in requires checking the release signing SHA,
 package name and server client ID. The SDK cannot tell an individual dismissal
 apart from its configuration-related `canceled` result, so cancellations are
-counted in analytics as ambiguous results. Individual dismissals produce no
-incident. Three cancellations within five minutes without an intervening success produce a
-credential-free `Repeated Android Google sign-in cancellations` incident with
-a stack trace. Reports are capped at one per incident logger instance (normally
-one app run), independently of Mixpanel. A successful authentication resets the
-retry count. This is a repeated-failure signal, not proof of misconfiguration.
+counted in analytics as ambiguous results. Three cancellations in a rolling
+five-minute window without intervening success produce a Sentry warning message:
+`Possible Google sign-in failure: repeated cancellations`. It carries
+`cause: unknown`, cancellation count, window duration, and each attempt's
+duration, last stage and SDK error code when available. Sentry supplies the app
+release and device context. This is a suspected customer problem, not a confirmed
+configuration failure or a thrown exception. The Google authentication stage
+includes the SDK's initialization/account UI work; account selection and the
+reason for Android dismissal are not exposed to the app. Recognized
+initialization failures use `initialization`; later stages identify token
+validation, Firebase authentication and session validation.
+
+`stage` uses the fixed enum names `initialization`, `googleAuthentication`,
+`googleTokenValidation`, `firebaseAuthentication`, and `sessionValidation`.
+It means the last stage entered: success therefore reports `sessionValidation`.
+Filter by unsuccessful outcome before grouping failures by stage. `duration_ms`
+is total elapsed attempt time, including account UI/user think time, initialization
+and logout waits; it is not SDK latency or the duration of the reported stage.
+Cached initialization failures can have near-zero duration while retaining the
+original cause's code. Platform exceptions retain bounded identifier codes
+(letters, digits, underscores and hyphens, starting with a letter, at most 80
+characters); malformed codes become `unknown`. Messages and details are excluded.
+In the pinned Android implementation, initialization can call a generated platform
+channel for a fallback server client ID without translating its `PlatformException`;
+the app normally supplies an explicit server client ID. `developer_error` is a
+possible diagnostic identifier, not a verified Android initialization outcome.
+
+Success clears the pending cancellation window. `appCanceled` and
+`cleanupPending` do not count. Warning reports are capped at one normally completed
+`captureWarning` call per logger instance/app run, independently of Mixpanel.
+Only a thrown synchronous error or failed future releases the cap, requiring a
+new three-cancellation window. Completion is not a delivery receipt: disabled
+Sentry, sampling, rate limits, `beforeSend` and transport failures can result in
+zero delivered warnings while retaining the cap. This is a best-effort signal;
+no backend delivery guarantee or application-level retry for silent drops is
+claimed. Without configured analytics, the warning still uses Sentry. Actual
+authentication and provider cleanup failures retain exception reporting. Warning
+context is scoped to its event and cannot leak into a later unrelated exception.
+The warning uses the logger interface's explicit `captureWarning` method; each
+implementation must handle warning severity and event-local context. Warnings
+do not pass through the dynamic exception parameter of `captureLog`. All provider
+attempts use
+`GoogleSignInAttemptTelemetry.record`, including analytics and retry observation.
 The Android release build requires `SENTRY_DSN`. Before rollout, verify receipt
 and record the alert owner, threshold and quota/sampling settings. Production
 usage volume and those settings were not available in this review, so no daily

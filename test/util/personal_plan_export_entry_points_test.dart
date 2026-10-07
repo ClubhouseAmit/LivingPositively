@@ -29,6 +29,13 @@ import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 class _RecordingIncidentLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final List<dynamic> capturedLogs = <dynamic>[];
   final List<StackTrace?> capturedStacks = <StackTrace?>[];
   final List<String> eventOrder = <String>[];

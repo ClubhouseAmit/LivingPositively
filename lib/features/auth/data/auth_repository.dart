@@ -146,7 +146,8 @@ class AuthService {
         : null;
     final lifecycle = _googleLifecycle(_googleSignIn);
     final generation = lifecycle.generation;
-    trackGoogleSignInOutcome('started');
+    final telemetry = GoogleSignInAttemptTelemetry();
+    telemetry.record('started');
     try {
       final startGoogleSignIn =
           debugGoogleSignInStarterOverride ?? _startGoogleSignIn;
@@ -155,13 +156,14 @@ class AuthService {
         serverClientId: serverClientId,
       );
       if (generation != lifecycle.generation) {
-        trackGoogleSignInOutcome('appCanceled');
+        telemetry.record('appCanceled');
         return null;
       }
       if (googleUser == null) {
-        trackGoogleSignInOutcome('canceled');
+        telemetry.record('canceled');
         return null;
       }
+      telemetry.stage = GoogleSignInStage.googleTokenValidation;
       final idToken = googleUser.authentication.idToken;
       if (idToken == null || idToken.trim().isEmpty) {
         throw const GoogleSignInException(
@@ -170,32 +172,34 @@ class AuthService {
       }
       final credential = GoogleAuthProvider.credential(idToken: idToken);
       final sessionGeneration = lifecycle.sessionGeneration;
+      telemetry.stage = GoogleSignInStage.firebaseAuthentication;
       final result = await lifecycle.exchange(
         () => _auth.signInWithCredential(credential),
         generation,
       );
+      telemetry.stage = GoogleSignInStage.sessionValidation;
       while (lifecycle.hasPendingFirebaseLogout) {
         await lifecycle.waitForFirebaseLogouts();
       }
       lifecycle.checkSession(sessionGeneration);
-      trackGoogleSignInOutcome('success');
+      telemetry.record('success');
       return result;
     } on GoogleSignInAborted catch (error) {
-      trackGoogleSignInOutcome(error.outcome.name);
+      telemetry.record(error.outcome.name);
       if (error.outcome == GoogleSignInAbortReason.cleanupPending) rethrow;
       return null;
-    } on GoogleSignInInitializationFailure {
-      trackGoogleSignInOutcome('initializationFailed');
+    } on GoogleSignInInitializationFailure catch (error) {
+      telemetry.record('initializationFailed', error: error.cause);
       rethrow;
     } on GoogleSignInException catch (error) {
       // Interactive authenticate() throws for every unsuccessful outcome.
       // Android uses throwForNoAuth: true, so noCredential is an unknownError;
       // interruptions and unavailable UI must also reach the form's feedback.
-      trackGoogleSignInOutcome(error.code.name);
+      telemetry.record(error.code.name, error: error);
       if (error.code == GoogleSignInExceptionCode.canceled) return null;
       rethrow;
-    } catch (_) {
-      trackGoogleSignInOutcome('failed');
+    } catch (error) {
+      telemetry.record('failed', error: error);
       rethrow;
     }
   }

@@ -30,6 +30,13 @@ import '../helpers/widget_test_scaffold.dart'
 import 'shareform_test.mocks.dart';
 
 final class _RecordingIncidentLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final List<Object> errors = <Object>[];
 
   @override

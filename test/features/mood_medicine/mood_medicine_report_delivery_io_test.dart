@@ -182,6 +182,13 @@ final class _RecordingShare {
 }
 
 final class _CapturingLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final List<Object> logs = <Object>[];
   final List<StackTrace?> stackTraces = <StackTrace?>[];
 
@@ -200,6 +207,13 @@ final class _CapturingLogger implements IncidentLoggerService {
 }
 
 final class _NoopIncidentLoggerService implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   const _NoopIncidentLoggerService();
 
   @override
@@ -214,6 +228,13 @@ final class _NoopIncidentLoggerService implements IncidentLoggerService {
 }
 
 final class _ThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   const _ThrowingLogger();
 
   @override

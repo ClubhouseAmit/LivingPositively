@@ -22,6 +22,13 @@ import '../../test_support/contract_persistent_memory_service.dart';
 
 class _NoOpLogger implements IncidentLoggerService {
   @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
+  @override
   Future<void> initializeSentry(_) async {}
   @override
   Future<void> captureLog(

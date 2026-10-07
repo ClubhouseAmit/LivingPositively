@@ -13,6 +13,13 @@ const _sharedPreferencesChannel = MethodChannel(
 );
 
 class _PendingLogger implements IncidentLoggerService {
+  @override
+  Future<void> captureWarning(
+    String message, {
+    required String contextName,
+    required Map<String, Object> context,
+  }) => throw StateError('Unexpected warning report');
+
   final Completer<void> completion = Completer<void>();
 
   @override
