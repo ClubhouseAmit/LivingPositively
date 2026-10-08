@@ -1,17 +1,14 @@
-import 'package:flutter/material.dart';
-
 import 'dart:math';
 
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/features/shell/ui/LP_extended_state.dart';
 import 'package:mazilon/features/shell/ui/suggested_list_item.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
-
 import 'package:mazilon/util/type_utils.dart';
-
-import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 // the positive trait item suggested widget, it shows a suggested positive trait text and an add button
 //its used in positive trait page/homepage in todo list section to suggest a trait to the user
@@ -113,7 +110,6 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
         }
       }
 
-      // positiveTraitsSuggestionList.remove(text);
       if (positiveTraitsSuggestionList.isNotEmpty) {
         text =
             positiveTraitsSuggestionList[Random().nextInt(
