@@ -92,12 +92,43 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
     super.initState();
   }
 
+  // Add the thank you and update the suggested value.
+  // Shared by the add button and the suggestion text.
+  void _addSuggestion() {
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    setState(() {
+      widget.add(
+        widget.inputText == '' ? text : widget.inputText,
+        userInfoProvider,
+      );
+      List<String> thankYous = userInfoProvider.thanks['thanks'] ?? [];
+      List<String> dates = userInfoProvider.thanks['dates'] ?? [];
+      myThanks = todayThankYousFunc(thankYous, dates);
+      myThanks.add(widget.inputText == '' ? text : widget.inputText);
+      List<String> tempThanksSuggestionList = List.from(
+        widget.fullSuggestionList,
+      );
+      thanksSuggestionList = List.from(tempThanksSuggestionList);
+      for (String suggestion in tempThanksSuggestionList) {
+        if (thanksSuggestionList.length > 1 && myThanks.contains(suggestion)) {
+          thanksSuggestionList.remove(suggestion);
+        }
+      }
+      if (thanksSuggestionList.isNotEmpty) {
+        text =
+            thanksSuggestionList[Random().nextInt(
+              thanksSuggestionList.length,
+            )];
+      }
+    });
+  }
+
   // build the thanks item suggested widget
   @override
   Widget build(BuildContext context) {
-    // get the appInformation provider
-
-    final userInfoProvider = Provider.of<UserInformation>(context);
     loadData(context);
     if (!show) {
       return Container();
@@ -109,71 +140,45 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           // the add button
-          SuggestionAddButton(
-            onPressed: () {
-              // Add the thank you and update the suggested value.
-              setState(() {
-                widget.add(
-                  widget.inputText == '' ? text : widget.inputText,
-                  userInfoProvider,
-                );
-                List<String> thankYous =
-                    userInfoProvider.thanks['thanks'] ?? [];
-                List<String> dates = userInfoProvider.thanks['dates'] ?? [];
-                myThanks = todayThankYousFunc(thankYous, dates);
-                myThanks.add(widget.inputText == '' ? text : widget.inputText);
-                List<String> tempThanksSuggestionList = List.from(
-                  widget.fullSuggestionList,
-                );
-                thanksSuggestionList = List.from(tempThanksSuggestionList);
-                for (String suggestion in tempThanksSuggestionList) {
-                  if (thanksSuggestionList.length > 1 &&
-                      myThanks.contains(suggestion)) {
-                    thanksSuggestionList.remove(suggestion);
-                  }
-                }
-                if (thanksSuggestionList.isNotEmpty) {
-                  text =
-                      thanksSuggestionList[Random().nextInt(
-                        thanksSuggestionList.length,
-                      )];
-                }
-              });
-            },
-          ),
+          SuggestionAddButton(onPressed: _addSuggestion),
 
           const SizedBox(width: 10),
           // the design of the suggested thank you (a dotted border with the text of the thank you)
+          // tapping the text adds it too, like the home page
           Expanded(
-            child: DottedBorder(
-              options: RoundedRectDottedBorderOptions(
-                radius: const Radius.circular(20),
-                dashPattern: const [5, 5],
-                color: Theme.of(context).colorScheme.tertiary,
-                strokeWidth: 2,
-              ),
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _addSuggestion,
+              child: DottedBorder(
+                options: RoundedRectDottedBorderOptions(
+                  radius: const Radius.circular(20),
+                  dashPattern: const [5, 5],
+                  color: Theme.of(context).colorScheme.tertiary,
+                  strokeWidth: 2,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(7.0),
-                  child: Align(
-                    alignment: appLocale.textDirection == "rtl"
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: AutoSizeText(
-                      widget.inputText == '' ? text : widget.inputText,
-                      maxLines: 3,
-                      minFontSize: 14,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: "Rubix",
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.outline,
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(7.0),
+                    child: Align(
+                      alignment: appLocale.textDirection == "rtl"
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: AutoSizeText(
+                        widget.inputText == '' ? text : widget.inputText,
+                        maxLines: 3,
+                        minFontSize: 14,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: "Rubix",
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
                     ),
                   ),

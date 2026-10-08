@@ -165,6 +165,38 @@ void main() {
 
     expect(captured.last, 'manual-trait');
   });
+
+  // Issue #358: on the qualities page the suggestion text must add, like
+  // the + button and like the home page.
+  testWidgets('tap on the suggestion text forwards it to add()', (
+    tester,
+  ) async {
+    await memory.setItem(
+      'positiveTraits',
+      PersistentMemoryType.StringList,
+      <String>[],
+    );
+    final captured = <String>[];
+
+    await pumpWithProviders(
+      tester,
+      PositiveTraitItemSug(
+        add: (String trait, UserInformation u) {
+          captured.add(trait);
+        },
+        inputText: 'manual-trait',
+        stopShowing: 1,
+        fullSuggestionList: _suggestions,
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 800),
+    );
+
+    await tester.tap(find.text('manual-trait'));
+    await tester.pumpAndSettle();
+
+    expect(captured, ['manual-trait']);
+  });
 }
 
 void _noopAdd(String _, UserInformation _) {}

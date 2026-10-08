@@ -158,6 +158,31 @@ void main() {
       expect(captured.last, 'override-text');
     },
   );
+
+  // Issue #358: on the journal page the suggestion text must add, like
+  // the + button and like the home page.
+  testWidgets('tap on the suggestion text invokes add()', (tester) async {
+    final captured = <String>[];
+
+    await pumpWithProviders(
+      tester,
+      ThanksItemSuggested(
+        add: (String suggestion, UserInformation u) {
+          captured.add(suggestion);
+        },
+        inputText: 'override-text',
+        stopShowing: 1,
+        fullSuggestionList: _suggestions,
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 800),
+    );
+
+    await tester.tap(find.text('override-text'));
+    await tester.pump();
+
+    expect(captured, ['override-text']);
+  });
 }
 
 void _noopAdd(String _, UserInformation _) {}

@@ -85,6 +85,50 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
     super.initState();
   }
 
+  // Add the trait to the list and show a new suggestion.
+  // Shared by the add button and the suggestion text.
+  Future<void> _addSuggestion() async {
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
+
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    var myPositiveTraitsValue = TypeUtils.castToStringList(
+      await service.getItem("positiveTraits", PersistentMemoryType.StringList),
+    );
+    setState(() {
+      widget.add(
+        widget.inputText == '' ? text : widget.inputText,
+        userInfoProvider,
+      );
+      myPositiveTraits = myPositiveTraitsValue;
+      myPositiveTraits.add(widget.inputText == '' ? text : widget.inputText);
+
+      List<String> tempTraitSuggestionList = widget.fullSuggestionList;
+
+      positiveTraitsSuggestionList = List.from(widget.fullSuggestionList);
+
+      for (String suggestion in tempTraitSuggestionList) {
+        if (positiveTraitsSuggestionList.length > 1 &&
+            myPositiveTraits.contains(suggestion)) {
+          positiveTraitsSuggestionList.remove(suggestion);
+        }
+      }
+
+      // positiveTraitsSuggestionList.remove(text);
+      if (positiveTraitsSuggestionList.isNotEmpty) {
+        text =
+            positiveTraitsSuggestionList[Random().nextInt(
+              positiveTraitsSuggestionList.length,
+            )];
+      }
+    });
+  }
+
   // build the positive trait item suggested widget
   @override
   Widget build(BuildContext context) {
@@ -101,93 +145,47 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           // the add button
-          SuggestionAddButton(
-            onPressed: () async {
-              // Add the trait to the list and show a new suggestion.
-              PersistentMemoryService service =
-                  GetIt.instance<
-                    PersistentMemoryService
-                  >(); // Get the persistent memory service instance
-
-              final userInfoProvider = Provider.of<UserInformation>(
-                context,
-                listen: false,
-              );
-              var myPositiveTraitsValue = TypeUtils.castToStringList(
-                await service.getItem(
-                  "positiveTraits",
-                  PersistentMemoryType.StringList,
-                ),
-              );
-              setState(() {
-                widget.add(
-                  widget.inputText == '' ? text : widget.inputText,
-                  userInfoProvider,
-                );
-                myPositiveTraits = myPositiveTraitsValue;
-                myPositiveTraits.add(
-                  widget.inputText == '' ? text : widget.inputText,
-                );
-
-                List<String> tempTraitSuggestionList =
-                    widget.fullSuggestionList;
-
-                positiveTraitsSuggestionList = List.from(
-                  widget.fullSuggestionList,
-                );
-
-                for (String suggestion in tempTraitSuggestionList) {
-                  if (positiveTraitsSuggestionList.length > 1 &&
-                      myPositiveTraits.contains(suggestion)) {
-                    positiveTraitsSuggestionList.remove(suggestion);
-                  }
-                }
-
-                // positiveTraitsSuggestionList.remove(text);
-                if (positiveTraitsSuggestionList.isNotEmpty) {
-                  text =
-                      positiveTraitsSuggestionList[Random().nextInt(
-                        positiveTraitsSuggestionList.length,
-                      )];
-                }
-              });
-            },
-          ),
+          SuggestionAddButton(onPressed: _addSuggestion),
 
           // gap between the text and the add button
           const SizedBox(width: 10),
 
           // the design of the suggested trait (a dotted border with the trait text)
+          // tapping the text adds it too, like the home page
           Expanded(
-            child: DottedBorder(
-              options: RoundedRectDottedBorderOptions(
-                radius: const Radius.circular(20),
-                dashPattern: const [5, 5],
-                color: Theme.of(context).colorScheme.tertiary,
-                strokeWidth: 2,
-              ),
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _addSuggestion,
+              child: DottedBorder(
+                options: RoundedRectDottedBorderOptions(
+                  radius: const Radius.circular(20),
+                  dashPattern: const [5, 5],
+                  color: Theme.of(context).colorScheme.tertiary,
+                  strokeWidth: 2,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(7.0),
-                  child: Align(
-                    alignment: appLocale.textDirection == "rtl"
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: AutoSizeText(
-                      widget.inputText == '' ? text : widget.inputText,
-                      maxLines: 3,
-                      minFontSize: 14,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: "Rubix",
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.outline,
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(7.0),
+                    child: Align(
+                      alignment: appLocale.textDirection == "rtl"
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: AutoSizeText(
+                        widget.inputText == '' ? text : widget.inputText,
+                        maxLines: 3,
+                        minFontSize: 14,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: "Rubix",
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
                     ),
                   ),
