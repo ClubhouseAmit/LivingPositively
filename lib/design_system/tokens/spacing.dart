@@ -49,6 +49,17 @@ abstract class HomeGaps {
   static const sectionHorizontalInset = 10.0;
 }
 
+/// Semantic spacing for the dotted suggestion row (SuggestedListItem) on the
+/// home, journal and positive traits pages.
+abstract class SuggestionGaps {
+  /// Preserves the established inset around the row and between the add
+  /// button and the text.
+  static const rowInset = 10.0;
+
+  /// Preserves the established inset between the dotted border and the text.
+  static const textInset = 7.0;
+}
+
 /// Semantic spacing shared between onboarding flows (intro and questionnaire).
 abstract class OnboardingGaps {
   /// Section heading to caption (Figma: Frame 223).

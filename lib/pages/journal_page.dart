@@ -6,7 +6,7 @@ import 'package:mazilon/features/personal_plan/ui/retrieveInformation.dart';
 import 'package:mazilon/features/shell/ui/LP_extended_state.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
-import 'package:mazilon/features/journal/ui/thank_you_list.dart';
+import 'package:mazilon/features/journal/ui/animated_item_list.dart';
 import 'package:mazilon/features/journal/ui/thanksItemSug.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/features/journal/ui/AddForm.dart';
@@ -223,9 +223,10 @@ class _JournalState extends LPExtendedState<Journal> {
     UserInformation userInfo,
     ColorScheme colorScheme,
   ) {
-    return ThankYouList(
-      thankYous: thankYous,
+    return AnimatedItemList(
+      items: thankYous,
       dates: dates,
+      newestFirst: true,
       edit: (String text, int index) {
         editThanks(appLocale.thanks, text, index);
       },
