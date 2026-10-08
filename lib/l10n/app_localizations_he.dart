@@ -889,6 +889,19 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String introductionFormLastPageFillLater(String gender) {
+    String _temp0 = intl.Intl.selectLogic(
+      gender,
+      {
+        'male': 'מלא אחר כך',
+        'female': 'מלאי אחר כך',
+        'other': 'מלא.י אחר כך',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
   String introductionFormLastPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(
       gender,

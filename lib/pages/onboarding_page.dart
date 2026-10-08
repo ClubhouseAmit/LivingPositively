@@ -165,6 +165,7 @@ class InitialFormProgressIndicatorState
         key: GlobalKey<WizardStepState>(debugLabel: 'safety-plan-intro'),
         phonePageData: widget.phonePageData,
         changeLocale: widget.changeLocale,
+        fillLater: handleSkip,
       ),
     ];
   }

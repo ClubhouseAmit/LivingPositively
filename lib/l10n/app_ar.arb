@@ -110,6 +110,7 @@
   "introductionFormFirstPageSubTitle2": "{gender,select,male{أدوات ممتازة للدعم الذاتي وتطوير المرونة النفسية.} female{أدوات ممتازة للدعم الذاتي وتطوير المرونة النفسية.} other{أدوات ممتازة للدعم الذاتي وتطوير المرونة النفسية.}}",
   "introductionFormFirstPageSkip": "{gender,select,male{تخطي} female{تخطي} other{تخطي}}",
   "introductionFormLastPageSkip": "{gender,select,male{تخطي الاستبيان} female{تخطي الاستبيان} other{تخطي الاستبيان}}",
+  "introductionFormLastPageFillLater": "{gender,select,male{املأ لاحقًا} female{املئي لاحقًا} other{املأ/ي لاحقًا}}",
   "introductionFormLastPageMainTitle": "{gender,select,male{خطتي الشخصية} female{خطتي الشخصية} other{خطتي الشخصية}}",
   "introductionFormLastPageSubTitle1": "{gender,select,male{أنت مدعوّ لإنشاء خطة شخصية تقدم الدعم خلال اللحظات الصعبة، لك ولمن حولك.} female{أنتِ مدعوّة لإنشاء خطة شخصية تقدم الدعم خلال اللحظات الصعبة، لكِ ولمن حولكِ.} other{أنت مدعوّ لإنشاء خطة شخصية تقدم الدعم خلال اللحظات الصعبة، لك ولمن حولك.}}",
   "introductionFormLastPageSubTitle2": "{gender,select,male{يُنصح بقضاء بضع دقائق الآن للتعامل بشكل أفضل مع التحديات المستقبلية.} female{يُنصح بقضاء بضع دقائق الآن للتعامل بشكل أفضل مع التحديات المستقبلية.} other{يُنصح بقضاء بضع دقائق الآن للتعامل بشكل أفضل مع التحديات المستقبلية.}}",
