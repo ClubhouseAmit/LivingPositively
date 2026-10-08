@@ -316,6 +316,10 @@
   "@introductionFormLastPageSkip": {
     "description": ""
   },
+  "introductionFormLastPageFillLater": "{gender,select,male{Fill Later} female{Fill Later} other{Fill Later}}",
+  "@introductionFormLastPageFillLater": {
+    "description": "Secondary action on the final onboarding page that postpones the personal plan questionnaire."
+  },
   "introductionFormLastPageMainTitle": "{gender,select,male{My Personal Plan} female{My Personal Plan} other{My Personal Plan}}",
   "@introductionFormLastPageMainTitle": {
     "description": ""
