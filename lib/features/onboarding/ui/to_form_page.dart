@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/pages/personal_plan_editor_page.dart';
-import 'package:mazilon/features/wizard/ui/wizard_step.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/design_system/tokens/font_weight.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/pages/personal_plan_editor_page.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -13,17 +13,27 @@ import 'package:provider/provider.dart';
 class ToFormPage extends WizardStep {
   final PhonePageData phonePageData;
   final Function changeLocale;
+  final VoidCallback fillLater;
 
   const ToFormPage({
     required super.key,
     required this.phonePageData,
     required this.changeLocale,
+    required this.fillLater,
   });
 
   @override
   String primaryActionLabel(BuildContext context) => AppLocalizations.of(
     context,
   )!.introductionFormLastPageNext(Provider.of<UserInformation>(context).gender);
+
+  @override
+  String? secondaryActionLabel(BuildContext context) =>
+      AppLocalizations.of(
+        context,
+      )!.introductionFormLastPageFillLater(
+        Provider.of<UserInformation>(context, listen: false).gender,
+      );
 
   @override
   WizardStepState<ToFormPage> createState() => _ToFormPageState();
@@ -46,6 +56,11 @@ class _ToFormPageState extends WizardStepState<ToFormPage> {
   @override
   Future<void> onPrimaryAction() async {
     nextPage();
+  }
+
+  @override
+  Future<void> onSecondaryAction() async {
+    widget.fillLater();
   }
 
   @override

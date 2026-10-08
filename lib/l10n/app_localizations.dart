@@ -670,6 +670,12 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Skip the Questionnaire} female{Skip the Questionnaire} other{Skip the Questionnaire}}'**
   String introductionFormLastPageSkip(String gender);
 
+  /// Secondary action on the final onboarding page that postpones the personal plan questionnaire.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Fill Later} female{Fill Later} other{Fill Later}}'**
+  String introductionFormLastPageFillLater(String gender);
+
   ///
   ///
   /// In en, this message translates to:

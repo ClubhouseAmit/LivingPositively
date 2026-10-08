@@ -116,6 +116,7 @@
      "introductionFormFirstPageSubTitle2": "{gender,select,male{כלים מעולים לעזרה עצמית ופיתוח חוסן נפשי.} female{כלים מעולים לעזרה עצמית ופיתוח חוסן נפשי.} other{כלים מעולים לעזרה עצמית ופיתוח חוסן נפשי.}}",
      "introductionFormFirstPageSkip": "{gender,select,male{לדילוג} female{לדילוג} other{לדילוג}}",
      "introductionFormLastPageSkip": "{gender,select,male{דלג על השאלון} female{דלגי על השאלון} other{דלג.י על השאלון}}",
+     "introductionFormLastPageFillLater": "{gender,select,male{מלא אחר כך} female{מלאי אחר כך} other{מלא.י אחר כך}}",
 
 
      "introductionFormLastPageMainTitle": "{gender,select,male{התוכנית האישית שלי} female{התוכנית האישית שלי} other{התוכנית האישית שלי}}",

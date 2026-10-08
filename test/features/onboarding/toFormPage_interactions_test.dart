@@ -1,15 +1,15 @@
-// Drives the wizard primary + skip handlers of ToFormPage:
+// Drives the wizard primary + fill-later handlers of ToFormPage:
 //   - primary action pushes a FormProgressIndicator route
-//   - skip pushes a Menu route via pushAndRemoveUntil
+//   - fill later reuses the onboarding skip path to push a Menu route
 
 import 'package:flutter/material.dart';
-import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/personal_plan_editor_page.dart';
-import 'package:mazilon/pages/onboarding_page.dart';
 import 'package:mazilon/features/onboarding/ui/to_form_page.dart';
-import 'package:mazilon/menu.dart';
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/menu.dart';
+import 'package:mazilon/pages/onboarding_page.dart';
+import 'package:mazilon/pages/personal_plan_editor_page.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../../helpers/widget_test_scaffold.dart';
@@ -32,9 +32,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late UserInformation user;
+  late TestServiceLocators services;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    services = registerTestServices(locale: 'en');
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
@@ -45,59 +46,113 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('tapping the next button pushes a FormProgressIndicator', (
-    tester,
-  ) async {
-    await pumpWithProviders(
+  group('ToFormPage', () {
+    testWidgets('should open the questionnaire from the primary action', (
       tester,
-      wizardStepHarness(
-        ToFormPage(
-          key: GlobalKey<WizardStepState>(),
+    ) async {
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ToFormPage(
+            key: GlobalKey<WizardStepState>(),
+            phonePageData: _data(),
+            changeLocale: (_) {},
+            fillLater: () {},
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2200),
+      );
+      await tester.pump();
+      drainOverflowExceptions(tester);
+
+      final button = find.byKey(const Key('wizard-primary-action'));
+      expect(button, findsOneWidget);
+      await tester.ensureVisible(button);
+      await tester.tap(button, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FormProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('should open the menu from the fill later action', (
+      tester,
+    ) async {
+      services.memory.store['hasFilled'] = true;
+      await pumpWithProviders(
+        tester,
+        InitialFormProgressIndicator(
           phonePageData: _data(),
           changeLocale: (_) {},
         ),
-      ),
-      userInformation: user,
-      surfaceSize: const Size(1024, 2200),
-    );
-    await tester.pump();
-    drainOverflowExceptions(tester);
+        userInformation: user,
+        surfaceSize: const Size(1024, 2200),
+      );
+      await tester.pump();
+      drainOverflowExceptions(tester);
 
-    final button = find.byKey(const Key('wizard-primary-action'));
-    expect(button, findsOneWidget);
-    await tester.ensureVisible(button);
-    await tester.tap(button, warnIfMissed: false);
-    await tester.pumpAndSettle();
+      final state = tester.state<InitialFormProgressIndicatorState>(
+        find.byType(InitialFormProgressIndicator),
+      );
+      state.skip();
+      await tester.pump();
+      drainOverflowExceptions(tester);
 
-    expect(find.byType(FormProgressIndicator), findsOneWidget);
-  });
+      final fillLaterButton = find.byKey(
+        const Key('wizard-secondary-action'),
+      );
+      expect(fillLaterButton, findsOneWidget);
+      expect(find.text('Fill Later'), findsOneWidget);
+      await tester.tap(fillLaterButton);
+      await tester.pumpAndSettle();
 
-  testWidgets('tapping the skip button pushes a Menu route', (tester) async {
-    await pumpWithProviders(
+      expect(find.byType(Menu), findsOneWidget);
+      expect(tester.widget<Menu>(find.byType(Menu)).hasFilled, isTrue);
+    });
+
+    testWidgets('should render every gendered Hebrew and Arabic label', (
       tester,
-      InitialFormProgressIndicator(
-        phonePageData: _data(),
-        changeLocale: (_) {},
-      ),
-      userInformation: user,
-      surfaceSize: const Size(1024, 2200),
-    );
-    await tester.pump();
-    drainOverflowExceptions(tester);
+    ) async {
+      const cases =
+          <({String locale, String gender, bool binary, String label})>[
+            (locale: 'he', gender: 'male', binary: false, label: 'מלא אחר כך'),
+            (
+              locale: 'he',
+              gender: 'female',
+              binary: false,
+              label: 'מלאי אחר כך',
+            ),
+            (locale: 'he', gender: '', binary: true, label: 'מלא.י אחר כך'),
+            (locale: 'ar', gender: 'male', binary: false, label: 'املأ لاحقًا'),
+            (
+              locale: 'ar',
+              gender: 'female',
+              binary: false,
+              label: 'املئي لاحقًا',
+            ),
+            (locale: 'ar', gender: '', binary: true, label: 'املأ/ي لاحقًا'),
+          ];
 
-    // Jump to the last step (ToFormPage) so we are on the page presenting the questionnaire option.
-    final state = tester.state<InitialFormProgressIndicatorState>(
-      find.byType(InitialFormProgressIndicator),
-    );
-    state.skip();
-    await tester.pump();
-    drainOverflowExceptions(tester);
+      for (final testCase in cases) {
+        user.gender = testCase.gender;
+        user.binary = testCase.binary;
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ToFormPage(
+              key: GlobalKey<WizardStepState>(),
+              phonePageData: _data(),
+              changeLocale: (_) {},
+              fillLater: () {},
+            ),
+          ),
+          userInformation: user,
+          locale: Locale(testCase.locale),
+          surfaceSize: const Size(1024, 2200),
+        );
 
-    final skipButton = find.byKey(const Key('intro-header-skip'));
-    expect(skipButton, findsOneWidget);
-    await tester.tap(skipButton);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(Menu), findsOneWidget);
+        expect(find.text(testCase.label), findsOneWidget);
+      }
+    });
   });
 }
