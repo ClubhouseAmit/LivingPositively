@@ -6,7 +6,7 @@ import 'package:mazilon/features/personal_plan/ui/retrieveInformation.dart';
 import 'package:mazilon/features/shell/ui/LP_extended_state.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
-import 'package:mazilon/features/journal/ui/thank_you.dart';
+import 'package:mazilon/features/journal/ui/thank_you_list.dart';
 import 'package:mazilon/features/journal/ui/thanksItemSug.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/features/journal/ui/AddForm.dart';
@@ -223,23 +223,14 @@ class _JournalState extends LPExtendedState<Journal> {
     UserInformation userInfo,
     ColorScheme colorScheme,
   ) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final reversedIndex = thankYous.length - 1 - index;
-        return ThankYou(
-          text: thankYous[reversedIndex],
-          number: thankYous.length - index,
-          edit: (String text, int index) {
-            editThanks(appLocale.thanks, text, index);
-          },
-          remove: (int index) => removeThankYou(index, userInfo),
-          date: dates[reversedIndex],
-          color: colorScheme.onSurface,
-        );
+    return ThankYouList(
+      thankYous: thankYous,
+      dates: dates,
+      edit: (String text, int index) {
+        editThanks(appLocale.thanks, text, index);
       },
-      itemCount: thankYous.length,
+      remove: (int index) => removeThankYou(index, userInfo),
+      color: colorScheme.onSurface,
     );
   }
 

@@ -11,7 +11,7 @@ import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/features/journal/ui/thank_you.dart';
+import 'package:mazilon/features/positive/ui/positive_trait_list.dart';
 import 'package:mazilon/features/positive/ui/positiveTraitItemSug.dart';
 import 'package:mazilon/features/shell/ui/styles.dart';
 import 'package:mazilon/features/journal/ui/AddForm.dart';
@@ -265,22 +265,15 @@ class _PositiveState extends LPExtendedState<Positive> {
     UserInformation userInfo,
     ColorScheme colorScheme,
   ) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: positiveTraits.length,
-      itemBuilder: (context, index) => ThankYou(
-        text: positiveTraits[index],
-        number: index + 1,
-        edit: (String text, int index) {
-          editNotification(text, index, appLocale.trait, userInfo);
-        },
-        remove: (int index) {
-          unawaited(removePositiveTrait(index, userInfo));
-        },
-        date: '',
-        color: colorScheme.primary,
-      ),
+    return PositiveTraitList(
+      traits: positiveTraits,
+      edit: (String text, int index) {
+        editNotification(text, index, appLocale.trait, userInfo);
+      },
+      remove: (int index) {
+        unawaited(removePositiveTrait(index, userInfo));
+      },
+      color: colorScheme.primary,
     );
   }
 

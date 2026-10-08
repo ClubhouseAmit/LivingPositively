@@ -146,7 +146,8 @@ void main() {
           .first;
       await tester.ensureVisible(addGesture);
       await tester.tap(addGesture, warnIfMissed: false);
-      await tester.pump();
+      // wait for the suggestion to shrink away before it is added
+      await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(user.thanks['thanks']?.length, 1);

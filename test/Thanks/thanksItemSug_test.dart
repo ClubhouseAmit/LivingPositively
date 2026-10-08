@@ -119,7 +119,8 @@ void main() {
           )
           .first;
       await tester.tap(gestureDetector, warnIfMissed: false);
-      await tester.pump();
+      // wait for the suggestion to shrink away before it is added
+      await tester.pumpAndSettle();
 
       expect(captured, isNotEmpty);
       // After tap the widget rebuilds; the GestureDetector still exists.
@@ -153,7 +154,8 @@ void main() {
           )
           .first;
       await tester.tap(gestureDetector, warnIfMissed: false);
-      await tester.pump();
+      // wait for the suggestion to shrink away before it is added
+      await tester.pumpAndSettle();
 
       expect(captured.last, 'override-text');
     },
@@ -179,7 +181,48 @@ void main() {
     );
 
     await tester.tap(find.text('override-text'));
+    // wait for the suggestion to shrink away before it is added
+    await tester.pumpAndSettle();
+
+    expect(captured, ['override-text']);
+  });
+
+  // Issue #358: like the home page, the suggestion shrinks away first and
+  // is added once the shrink ends; a second tap mid-shrink adds nothing.
+  testWidgets('shrinks before adding, and adds once on a double tap', (
+    tester,
+  ) async {
+    final captured = <String>[];
+
+    await pumpWithProviders(
+      tester,
+      ThanksItemSuggested(
+        add: (String suggestion, UserInformation u) {
+          captured.add(suggestion);
+        },
+        inputText: 'override-text',
+        stopShowing: 1,
+        fullSuggestionList: _suggestions,
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 800),
+    );
+
+    await tester.tap(find.text('override-text'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final fade = tester.widget<FadeTransition>(
+      find.descendant(
+        of: find.byType(ThanksItemSuggested),
+        matching: find.byType(FadeTransition),
+      ),
+    );
+    expect(fade.opacity.value, lessThan(1.0));
+    expect(captured, isEmpty);
+
+    await tester.tap(find.text('override-text'), warnIfMissed: false);
+    await tester.pumpAndSettle();
 
     expect(captured, ['override-text']);
   });

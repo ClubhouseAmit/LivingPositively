@@ -32,7 +32,14 @@ class ThanksItemSuggested extends StatefulWidget {
   State<ThanksItemSuggested> createState() => _ThanksItemSuggestedState();
 }
 
-class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
+class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested>
+    with SingleTickerProviderStateMixin {
+  // Same shrink as the home page suggestions (DashedListWidget).
+  static const Duration _kCollapseDuration = Duration(milliseconds: 400);
+  late final AnimationController _collapse;
+  late final Animation<double> _collapseOpacity;
+  late final Animation<double> _collapseSize;
+
   String text = ''; // the text of the suggested thank you (initially empty)
   List<String> myThanks = []; // the list of the thank yous
   List<String> thanksSuggestionList =
@@ -90,11 +97,33 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
   @override
   void initState() {
     super.initState();
+    _collapse = AnimationController(vsync: this, duration: _kCollapseDuration);
+    _collapseOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _collapse,
+        curve: const Interval(0.0, 0.55, curve: Curves.easeIn),
+      ),
+    );
+    _collapseSize = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _collapse,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+      ),
+    );
   }
 
-  // Add the thank you and update the suggested value.
-  // Shared by the add button and the suggestion text.
-  void _addSuggestion() {
+  @override
+  void dispose() {
+    _collapse.dispose();
+    super.dispose();
+  }
+
+  // Shrink the suggestion away, then add the thank you and update the
+  // suggested value. Shared by the add button and the suggestion text.
+  Future<void> _addSuggestion() async {
+    if (_collapse.isAnimating) return; // one add per shrink
+    await _collapse.forward();
+    if (!mounted) return;
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
@@ -124,6 +153,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
             )];
       }
     });
+    _collapse.reset();
   }
 
   // build the thanks item suggested widget
@@ -133,9 +163,20 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
     if (!show) {
       return Container();
     }
+    return SizeTransition(
+      sizeFactor: _collapseSize,
+      alignment: AlignmentDirectional.topStart,
+      child: FadeTransition(
+        opacity: _collapseOpacity,
+        child: _suggestionRow(),
+      ),
+    );
+  }
+
+  // the row that contains the suggested thank you and the add button
+  Widget _suggestionRow() {
     return Container(
       padding: const EdgeInsets.all(10),
-      // the row that contains the suggested thank you and the add button
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [

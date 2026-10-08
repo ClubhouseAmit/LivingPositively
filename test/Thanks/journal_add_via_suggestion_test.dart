@@ -58,7 +58,8 @@ void main() {
 
       await tester.ensureVisible(addGesture);
       await tester.tap(addGesture, warnIfMissed: false);
-      await tester.pump();
+      // wait for the suggestion to shrink away before it is added
+      await tester.pumpAndSettle();
       // Drive the post-tap Future.delayed(0) that schedules the popup.
       await tester.pump(const Duration(milliseconds: 50));
 
@@ -98,7 +99,8 @@ void main() {
           .first;
       await tester.ensureVisible(addGesture);
       await tester.tap(addGesture, warnIfMissed: false);
-      await tester.pump();
+      // wait for the suggestion to shrink away before it is added
+      await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 50));
 
       // Should now have 2 entries and NO popup.

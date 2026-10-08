@@ -197,6 +197,51 @@ void main() {
 
     expect(captured, ['manual-trait']);
   });
+
+  // Issue #358: like the home page, the suggestion shrinks away first and
+  // is added once the shrink ends; a second tap mid-shrink adds nothing.
+  testWidgets('shrinks before adding, and adds once on a double tap', (
+    tester,
+  ) async {
+    await memory.setItem(
+      'positiveTraits',
+      PersistentMemoryType.StringList,
+      <String>[],
+    );
+    final captured = <String>[];
+
+    await pumpWithProviders(
+      tester,
+      PositiveTraitItemSug(
+        add: (String trait, UserInformation u) {
+          captured.add(trait);
+        },
+        inputText: 'manual-trait',
+        stopShowing: 1,
+        fullSuggestionList: _suggestions,
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 800),
+    );
+
+    await tester.tap(find.text('manual-trait'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final fade = tester.widget<FadeTransition>(
+      find.descendant(
+        of: find.byType(PositiveTraitItemSug),
+        matching: find.byType(FadeTransition),
+      ),
+    );
+    expect(fade.opacity.value, lessThan(1.0));
+    expect(captured, isEmpty);
+
+    await tester.tap(find.text('manual-trait'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(captured, ['manual-trait']);
+  });
 }
 
 void _noopAdd(String _, UserInformation _) {}
