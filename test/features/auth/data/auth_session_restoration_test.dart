@@ -92,9 +92,12 @@ void main() {
 
   group('restoreAuthenticatedSession with a current user', () {
     test('adopts the signed-in user without waiting for the stream', () async {
-      when(auth.currentUser).thenReturn(
-        _user(uid: 'uid-1', email: 'a@example.com', displayName: 'Alice'),
+      final user = _user(
+        uid: 'uid-1',
+        email: 'a@example.com',
+        displayName: 'Alice',
       );
+      when(auth.currentUser).thenReturn(user);
 
       await restore(hadMadeGuestDecision: false);
 
@@ -107,7 +110,8 @@ void main() {
     });
 
     test('does not resync the FCM token for an existing session', () async {
-      when(auth.currentUser).thenReturn(_user());
+      final user = _user();
+      when(auth.currentUser).thenReturn(user);
 
       await restore(hadMadeGuestDecision: false);
       await pumpEventQueue();
@@ -116,7 +120,8 @@ void main() {
     });
 
     test('stores empty strings when email and name are missing', () async {
-      when(auth.currentUser).thenReturn(_user());
+      final user = _user();
+      when(auth.currentUser).thenReturn(user);
 
       await restore(hadMadeGuestDecision: false);
 
@@ -129,9 +134,8 @@ void main() {
         'treats an anonymous user as signed out '
         '(guest decision: $hadMadeGuestDecision)',
         () async {
-          when(
-            auth.currentUser,
-          ).thenReturn(_user(isAnonymous: true, uid: 'anon-uid'));
+          final user = _user(isAnonymous: true, uid: 'anon-uid');
+          when(auth.currentUser).thenReturn(user);
 
           await restore(hadMadeGuestDecision: hadMadeGuestDecision);
           await pumpEventQueue();
@@ -147,7 +151,8 @@ void main() {
     }
 
     test('persists the resolved sign-in flags', () async {
-      when(auth.currentUser).thenReturn(_user());
+      final user = _user();
+      when(auth.currentUser).thenReturn(user);
 
       await restore(hadMadeGuestDecision: false);
       await pumpEventQueue();
@@ -159,9 +164,10 @@ void main() {
 
   group('restoreAuthenticatedSession from the auth stream', () {
     test('does not resync the FCM token for an anonymous user', () async {
+      final user = _user(isAnonymous: true);
       when(
         auth.authStateChanges(),
-      ).thenAnswer((_) => Stream<User?>.value(_user(isAnonymous: true)));
+      ).thenAnswer((_) => Stream<User?>.value(user));
 
       await restore(hadMadeGuestDecision: false);
       await pumpEventQueue();
