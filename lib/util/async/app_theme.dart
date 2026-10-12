@@ -10,41 +10,60 @@ export 'package:mazilon/design_system/tokens/colors.dart';
 /// genuinely Material — turning those tokens into a `ColorScheme`/`ThemeData`
 /// for `MaterialApp`. See that file's doc comment for the token history.
 
-/// Light `ColorScheme` derived from `AppColors`. Phase D wires this onto
-/// `MaterialApp.theme` so future Material widgets read tokens rather than
-/// re-deriving from `primarySwatch`.
+/// Light `ColorScheme` built from the Figma tokens in `AppColors` (#431).
+/// Every slot reads a Figma-named token, never a legacy alias, so the
+/// aliases can be deleted without touching this file.
 const ColorScheme appLightColorScheme = ColorScheme.light(
-  primary: AppColors.primary,
-  onPrimary: AppColors.onPrimary,
-  secondary: AppColors.secondary,
-  onSecondary: AppColors.onSecondary,
-  tertiary: AppColors.success,
-  onTertiary: AppColors.onSuccess,
-  surface: AppColors.surface,
-  onSurface: AppColors.onSurface,
-  error: AppColors.error,
-  onError: AppColors.onError,
-  outline: AppColors.neutralDark,
-  surfaceContainerHighest: AppColors.neutralLight,
+  primary: AppColors.accentPrimary,
+  onPrimary: AppColors.contentOnAccent,
+  primaryContainer: AppColors.accentContainer,
+  onPrimaryContainer: AppColors.accentOnContainer,
+  secondary: AppColors.accentContainer,
+  onSecondary: AppColors.accentOnContainer,
+  tertiary: AppColors.statusSuccess,
+  onTertiary: AppColors.contentOnAccent,
+  surface: AppColors.surfaceRaised,
+  onSurface: AppColors.contentPrimary,
+  onSurfaceVariant: AppColors.contentSecondary,
+  error: AppColors.statusDanger,
+  onError: AppColors.contentOnAccent,
+  errorContainer: AppColors.statusDangerContainer,
+  // content/secondary, not tertiary: `outline` is read as muted text,
+  // and tertiary is under 4.5:1 on every surface.
+  outline: AppColors.contentSecondary,
+  outlineVariant: AppColors.effectHairline,
+  surfaceContainerHighest: AppColors.surfaceRaisedHighest,
+  inverseSurface: AppColors.surfaceInverse,
+  onInverseSurface: AppColors.contentOnInverse,
+  scrim: AppColors.effectScrim,
+  shadow: AppColors.effectShadow,
 );
 
 /// Dark `ColorScheme` for user-selected dark mode. Its foreground and
 /// background pairs are deliberately separate from the light palette so the
 /// setting does not merely dim the app while leaving unreadable text behind.
 const ColorScheme appDarkColorScheme = ColorScheme.dark(
-  primary: AppColors.darkPrimary,
-  onPrimary: AppColors.darkOnPrimary,
-  secondary: AppColors.darkSecondary,
-  onSecondary: AppColors.darkOnSecondary,
-  tertiary: AppColors.darkSuccess,
-  onTertiary: AppColors.darkOnSuccess,
-  surface: AppColors.darkSurface,
-  onSurface: AppColors.darkOnSurface,
-  error: AppColors.darkError,
-  onError: AppColors.darkOnError,
-  outline: AppColors.darkOutline,
-  outlineVariant: AppColors.darkOutline,
-  surfaceContainerHighest: AppColors.darkSurfaceContainer,
+  primary: AppColors.darkAccentPrimary,
+  onPrimary: AppColors.darkContentOnAccent,
+  primaryContainer: AppColors.darkAccentContainer,
+  onPrimaryContainer: AppColors.darkAccentOnContainer,
+  secondary: AppColors.darkAccentContainer,
+  onSecondary: AppColors.darkAccentOnContainer,
+  tertiary: AppColors.darkStatusSuccess,
+  onTertiary: AppColors.darkContentOnAccent,
+  surface: AppColors.darkSurfaceRaised,
+  onSurface: AppColors.darkContentPrimary,
+  onSurfaceVariant: AppColors.darkContentSecondary,
+  error: AppColors.darkStatusDanger,
+  onError: AppColors.darkContentOnAccent,
+  errorContainer: AppColors.darkStatusDangerContainer,
+  outline: AppColors.darkContentSecondary,
+  outlineVariant: AppColors.darkEffectHairline,
+  surfaceContainerHighest: AppColors.darkSurfaceRaisedHighest,
+  inverseSurface: AppColors.darkSurfaceInverse,
+  onInverseSurface: AppColors.darkContentOnInverse,
+  scrim: AppColors.darkEffectScrim,
+  shadow: AppColors.darkEffectShadow,
 );
 
 /// Typography tokens — DESIGN.md §2.2. Extends `ThemeData.textTheme` rather
@@ -175,18 +194,21 @@ InputDecorationThemeData _inputDecorationTheme({
 /// a Material 3 flip belongs in a separate PR with design review.
 ThemeData buildLightTheme() {
   final InputDecorationThemeData inputs = _inputDecorationTheme(
-    outline: AppColors.neutralLight,
-    focus: AppColors.primary,
-    error: AppColors.error,
+    outline: AppColors.effectHairline,
+    focus: AppColors.accentPrimary,
+    error: AppColors.statusDanger,
   );
   return ThemeData(
     useMaterial3: false,
     brightness: Brightness.light,
     colorScheme: appLightColorScheme,
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: AppColors.pageBackground,
-    cardColor: AppColors.white,
-    bottomAppBarTheme: const BottomAppBarThemeData(color: Colors.white),
+    primaryColor: AppColors.accentPrimary,
+    scaffoldBackgroundColor: AppColors.surfaceCanvas,
+    cardColor: AppColors.surfaceRaisedHigh,
+    dividerColor: AppColors.effectHairline,
+    bottomAppBarTheme: const BottomAppBarThemeData(
+      color: AppColors.surfaceRaisedHigh,
+    ),
     textTheme: _appTextTheme,
     inputDecorationTheme: inputs,
     // `DropdownMenu` reads `DropdownMenuThemeData`, never
@@ -201,26 +223,26 @@ ThemeData buildLightTheme() {
 /// remains enabled to preserve the existing custom control styling.
 ThemeData buildDarkTheme() {
   final InputDecorationThemeData inputs = _inputDecorationTheme(
-    outline: AppColors.darkOutline,
-    focus: AppColors.darkPrimary,
-    error: AppColors.darkError,
-    fill: AppColors.darkSurfaceContainer,
+    outline: AppColors.darkEffectHairline,
+    focus: AppColors.darkAccentPrimary,
+    error: AppColors.darkStatusDanger,
+    fill: AppColors.darkSurfaceRaisedHigh,
   );
   return ThemeData(
     useMaterial3: false,
     brightness: Brightness.dark,
     colorScheme: appDarkColorScheme,
-    primaryColor: AppColors.darkPrimary,
-    scaffoldBackgroundColor: AppColors.darkPageBackground,
+    primaryColor: AppColors.darkAccentPrimary,
+    scaffoldBackgroundColor: AppColors.darkSurfaceCanvas,
     bottomAppBarTheme: const BottomAppBarThemeData(
-      color: AppColors.darkNavBackground,
+      color: AppColors.darkSurfaceRaised,
     ),
-    canvasColor: AppColors.darkSurface,
-    cardColor: AppColors.darkSurfaceContainer,
-    dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
+    canvasColor: AppColors.darkSurfaceRaised,
+    cardColor: AppColors.darkSurfaceRaisedHigh,
+    dividerColor: AppColors.darkEffectHairline,
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.darkNavBackground,
-      foregroundColor: AppColors.darkOnSurface,
+      backgroundColor: AppColors.darkSurfaceRaised,
+      foregroundColor: AppColors.darkContentPrimary,
     ),
     textTheme: _appTextTheme,
     inputDecorationTheme: inputs,

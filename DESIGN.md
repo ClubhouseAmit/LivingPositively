@@ -4,13 +4,14 @@ description: A supportive mental health app providing crisis plan tools, gratitu
 version: 1.0.0
 tags: [mental-health, wellness, support, minimal]
 colorTokens:
-  primary: "0xFFA688F8"
-  darkPrimary: "0xFFD7C2FF"
-  secondary: "0xFFE3C6FF"
-  surface: "0xFFFAF8F8"
-  onSurface: "0xFF0F2851"
-  success: "0xFF01B91E"
-  error: "0xFFF44336"
+  accentPrimary: "0xFFB44FDD"
+  darkAccentPrimary: "0xFFB968D9"
+  accentContainer: "0xFFE8DDFF"
+  surfaceCanvas: "0xFFF4EFE8"
+  surfaceRaised: "0xFFFBF9F6"
+  contentPrimary: "0xFF16264A"
+  statusSuccess: "0xFF256C41"
+  statusDanger: "0xFFB3261E"
   darkLogoOutline: "0xFFFFFFFF"
 borderRadii:
   button: 20
@@ -54,21 +55,111 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 
 ### 2.1 Colors
 
-| Token             | CSS Custom Property     | Value        | Purpose / Description                                  |
-| :---------------- | :---------------------- | :----------- | :----------------------------------------------------- |
-| **Primary**       | `--color-primary`       | `0xFFA688F8` | Calming violet, used as background for primary buttons |
-| **Dark Primary**  | `--color-dark-primary`  | `0xFFD7C2FF` | Pale lavender, used as the background for dark-mode primary buttons |
-| **Secondary**     | `--color-secondary`     | `0xFFE3C6FF` | Highlight soft purple, selected borders/indicators     |
-| **On Surface**    | `--color-on-surface`    | `0xFF0F2851` | Primary body text, titles, dark contrast details       |
-| **Surface**       | `--color-surface`       | `0xFFFAF8F8` | Default scaffold/canvas clean color                    |
-| **Neutral Dark**  | `--color-neutral-dark`  | `0xFF9A9EB6` | Muted text, borders, inactive indicators               |
-| **Neutral Light** | `--color-neutral-light` | `0xFFE7E7E7` | Filled card backgrounds, divider lines                 |
-| **Success**       | `--color-success`       | `0xFF01B91E` | Success badges, checked checkmarks, safe items         |
-| **Error**         | `--color-error`         | `0xFFF44336` | Destructive warnings, danger alerts, delete buttons    |
-| **Background**    | `--color-bg`            | `0xFFF4F0EB` | Light mode screen backdrop tone                        |
-| **Progress Track** | `--color-progress-track` | `0xFFD9D9D9` | Inactive progress-dot fill (no dark-mode value designed yet) |
-| **Suggestion Card Outline** | `--color-suggestion-outline` | `0xFF01B99F` | Dashed border on an unselected onboarding-suggestion card — teal, distinct from Success green (no dark-mode value designed yet) |
-| **Dark Logo Outline** | `--color-dark-logo-outline` | `0xFFFFFFFF` | Pure-white lower-letter outline in the dark-mode logo only; an artwork exception, not a standard text foreground |
+Source of truth: the LP-DS Figma file, page **Colors**, frame "Variables
+Documentation - Color Tokens" (node 88:332). Every Figma variable is an
+`AppColors` constant in `lib/design_system/tokens/colors.dart`: the light-mode
+value under the camelCased Figma name, the dark-mode value under the same name
+prefixed with `dark`. Alpha variants carry the opacity in the hex alpha byte.
+
+**New code uses these names.** Prefer `Theme.of(context).colorScheme` where a
+slot exists (it already resolves light/dark); otherwise pick `x` / `darkX` the
+same way existing code does.
+
+| Figma token | `AppColors` (light / dark) | Light | Dark |
+| :-- | :-- | :-- | :-- |
+| `accent/container` | `accentContainer` / `darkAccentContainer` | `#E8DDFF` | `#4F378B` |
+| `accent/highlight` | `accentHighlight` / `darkAccentHighlight` | `#F2ED4E` | `#D8D34A` |
+| `accent/muted` | `accentMuted` / `darkAccentMuted` | `#DC9BF6` | `#DD89FF` |
+| `accent/on-container` | `accentOnContainer` / `darkAccentOnContainer` | `#22005D` | `#EADDFF` |
+| `accent/primary` | `accentPrimary` / `darkAccentPrimary` | `#B44FDD` | `#B968D9` |
+| `accent/wash` | `accentWash` / `darkAccentWash` | `#EFE9FE` | `#2C2440` |
+| `action/emergency` | `actionEmergency` / `darkActionEmergency` | `#33373D` | `#7C838E` |
+| `content/on-accent` | `contentOnAccent` / `darkContentOnAccent` | `#FFFFFF` | `#2A1A5E` |
+| `content/on-emergency` | `contentOnEmergency` / `darkContentOnEmergency` | `#FFFFFF` | `#FFFFFF` |
+| `content/on-inverse` | `contentOnInverse` / `darkContentOnInverse` | `#F5EFF7` | `#322F35` |
+| `content/placeholder` | `contentPlaceholder` / `darkContentPlaceholder` | `#5C6066` | `#7A736B` |
+| `content/primary` | `contentPrimary` / `darkContentPrimary` | `#16264A` | `#F2EDE6` |
+| `content/primary 12%` | `contentPrimary12` / `darkContentPrimary12` | `#16264A @12%` | `#F2EDE6 @12%` |
+| `content/secondary` | `contentSecondary` / `darkContentSecondary` | `#596271` | `#C0B9B2` |
+| `content/tertiary` | `contentTertiary` / `darkContentTertiary` | `#B6BCC6` | `#6A635C` |
+| `effect/hairline` | `effectHairline` / `darkEffectHairline` | `#D5CAC1` | `#4F4740` |
+| `effect/highlight` | `effectHighlight` / `darkEffectHighlight` | `#FFFFFF @55%` | `#FFFFFF @16%` |
+| `effect/scrim` | `effectScrim` / `darkEffectScrim` | `#000000 @32%` | `#000000 @60%` |
+| `effect/shadow` | `effectShadow` / `darkEffectShadow` | `#16264A @7%` | `#000000 @50%` |
+| `nav/inactive` | `navInactive` / `darkNavInactive` | `#8A8E97` | `#8A8279` |
+| `plan/professional` | `planProfessional` / `darkPlanProfessional` | `#3A5BA9` | `#B4C5FF` |
+| `plan/professional-container` | `planProfessionalContainer` / `darkPlanProfessionalContainer` | `#DBE1FF` | `#22407F` |
+| `plan/support` | `planSupport` / `darkPlanSupport` | `#206A50` | `#8CD6B4` |
+| `plan/support-container` | `planSupportContainer` / `darkPlanSupportContainer` | `#A8F2CF` | `#0C4A34` |
+| `plan/trigger` | `planTrigger` / `darkPlanTrigger` | `#8F4B45` | `#FFB4AB` |
+| `plan/trigger-container` | `planTriggerContainer` / `darkPlanTriggerContainer` | `#FFDAD5` | `#5F1F1B` |
+| `plan/warning` | `planWarning` / `darkPlanWarning` | `#8B5000` | `#FFB77C` |
+| `plan/warning-container` | `planWarningContainer` / `darkPlanWarningContainer` | `#FFDCC2` | `#5C3600` |
+| `plan/wellness` | `planWellness` / `darkPlanWellness` | `#6A4FBF` | `#D0BCFF` |
+| `plan/wellness-container` | `planWellnessContainer` / `darkPlanWellnessContainer` | `#E8DDFF` | `#4F378B` |
+| `status/danger` | `statusDanger` / `darkStatusDanger` | `#B3261E` | `#F2B8B5` |
+| `status/danger-container` | `statusDangerContainer` / `darkStatusDangerContainer` | `#F9DEDC` | `#8C1D18` |
+| `status/success` | `statusSuccess` / `darkStatusSuccess` | `#256C41` | `#7FE0A5` |
+| `status/success-container` | `statusSuccessContainer` / `darkStatusSuccessContainer` | `#A8F2C0` | `#1E5236` |
+| `surface/backdrop` | `surfaceBackdrop` / `darkSurfaceBackdrop` | `#DFDAD3` | `#0E0D0C` |
+| `surface/canvas` | `surfaceCanvas` / `darkSurfaceCanvas` | `#F4EFE8` | `#161412` |
+| `surface/disabled` | `surfaceDisabled` / `darkSurfaceDisabled` | `#EBE4DA @75%` | `#100F0D @75%` |
+| `surface/featured` | `surfaceFeatured` / `darkSurfaceFeatured` | `#14264C` | `#2A2438` |
+| `surface/inverse` | `surfaceInverse` / `darkSurfaceInverse` | `#322F35` | `#E9E1DA` |
+| `surface/raised` | `surfaceRaised` / `darkSurfaceRaised` | `#FBF9F6` | `#221F1C` |
+| `surface/raised-high` | `surfaceRaisedHigh` / `darkSurfaceRaisedHigh` | `#FFFFFF` | `#2B2725` |
+| `surface/raised-highest` | `surfaceRaisedHighest` / `darkSurfaceRaisedHighest` | `#F2EBE4` | `#363230` |
+| `surface/raised-highest 90` | `surfaceRaisedHighest90` / `darkSurfaceRaisedHighest90` | `#F2EBE4 @90%` | `#363230 @90%` |
+| `surface/sunken` | `surfaceSunken` / `darkSurfaceSunken` | `#EBE4DA` | `#100F0D` |
+| `surface/white` | `surfaceWhite` / `darkSurfaceWhite` | `#FFFFFF` | `#FFFFFF` |
+| `surface/white 75` | `surfaceWhite75` / `darkSurfaceWhite75` | `#FFFFFF @75%` | `#FFFFFF @75%` |
+
+**Theme mapping** (`lib/util/async/app_theme.dart`, same in both modes):
+`primary` → accent/primary · `primaryContainer`, `secondary` → accent/container ·
+`tertiary` → status/success · `surface` → surface/raised · `onSurface` →
+content/primary · `onSurfaceVariant` → content/secondary · `error` →
+status/danger · `outline` → content/secondary (it is read as muted text;
+content/tertiary is under 4.5:1) · `outlineVariant`, dividers, input
+borders → effect/hairline · `surfaceContainerHighest` → surface/raised-highest ·
+scaffold → surface/canvas · cards → surface/raised-high. Figma has no
+`on-danger` / `on-success` token yet, so `onError` / `onTertiary` use
+content/on-accent.
+
+**Known contrast gaps (shipped as designed, tracked in #433):**
+- `content/on-accent` on `accent/primary` — the primary button label — is
+  4.12:1 (light) / 4.29:1 (dark), under WCAG AA's 4.5:1 for normal text.
+- `effect/hairline` as an idle input border is 1.6:1 (light) / 1.4:1 (dark),
+  under WCAG 1.4.11's 3:1 for component boundaries. Fine for dividers.
+
+#### Legacy aliases (do not use in new code)
+
+The pre-#431 names still compile and now point at Figma tokens. They will be
+deleted once nothing reads them.
+
+| Legacy | Now | Legacy (dark) | Now |
+| :-- | :-- | :-- | :-- |
+| `primary` | `accentPrimary` | `darkPrimary` | `darkAccentPrimary` |
+| `onPrimary`, `onError`, `onSuccess` | `contentOnAccent` | `darkOnPrimary`, `darkOnError`, `darkOnSuccess` | `darkContentOnAccent` |
+| `secondary` | `accentContainer` | `darkSecondary` | `darkAccentContainer` |
+| `onSecondary` | `accentOnContainer` | `darkOnSecondary` | `darkAccentOnContainer` |
+| `surface` | `surfaceRaised` | `darkSurface`, `darkNavBackground` | `darkSurfaceRaised` |
+| `white` | `surfaceRaisedHigh` | `darkSurfaceContainer` | `darkSurfaceRaisedHigh` |
+| `pageBackground` | `surfaceCanvas` | `darkPageBackground` | `darkSurfaceCanvas` |
+| `onSurface` | `contentPrimary` | `darkOnSurface` | `darkContentPrimary` |
+| `error` | `statusDanger` | `darkError` | `darkStatusDanger` |
+| `success` | `statusSuccess` | `darkSuccess` | `darkStatusSuccess` |
+| `neutralLight` | `effectHairline` | `darkOutline` | `darkContentSecondary` |
+| `neutralDark` | `contentSecondary` | | |
+| `mutedForeground` | `contentSecondary` | | |
+
+#### Not yet in Figma
+
+| Token | Value | Purpose |
+| :-- | :-- | :-- |
+| `progressTrack` | `0xFFD9D9D9` | Inactive progress-dot fill (same in both modes) |
+| `suggestionCardOutline` | `0xFF01B99F` | Dashed border on an unselected onboarding-suggestion card (same in both modes) |
+| `darkLogoOutline` | `0xFFFFFFFF` | Lower-letter outline in the dark-mode logo only; artwork exception, not a text foreground |
+| `pdfTint` | `0xfaf6fd` | PDF-export tint, kept byte-identical |
 
 ### 2.2 Typography (Font Family: Rubik)
 
@@ -193,51 +284,17 @@ Hide Flutter's names at the import if the file also uses Material.
 
 ## 4. Theme Integration Code
 
-The theme is wired in `lib/util/async/app_theme.dart`.
-
-```dart
-ThemeData buildLightTheme() {
-  return ThemeData(
-    useMaterial3: false,
-    brightness: Brightness.light,
-    colorScheme: appLightColorScheme,
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: AppColors.pageBackground,
-    bottomAppBarTheme: const BottomAppBarThemeData(color: Colors.white),
-    fontFamily: 'Rubix',
-  );
-}
-
-ThemeData buildDarkTheme() {
-  return ThemeData(
-    useMaterial3: false,
-    brightness: Brightness.dark,
-    colorScheme: appDarkColorScheme,
-    primaryColor: AppColors.darkPrimary,
-    scaffoldBackgroundColor: AppColors.darkPageBackground,
-    bottomAppBarTheme: const BottomAppBarThemeData(
-      color: AppColors.darkNavBackground,
-    ),
-    canvasColor: AppColors.darkSurface,
-    cardColor: AppColors.darkSurfaceContainer,
-    dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.darkNavBackground,
-      foregroundColor: AppColors.darkOnSurface,
-    ),
-    inputDecorationTheme: const InputDecorationTheme(
-      fillColor: AppColors.darkSurfaceContainer,
-      filled: true,
-    ),
-    fontFamily: 'Rubix',
-  );
-}
-```
+The theme is wired in `lib/util/async/app_theme.dart`: `buildLightTheme()` /
+`buildDarkTheme()` build `ThemeData` from `appLightColorScheme` /
+`appDarkColorScheme`, and both read only Figma-named `AppColors` tokens (see the
+theme mapping in §2.1). `main.dart` picks between them from the user's dark-mode
+setting (`UserInformation.usesDarkModeAt`: always light, always dark, or
+scheduled) — not from the OS brightness.
 
 `AppColors.darkLogoOutline` is intentionally not assigned to `ThemeData` or
 `ColorScheme`. `LivingPositivelyLogo` reads it directly because it applies only
 to the dark-mode artwork contour; regular dark-mode text continues to use
-`AppColors.darkOnSurface`.
+`AppColors.darkContentPrimary`.
 
 ---
 
@@ -247,8 +304,8 @@ To preserve brand styling and prevent layout drift, ensure your AI agent code ge
 
 ### 5.1 Color Anti-Patterns
 
-- **Don't** hardcode raw hex values (e.g. `Color(0xFF...)` or `Colors.red`) directly in page widgets. Always reference semantic slots in `Theme.of(context).colorScheme` or use `AppColors`.
-- **Don't** use arbitrary background colors. Scaffold backdrops must use `AppColors.pageBackground` (light mode) or `AppColors.darkPageBackground` (dark mode).
+- **Don't** hardcode raw hex values (e.g. `Color(0xFF...)` or `Colors.red`) directly in page widgets. Always reference semantic slots in `Theme.of(context).colorScheme` or use a Figma-named `AppColors` token (§2.1) — not a legacy alias.
+- **Don't** use arbitrary background colors. Scaffold backdrops must use `AppColors.surfaceCanvas` (light mode) or `AppColors.darkSurfaceCanvas` (dark mode).
 
 ### 5.2 Component Spacing & Layout
 

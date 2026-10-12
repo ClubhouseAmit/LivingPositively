@@ -10,8 +10,7 @@ const String _primaryKey = 'notificationPreferences';
 const String _copyKey = 'notificationReminderSettings';
 
 final class _Memory extends ContractPersistentMemoryService {
-  _Memory({Map<String, Object?>? initialValues, this.failCopyWrite = false})
-    : super(initialValues: initialValues) {
+  _Memory({super.initialValues, this.failCopyWrite = false}) {
     onMissingRead = (_, _) => null;
     onPersist = (key, _, _) {
       if (failCopyWrite && key == _copyKey) {
