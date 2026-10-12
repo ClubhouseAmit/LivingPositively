@@ -58,8 +58,8 @@ void main() {
     expect(rendered.data, 'hello');
     expect(rendered.style, AppTextStyle.headlineLarge);
     final flutter.Text inner = tester.widget(find.byType(flutter.Text));
-    expect(inner.style!.fontSize, AppTypeScale.headlineLarge.fontSize);
-    expect(inner.style!.fontFamily, 'Rubix');
+    expect(inner.style!.fontSize, AppTypeScale.headingH1.fontSize);
+    expect(inner.style!.fontFamily, 'Heebo');
   });
 
   testWidgets('Card renders its child with no Material ancestor', (

@@ -184,7 +184,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                       minFontSize: 14,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontFamily: "Rubix",
+                        fontFamily: "Heebo",
                         fontSize: 14.sp,
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.outline,

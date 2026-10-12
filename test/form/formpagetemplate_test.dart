@@ -132,7 +132,7 @@ void main() {
           )
           .text
           .style!;
-      expect(headerStyle.fontFamily, 'Rubix');
+      expect(headerStyle.fontFamily, 'Heebo');
       expect(headerStyle.fontWeight, FontWeight.w500);
       expect(headerStyle.fontSize, 24.sp);
 
@@ -150,7 +150,7 @@ void main() {
           )
           .text
           .style!;
-      expect(subTitleStyle.fontFamily, 'Rubix');
+      expect(subTitleStyle.fontFamily, 'Heebo');
       expect(subTitleStyle.fontWeight, FontWeight.w400);
       expect(subTitleStyle.fontSize, 16.sp);
 

@@ -200,7 +200,7 @@ mixin _FormPageBlocks on _FormPagePersist {
           child: Text(
             item,
             style: TextStyle(
-              fontFamily: "Rubix",
+              fontFamily: "Heebo",
               fontSize: 14.sp,
               fontWeight: AppFontWeight.regular,
               color: Theme.of(context).colorScheme.onSurface,

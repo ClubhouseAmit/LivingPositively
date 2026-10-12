@@ -222,15 +222,15 @@ const emptyStyle = TextStyle();
 
 /// Legacy. Use a plain [Text] widget directly.
 ///
-/// All this does is force `fontFamily: 'Rubix'`, which both themes already set
+/// All this does is force `fontFamily: 'Heebo'`, which both themes already set
 /// via `ThemeData.fontFamily` — so it buys nothing over `Text`, while costing
 /// an untyped `style` parameter and hiding the widget behind a helper.
-@Deprecated('Use a plain Text widget; ThemeData already applies Rubik.')
+@Deprecated('Use a plain Text widget; ThemeData already applies Heebo.')
 Text myText(content, style, align) {
   style ??= emptyStyle;
   return Text(
     content,
-    style: style.copyWith(fontFamily: 'Rubix'),
+    style: style.copyWith(fontFamily: 'Heebo'),
     textAlign: align,
   );
 }
@@ -259,7 +259,7 @@ AutoSizeText myAutoSizedText(
   return AutoSizeText(
     content,
     maxFontSize: maxFontSize,
-    style: style.copyWith(fontFamily: 'Rubix'),
+    style: style.copyWith(fontFamily: 'Heebo'),
     textAlign: align,
     maxLines: maxLines == 20 ? null : maxLines,
   );
