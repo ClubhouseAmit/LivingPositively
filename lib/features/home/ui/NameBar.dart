@@ -47,7 +47,7 @@ class NameBarState extends LPExtendedState<NameBar> {
                         fontSize: 30.sp,
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.onSurface,
-                        fontFamily: 'Rubix',
+                        fontFamily: 'Heebo',
                       ),
                     ),
                   ),

@@ -126,7 +126,7 @@ class _CountrySelectorWidgetState
                         height: kFormFieldLabelHeight,
                         fontWeight: AppFontWeight.semiBold,
                         color: Theme.of(context).colorScheme.onSurface,
-                        fontFamily: 'Rubix',
+                        fontFamily: 'Heebo',
                       ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

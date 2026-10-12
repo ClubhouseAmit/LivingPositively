@@ -117,7 +117,7 @@ class _TextFieldState extends State<TextField> {
       readOnly: !widget.enabled,
       obscureText: widget.obscureText,
       keyboardType: widget.keyboardType ?? TextInputType.text,
-      style: AppTypeScale.titleSmall.copyWith(color: AppColors.onSurface),
+      style: AppTypeScale.titleBase.copyWith(color: AppColors.onSurface),
       cursorColor: AppColors.primary,
       backgroundCursorColor: AppColors.neutralLight,
       onChanged: widget.onChanged,

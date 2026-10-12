@@ -63,7 +63,7 @@ class _PositiveTraitItemSugState extends State<PositiveTraitItemSug> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontFamily: "Rubix",
+                            fontFamily: "Heebo",
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: const Color.fromARGB(255, 12, 207, 19),

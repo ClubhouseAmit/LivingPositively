@@ -516,20 +516,22 @@ Widget wizardStepHarness(WizardStep step) => Scaffold(
   ),
 );
 
-/// Loads the Rubix custom font family into the Flutter test environment
+/// Loads the Heebo custom font family into the Flutter test environment
 /// so text measurements and visual rendering match production font metrics.
 Future<void> loadTestFonts() async {
-  final fontLoader = FontLoader('Rubix');
+  final fontLoader = FontLoader('Heebo');
 
-  final regular = File('fonts/Rubik-Regular.ttf').readAsBytesSync();
-  final medium = File('fonts/Rubik-Medium.ttf').readAsBytesSync();
-  final semiBold = File('fonts/Rubik-SemiBold.ttf').readAsBytesSync();
-  final bold = File('fonts/Rubik-Bold.ttf').readAsBytesSync();
+  final regular = File('fonts/Heebo-Regular.ttf').readAsBytesSync();
+  final medium = File('fonts/Heebo-Medium.ttf').readAsBytesSync();
+  final semiBold = File('fonts/Heebo-SemiBold.ttf').readAsBytesSync();
+  final bold = File('fonts/Heebo-Bold.ttf').readAsBytesSync();
+  final extraBold = File('fonts/Heebo-ExtraBold.ttf').readAsBytesSync();
 
   fontLoader.addFont(Future.value(ByteData.sublistView(regular)));
   fontLoader.addFont(Future.value(ByteData.sublistView(medium)));
   fontLoader.addFont(Future.value(ByteData.sublistView(semiBold)));
   fontLoader.addFont(Future.value(ByteData.sublistView(bold)));
+  fontLoader.addFont(Future.value(ByteData.sublistView(extraBold)));
 
   await fontLoader.load();
 }

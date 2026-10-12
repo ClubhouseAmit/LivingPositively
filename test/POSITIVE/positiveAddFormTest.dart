@@ -76,7 +76,7 @@ class _AddFormState extends State<AddForm> {
                                     labelText: widget.formTitle,
                                     contentPadding: EdgeInsets.only(right: 1.0),
                                     labelStyle: TextStyle(
-                                      fontFamily: 'Rubix',
+                                      fontFamily: 'Heebo',
                                       height: 0,
                                       fontSize: 20,
                                     ),

@@ -85,7 +85,7 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
         height: kFormFieldLabelHeight,
         fontWeight: AppFontWeight.semiBold,
         color: Theme.of(context).colorScheme.onSurface,
-        fontFamily: 'Rubix',
+        fontFamily: 'Heebo',
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,

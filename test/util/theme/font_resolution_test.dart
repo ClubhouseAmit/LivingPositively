@@ -5,12 +5,12 @@ import '../../helpers/widget_test_scaffold.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('load Rubix fonts and verify resolution', (
+  testWidgets('load Heebo fonts and verify resolution', (
     WidgetTester tester,
   ) async {
     await loadTestFonts();
 
-    // Pump a widget with Rubix text and different weights to ensure they load and resolve
+    // Pump a widget with Heebo text and different weights to ensure they load and resolve
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -19,28 +19,28 @@ void main() {
               Text(
                 'Regular Weight 400',
                 style: TextStyle(
-                  fontFamily: 'Rubix',
+                  fontFamily: 'Heebo',
                   fontWeight: FontWeight.w400,
                 ),
               ),
               Text(
                 'Medium Weight 500',
                 style: TextStyle(
-                  fontFamily: 'Rubix',
+                  fontFamily: 'Heebo',
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 'SemiBold Weight 600',
                 style: TextStyle(
-                  fontFamily: 'Rubix',
+                  fontFamily: 'Heebo',
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 'Bold Weight 700',
                 style: TextStyle(
-                  fontFamily: 'Rubix',
+                  fontFamily: 'Heebo',
                   fontWeight: FontWeight.w700,
                 ),
               ),

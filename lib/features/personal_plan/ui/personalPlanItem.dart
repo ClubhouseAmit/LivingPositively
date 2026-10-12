@@ -29,7 +29,7 @@ class _PersonalPlanItemState extends State<PersonalPlanItem> {
               fontSize: 16.sp,
               fontWeight: FontWeight.normal,
               color: Theme.of(context).colorScheme.onSurface,
-              fontFamily: 'Rubix',
+              fontFamily: 'Heebo',
             ),
             overflow: TextOverflow.ellipsis,
           ),

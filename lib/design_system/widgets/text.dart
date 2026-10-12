@@ -3,7 +3,8 @@ import 'package:flutter/widgets.dart' as flutter show Text;
 
 import 'package:mazilon/design_system/tokens/type_scale.dart';
 
-/// Named type-scale slots, matching `AppTypeScale`'s tokens 1:1.
+/// Named type-scale slots. Each maps to the `AppTypeScale` token that
+/// `ThemeData.textTheme` uses for the same Material slot (`app_theme.dart`).
 enum AppTextStyle {
   headlineLarge,
   headlineMedium,
@@ -51,14 +52,14 @@ class Text extends StatelessWidget {
   final TextOverflow? overflow;
 
   static const Map<AppTextStyle, TextStyle> _tokens = {
-    AppTextStyle.headlineLarge: AppTypeScale.headlineLarge,
-    AppTextStyle.headlineMedium: AppTypeScale.headlineMedium,
+    AppTextStyle.headlineLarge: AppTypeScale.headingH1,
+    AppTextStyle.headlineMedium: AppTypeScale.headingH2,
     AppTextStyle.titleLarge: AppTypeScale.titleLarge,
-    AppTextStyle.titleSmall: AppTypeScale.titleSmall,
-    AppTextStyle.labelLarge: AppTypeScale.labelLarge,
-    AppTextStyle.bodyLarge: AppTypeScale.bodyLarge,
-    AppTextStyle.bodySmall: AppTypeScale.bodySmall,
-    AppTextStyle.labelSmall: AppTypeScale.labelSmall,
+    AppTextStyle.titleSmall: AppTypeScale.titleBase,
+    AppTextStyle.labelLarge: AppTypeScale.titleSmall,
+    AppTextStyle.bodyLarge: AppTypeScale.bodyBase,
+    AppTextStyle.bodySmall: AppTypeScale.bodyXSmall,
+    AppTextStyle.labelSmall: AppTypeScale.captionMicro,
   };
 
   @override

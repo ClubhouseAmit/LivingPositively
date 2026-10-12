@@ -136,7 +136,7 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
-                                                fontFamily: "Rubix",
+                                                fontFamily: "Heebo",
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.purple,

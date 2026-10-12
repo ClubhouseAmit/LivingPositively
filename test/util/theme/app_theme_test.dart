@@ -100,14 +100,14 @@ void main() {
       expect(theme.colorScheme.error, AppColors.error);
     });
 
-    test('keeps Material 2 + Rubix font family', () {
+    test('keeps Material 2 + Heebo font family', () {
       // The brand button styles in styles.dart target Material 2
       // (custom RoundedRectangleBorder + TextButton.styleFrom). A
       // silent flip to Material 3 would visually break them.
       final theme = buildLightTheme();
       expect(theme.useMaterial3, isFalse);
       expect(theme.brightness, Brightness.light);
-      expect(theme.textTheme.bodyMedium?.fontFamily, 'Rubix');
+      expect(theme.textTheme.bodyMedium?.fontFamily, 'Heebo');
       expect(theme.scaffoldBackgroundColor, AppColors.pageBackground);
     });
   });

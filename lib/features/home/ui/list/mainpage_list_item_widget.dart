@@ -40,7 +40,7 @@ class MainpageListItemWidget extends StatelessWidget {
                 item,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontFamily: "Rubix",
+                  fontFamily: "Heebo",
                   fontSize: min(30, 16.sp),
                   fontWeight: FontWeight.normal,
                 ),

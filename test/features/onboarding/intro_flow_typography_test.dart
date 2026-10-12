@@ -1,8 +1,8 @@
 // Guards the two decisions behind issue #338 for the onboarding intro flow:
 //
-//   1. Rubik ('Rubix') is the only font family the app ships. The Figma source
+//   1. Heebo is the only font family the app ships (Rubik until #431). The Figma source
 //      names Epilogue (field labels) and Assistant (safety-plan buttons); both
-//      are rendered in Rubik at the design's sizes and weights instead.
+//      are rendered in Heebo at the design's sizes and weights instead.
 //   2. These screens do not use AutoSizeText. `myAutoSizedText` resolves to its
 //      `maxFontSize` ceiling rather than the style's `fontSize` whenever
 //      maxLines is null inside an unbounded-height scroll view, which is why
@@ -45,14 +45,14 @@ PhonePageData _phoneData() => PhonePageData(
   phoneDescription: const <String>[],
 );
 
-/// Sizes and weights of every Rubik-styled [Text] currently on screen.
+/// Sizes and weights of every Heebo-styled [Text] currently on screen.
 ///
 /// Third-party widgets (the country picker renders Roboto) are excluded — this
 /// asserts about the app's own typography, not its dependencies'.
 List<({double size, FontWeight weight})> _appTextStyles(WidgetTester tester) {
   return tester
       .widgetList<Text>(find.byType(Text))
-      .where((t) => t.style?.fontFamily == 'Rubix')
+      .where((t) => t.style?.fontFamily == 'Heebo')
       .where((t) => t.style?.fontSize != null && t.style?.fontWeight != null)
       .map((t) => (size: t.style!.fontSize!, weight: t.style!.fontWeight!))
       .toList();
@@ -75,17 +75,16 @@ void main() {
 
   /// Design sizes per screen, from the Figma manifests for frames
   /// 1660:1264 (welcome), 1660:2278 (get-to-know-you), 1660:2313 (safety plan).
-  final welcomeSizes = {26.0, 16.0, 18.0};
-  final getToKnowSizes = {26.0, 16.0, 14.0, 18.0};
-  final appearanceSizes = {24.0, 16.0, 10.0, 18.0};
-  // Frame 19 specifies its two actions at Assistant 17/w600, where frames 2
-  // and 28 specify Rubik 18/w500. Now that all three screens draw their
-  // actions from the one wizard wrapper, they are 18/w500 everywhere — the
-  // size two of the three frames agree on, and DESIGN.md's "Card Title" token.
-  // The 1pt deviation on this screen is the cost of having one control.
-  final safetyPlanSizes = {26.0, 16.0, 18.0};
+  final welcomeSizes = {26.0, 16.0, 15.0};
+  final getToKnowSizes = {26.0, 16.0, 14.0, 15.0};
+  final appearanceSizes = {22.0, 16.0, 10.0, 15.0};
+  // All three screens draw their two actions from the one wizard wrapper,
+  // which uses the theme's button style: LP-DS Figma Title/Small, 15/w600
+  // (#431). The old frames specified 17/w600 (frame 19) and Rubik 18/w500
+  // (frames 2 and 28).
+  final safetyPlanSizes = {26.0, 16.0, 15.0};
 
-  // Rubik is registered at these four weights in pubspec.yaml. The design never
+  // These are the weights the old design used for this flow. It never
   // uses Bold (w700) anywhere in this flow.
   final designWeights = {FontWeight.w400, FontWeight.w500, FontWeight.w600};
 

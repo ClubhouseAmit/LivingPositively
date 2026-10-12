@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/design_system/tokens/colors.dart';
+import 'package:mazilon/design_system/tokens/type_scale.dart';
 
 export 'package:mazilon/design_system/tokens/colors.dart';
 
@@ -84,59 +85,29 @@ const ColorScheme appDarkColorScheme = ColorScheme.dark(
 /// No `color` set on any style: color stays with `ColorScheme`
 /// (`AppColors`), unchanged from how call sites already source it.
 ///
-/// No `fontFamily` set on any style either, for the same reason: `ThemeData`
-/// already applies its own `fontFamily: 'Rubix'` argument to the base
-/// `Typography` text theme before merging this one on top, so repeating
-/// `fontFamily: 'Rubix'` on every entry here would be pure duplication.
+/// Each Material slot points at the LP-DS Figma style closest to how the app
+/// already uses it (#431). Slots the app never reads stay on Material's
+/// defaults, in the theme's font.
 const TextTheme _appTextTheme = TextTheme(
   // Screen title headers.
-  headlineLarge: TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.w500,
-    height: 36.4 / 28,
-  ),
+  headlineLarge: AppTypeScale.headingH1,
   // Section title headers.
-  headlineMedium: TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w500,
-    height: 24.6 / 24,
-  ),
+  headlineMedium: AppTypeScale.headingH2,
+  headlineSmall: AppTypeScale.headingH3,
   // Highlight text inside cards.
-  titleLarge: TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w500,
-    height: 30.0 / 18,
-  ),
-  // Textfield inputs.
-  titleSmall: TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    height: 17.0 / 14,
-  ),
-  // Buttons, highlights.
-  labelLarge: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w500,
-    height: 19.0 / 16,
-  ),
+  titleLarge: AppTypeScale.titleLarge,
+  titleMedium: AppTypeScale.bodyBaseMedium,
+  // Textfield inputs — Figma's text fields use Title/Base.
+  titleSmall: AppTypeScale.titleBase,
+  // Buttons — Figma's buttons use Title/Small.
+  labelLarge: AppTypeScale.titleSmall,
   // Standard paragraphs.
-  bodyLarge: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    height: 19.0 / 16,
-  ),
+  bodyLarge: AppTypeScale.bodyBase,
+  bodyMedium: AppTypeScale.bodySmall,
   // Muted hints.
-  bodySmall: TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
-    height: 32.0 / 14,
-  ),
+  bodySmall: AppTypeScale.bodyXSmall,
   // Helper labels.
-  labelSmall: TextStyle(
-    fontSize: 10,
-    fontWeight: FontWeight.w400,
-    height: 13.5 / 10,
-  ),
+  labelSmall: AppTypeScale.captionMicro,
 );
 
 /// Corner radius of a text input — DESIGN.md §2.3 "Input Fields".
@@ -215,7 +186,7 @@ ThemeData buildLightTheme() {
     // `ThemeData.inputDecorationTheme` — both have to be set or a dropdown
     // and a text field on the same screen will not match.
     dropdownMenuTheme: DropdownMenuThemeData(inputDecorationTheme: inputs),
-    fontFamily: 'Rubix',
+    fontFamily: AppTypeScale.family,
   );
 }
 
@@ -247,6 +218,6 @@ ThemeData buildDarkTheme() {
     textTheme: _appTextTheme,
     inputDecorationTheme: inputs,
     dropdownMenuTheme: DropdownMenuThemeData(inputDecorationTheme: inputs),
-    fontFamily: 'Rubix',
+    fontFamily: AppTypeScale.family,
   );
 }

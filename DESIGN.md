@@ -161,25 +161,82 @@ deleted once nothing reads them.
 | `darkLogoOutline` | `0xFFFFFFFF` | Lower-letter outline in the dark-mode logo only; artwork exception, not a text foreground |
 | `pdfTint` | `0xfaf6fd` | PDF-export tint, kept byte-identical |
 
-### 2.2 Typography (Font Family: Rubik)
+### 2.2 Typography (Font Family: Heebo)
 
-The application uses **Rubik** (referenced as `'Rubix'` in code font mappings).
+The application uses **Heebo** (family `'Heebo'`, `AppTypeScale.family`),
+bundled in `fonts/` at weights 400, 500, 600, 700 and 800 under the SIL Open
+Font License (`fonts/Heebo-OFL.txt`). It replaced Rubik in #431.
 
-Defined in `lib/util/async/app_theme.dart` as `_appTextTheme`, wired onto
-`ThemeData.textTheme` in both `buildLightTheme()` and `buildDarkTheme()`. Call
-sites use `Theme.of(context).textTheme.<slot>` — do not declare `fontSize`
-directly on a screen. No `.sp`: these sizes are the literal design values;
-device-independent scaling is `MediaQuery.textScaler`'s job, not a second
-scaling system stacked on top (see the code doc comment for why).
+Source of truth: the LP-DS Figma file, page **Typography** (node 7:193). Every
+Figma text style is an `AppTypeScale` token in
+`lib/design_system/tokens/type_scale.dart`, camelCased from its Figma name
+(`Heading/H1` → `AppTypeScale.headingH1`).
 
-- **Heading Large** (`textTheme.headlineLarge`): `fontSize: 28.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 36.4px` — Screen title headers.
-- **Heading Medium** (`textTheme.headlineMedium`): `fontSize: 24.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 24.6px` — Section title headers.
-- **Card Title** (`textTheme.titleLarge`): `fontSize: 18.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 30.0px` — Highlight text inside cards.
-- **Body Bold** (`textTheme.labelLarge`): `fontSize: 16.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 19.0px` — Buttons, highlights.
-- **Body Regular** (`textTheme.bodyLarge`): `fontSize: 16.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 19.0px` — Standard paragraphs.
-- **Input Label** (`textTheme.titleSmall`): `fontSize: 14.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 17.0px` — Textfield inputs.
-- **Body Small** (`textTheme.bodySmall`): `fontSize: 14.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 32.0px` — Muted hints.
-- **Micro Detail** (`textTheme.labelSmall`): `fontSize: 10.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 13.5px` — Helper labels.
+Where the line height below says *auto*, Figma uses the font's own line height
+(1.46875 × size for Heebo). The token leaves `height` unset, and Flutter
+renders the same thing. A fixed line height is set as `height`.
+
+| Figma style | `AppTypeScale` | Size / weight | Line height |
+|---|---|---|---|
+| Display/Huge ExtraBold | `displayHugeExtraBold` | 68 / 800 | 74 |
+| Display/Huge Regular | `displayHugeRegular` | 68 / 400 | 74 |
+| Display/Hero ExtraBold | `displayHeroExtraBold` | 34 / 800 | 44 |
+| Display/Hero regular | `displayHeroRegular` | 34 / 400 | 44 |
+| Heading/H1 | `headingH1` | 28 / 500 | auto |
+| Heading/H2 | `headingH2` | 22 / 600 | auto |
+| Heading/H3 | `headingH3` | 20 / 700 | auto |
+| Heading/H4 | `headingH4` | 17 / 700 | auto |
+| Title/Large | `titleLarge` | 17 / 600 | auto |
+| Title/Base | `titleBase` | 16 / 400 | auto |
+| Title/Base Bold | `titleBaseBold` | 16 / 700 | 20 |
+| Title/Small | `titleSmall` | 15 / 600 | auto |
+| Title/Small Bold | `titleSmallBold` | 15 / 700 | auto |
+| Title/Small Bold Uppercase | `titleSmallBoldUppercase` | 12 / 600, uppercase | auto |
+| Body/Large | `bodyLarge` | 17 / 400 | auto |
+| Body/Base | `bodyBase` | 16 / 400 | auto |
+| Body/Base Medium | `bodyBaseMedium` | 16 / 500 | auto |
+| Body/Base Paragraph | `bodyBaseParagraph` | 16 / 400 | 22 |
+| Body/Small | `bodySmall` | 15 / 400 | auto |
+| Body/Small Paragraph | `bodySmallParagraph` | 15 / 400 | 20 |
+| Body/XSmall | `bodyXSmall` | 14 / 400 | auto |
+| Label/Large | `labelLarge` | 14 / 600 | auto |
+| Label/Large Uppercase | `labelLargeUppercase` | 14 / 600, uppercase | auto |
+| Label/Base | `labelBase` | 13 / 600 | auto |
+| Label/Small | `labelSmall` | 12 / 600 | auto |
+| Caption/Base | `captionBase` | 13 / 400 | auto |
+| Caption/Small | `captionSmall` | 12 / 400, letter spacing 0.06 | 18 |
+| Caption/Micro | `captionMicro` | 10 / 600, letter spacing 0.05 | 16 |
+
+`TextStyle` has no text-case setting, so for the two *Uppercase* styles the
+caller upper-cases the string.
+
+#### Material slots
+
+`_appTextTheme` in `lib/util/async/app_theme.dart` points Material's
+`ThemeData.textTheme` slots at these tokens, and `AppTextStyle` in
+`lib/design_system/widgets/text.dart` uses the same mapping. Call sites use
+`Theme.of(context).textTheme.<slot>` or `AppTextStyle.<slot>`. Do not declare
+`fontSize` directly on a screen. No `.sp`: these sizes are the literal design
+values; device-independent scaling is `MediaQuery.textScaler`'s job, not a
+second scaling system stacked on top (see the code doc comment for why).
+
+| Material slot | Role in the app | `AppTypeScale` token |
+|---|---|---|
+| `headlineLarge` | Screen title headers | `headingH1` |
+| `headlineMedium` | Section title headers | `headingH2` |
+| `headlineSmall` | | `headingH3` |
+| `titleLarge` | Highlight text inside cards | `titleLarge` |
+| `titleMedium` | | `bodyBaseMedium` |
+| `titleSmall` | Textfield inputs (Figma text fields use Title/Base) | `titleBase` |
+| `labelLarge` | Buttons (Figma buttons use Title/Small) | `titleSmall` |
+| `bodyLarge` | Standard paragraphs | `bodyBase` |
+| `bodyMedium` | | `bodySmall` |
+| `bodySmall` | Muted hints | `bodyXSmall` |
+| `labelSmall` | Helper labels | `captionMicro` |
+
+Material and Figma use some of the same names for different things (Material's
+`bodyLarge` is Figma's `Body/Base`, not `Body/Large`). `AppTypeScale` always
+means the Figma style.
 
 ### 2.3 Border Radii
 
@@ -209,7 +266,7 @@ Describe and construct layout features using these reusable primitives instead o
 
 `Text` (`lib/design_system/widgets/text.dart`) is the preferred way to render tokenized text. Import it with `import 'package:mazilon/design_system/widgets/text.dart';`, hide Flutter's `Text` at the widgets/material import, and select the matching `AppTextStyle` token, for example: `Text('label', style: AppTextStyle.bodyLarge)`.
 
-For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTextStyle` tokens, use a §2.2 token via `Theme.of(context).textTheme.<slot>` with Flutter's `Text` (prefix the Flutter import), or use `myText(content, style, align)` to apply the Rubik font family for one-off text. Do not hand-write `fontSize`/`fontWeight`. `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still applies the Rubik font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer Flutter's `Text`/`myText` at a §2.2 size over reaching for it.
+For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTextStyle` tokens, use a §2.2 token via `Theme.of(context).textTheme.<slot>` with Flutter's `Text` (prefix the Flutter import), or use `myText(content, style, align)` to apply the Heebo font family for one-off text. Do not hand-write `fontSize`/`fontWeight`. `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still applies the Heebo font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer Flutter's `Text`/`myText` at a §2.2 size over reaching for it.
 
 ### 3.2 Action Buttons
 

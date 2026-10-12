@@ -97,7 +97,7 @@ void main() {
       final t = myText('hello', null, TextAlign.left);
       expect(t, isA<Text>());
       expect(t.data, 'hello');
-      expect(t.style?.fontFamily, 'Rubix');
+      expect(t.style?.fontFamily, 'Heebo');
       expect(t.textAlign, TextAlign.left);
     });
 
@@ -106,7 +106,7 @@ void main() {
       final t = myText('x', base, TextAlign.right);
       expect(t.style?.color, Colors.red);
       expect(t.style?.fontSize, 12);
-      expect(t.style?.fontFamily, 'Rubix');
+      expect(t.style?.fontFamily, 'Heebo');
     });
 
     test('myAutoSizedText defaults align to center when null', () {

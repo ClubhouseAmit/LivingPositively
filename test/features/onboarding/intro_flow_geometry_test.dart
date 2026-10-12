@@ -191,7 +191,9 @@ void main() {
 
       const screenInset = 15.0;
       // Button paint: AppSpacing.md padding above + below + labelLarge line.
-      const primaryButtonHeight = 43.0;
+      // 45 since Heebo (#431); Figma's new large button is 48, which lands
+      // with the button component work.
+      const primaryButtonHeight = 45.0;
       const actionsToDots = 28.0;
 
       expect(
