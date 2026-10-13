@@ -105,14 +105,14 @@ jobs:
         # A rerun must consume its successful producers' exact artifacts,
         # not an older attempt's same-name upload. Publishers also overwrite
         # prior artifacts so v4's latest-by-name listing cannot hide this ID.
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           artifact-ids: ${{ inputs.unit-coverage-artifact-id }}
           merge-multiple: true
           path: coverage
 
       - name: Download integration coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           artifact-ids: ${{ inputs.integration-coverage-artifact-id }}
           merge-multiple: true
