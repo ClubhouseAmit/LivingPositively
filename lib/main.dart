@@ -566,8 +566,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         localizationsDelegates: appLocalizationsDelegates,
         builder: appTimeFormatBuilder,
         debugShowCheckedModeBanner: false,
-        theme: buildLightTheme(),
-        darkTheme: buildDarkTheme(),
+        theme: buildLightTheme(Locale(localeService.getLocale())),
+        darkTheme: buildDarkTheme(Locale(localeService.getLocale())),
         themeMode: themeMode,
         home: UpgradeAlert(
           child: Scaffold(

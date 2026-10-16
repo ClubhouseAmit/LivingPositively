@@ -161,20 +161,40 @@ deleted once nothing reads them.
 | `darkLogoOutline` | `0xFFFFFFFF` | Lower-letter outline in the dark-mode logo only; artwork exception, not a text foreground |
 | `pdfTint` | `0xfaf6fd` | PDF-export tint, kept byte-identical |
 
-### 2.2 Typography (Font Family: Heebo)
+### 2.2 Typography (Font Family: Heebo, Rubik in Hebrew)
 
-The application uses **Heebo** (family `'Heebo'`, `AppTypeScale.family`),
-bundled in `fonts/` at weights 400, 500, 600, 700 and 800 under the SIL Open
-Font License (`fonts/Heebo-OFL.txt`). It replaced Rubik in #431.
+The font family depends on the app language, as in the Figma variable
+`font/family/FontFamily`:
+
+| App language | Family | `AppTypeScale` |
+|---|---|---|
+| Hebrew | **Rubik** | `hebrewFamily` |
+| English, Arabic, none | **Heebo** | `family` |
+
+Both are bundled in `fonts/` at weights 400, 500, 600, 700 and 800 under the
+SIL Open Font License (`fonts/Heebo-OFL.txt`, `fonts/Rubik-OFL.txt`). Sizes
+and weights are the same in both languages.
+
+Tokens carry no `fontFamily`. `AppTypeScale.familyFor(locale)` picks it, and
+only two places call it: the design-system `Text` / `TextField`, and the
+theme (`buildLightTheme(locale)` / `buildDarkTheme(locale)`). Every other
+widget inherits the family from the theme — **never write
+`fontFamily: 'Heebo'` in a widget**, or it stays Heebo in Hebrew.
+
+`main.dart` passes the app language to the theme. Widgets that still
+hard-code `fontFamily: 'Heebo'` stay Heebo in Hebrew until they move to the
+design-system widgets or drop that line.
 
 Source of truth: the LP-DS Figma file, page **Typography** (node 7:193). Every
 Figma text style is an `AppTypeScale` token in
 `lib/design_system/tokens/type_scale.dart`, camelCased from its Figma name
 (`Heading/H1` → `AppTypeScale.headingH1`).
 
-Where the line height below says *auto*, Figma uses the font's own line height
-(1.46875 × size for Heebo). The token leaves `height` unset, and Flutter
-renders the same thing. A fixed line height is set as `height`.
+Where the line height below says *auto*, Figma uses the font's own line height:
+1.46875 × size for Heebo, 1.185 × for Rubik. The token leaves `height` unset,
+and Flutter renders the same thing. So Hebrew lines are shorter than English
+ones — by design: Figma's Hebrew text fields hug Title/Base 16px to 19px and
+Body/XSmall 14px to 17px. A fixed line height is set as `height`.
 
 | Figma style | `AppTypeScale` | Size / weight | Line height |
 |---|---|---|---|
@@ -266,7 +286,7 @@ Describe and construct layout features using these reusable primitives instead o
 
 `Text` (`lib/design_system/widgets/text.dart`) is the preferred way to render tokenized text. Import it with `import 'package:mazilon/design_system/widgets/text.dart';`, hide Flutter's `Text` at the widgets/material import, and select the matching `AppTextStyle` token, for example: `Text('label', style: AppTextStyle.bodyLarge)`.
 
-For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTextStyle` tokens, use a §2.2 token via `Theme.of(context).textTheme.<slot>` with Flutter's `Text` (prefix the Flutter import), or use `myText(content, style, align)` to apply the Heebo font family for one-off text. Do not hand-write `fontSize`/`fontWeight`. `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still applies the Heebo font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer Flutter's `Text`/`myText` at a §2.2 size over reaching for it.
+For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTextStyle` tokens, use a §2.2 token via `Theme.of(context).textTheme.<slot>` with Flutter's `Text` (prefix the Flutter import), or `myText(content, style, align)` (deprecated; it no longer adds anything, since the theme applies the font family) for one-off text. Do not hand-write `fontSize`/`fontWeight`. `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` is for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer Flutter's `Text`/`myText` at a §2.2 size over reaching for it.
 
 ### 3.2 Action Buttons
 

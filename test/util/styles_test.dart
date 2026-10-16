@@ -97,17 +97,20 @@ void main() {
       final t = myText('hello', null, TextAlign.left);
       expect(t, isA<Text>());
       expect(t.data, 'hello');
-      expect(t.style?.fontFamily, 'Heebo');
+      expect(t.style, emptyStyle);
       expect(t.textAlign, TextAlign.left);
     });
 
-    test('myText preserves provided style fields and overrides fontFamily', () {
-      final base = const TextStyle(color: Colors.red, fontSize: 12);
-      final t = myText('x', base, TextAlign.right);
-      expect(t.style?.color, Colors.red);
-      expect(t.style?.fontSize, 12);
-      expect(t.style?.fontFamily, 'Heebo');
-    });
+    test(
+      'myText passes the provided style through, leaving the font to the theme',
+      () {
+        final base = const TextStyle(color: Colors.red, fontSize: 12);
+        final t = myText('x', base, TextAlign.right);
+        expect(t.style?.color, Colors.red);
+        expect(t.style?.fontSize, 12);
+        expect(t.style?.fontFamily, isNull);
+      },
+    );
 
     test('myAutoSizedText defaults align to center when null', () {
       final t = myAutoSizedText('a', null, null, 30);
