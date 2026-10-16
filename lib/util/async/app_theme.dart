@@ -163,7 +163,10 @@ InputDecorationThemeData _inputDecorationTheme({
 /// false`) because the codebase ships custom `TextButton.styleFrom` /
 /// `RoundedRectangleBorder` styles that target Material 2 token names;
 /// a Material 3 flip belongs in a separate PR with design review.
-ThemeData buildLightTheme() {
+///
+/// [locale] is the app language; it picks the font family of every text
+/// style.
+ThemeData buildLightTheme([Locale? locale]) {
   final InputDecorationThemeData inputs = _inputDecorationTheme(
     outline: AppColors.effectHairline,
     focus: AppColors.accentPrimary,
@@ -186,13 +189,14 @@ ThemeData buildLightTheme() {
     // `ThemeData.inputDecorationTheme` — both have to be set or a dropdown
     // and a text field on the same screen will not match.
     dropdownMenuTheme: DropdownMenuThemeData(inputDecorationTheme: inputs),
-    fontFamily: AppTypeScale.family,
+    fontFamily: AppTypeScale.familyFor(locale),
   );
 }
 
 /// Dark `ThemeData` used by the user's explicit dark-mode setting. Material 2
 /// remains enabled to preserve the existing custom control styling.
-ThemeData buildDarkTheme() {
+/// [locale] as in [buildLightTheme].
+ThemeData buildDarkTheme([Locale? locale]) {
   final InputDecorationThemeData inputs = _inputDecorationTheme(
     outline: AppColors.darkEffectHairline,
     focus: AppColors.darkAccentPrimary,
@@ -218,6 +222,6 @@ ThemeData buildDarkTheme() {
     textTheme: _appTextTheme,
     inputDecorationTheme: inputs,
     dropdownMenuTheme: DropdownMenuThemeData(inputDecorationTheme: inputs),
-    fontFamily: AppTypeScale.family,
+    fontFamily: AppTypeScale.familyFor(locale),
   );
 }

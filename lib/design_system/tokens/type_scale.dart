@@ -1,3 +1,5 @@
+import 'dart:ui' show Locale;
+
 import 'package:flutter/painting.dart' show TextStyle;
 
 import 'font_weight.dart';
@@ -9,41 +11,46 @@ import 'font_weight.dart';
 /// [bodyBaseParagraph].
 ///
 /// Most Figma styles use "auto" line height, which is the font's own line
-/// height (1.46875 for Heebo). Those tokens leave `height` unset, which is
-/// what Flutter does too. Only styles with a fixed line height in Figma set
-/// `height`.
+/// height (1.46875 × size for Heebo, 1.185 × for Rubik). Those tokens leave
+/// `height` unset, which is what Flutter does too. Only styles with a fixed
+/// line height in Figma set `height`. So Hebrew lines are shorter than
+/// English ones, as in Figma's Hebrew components (Title/Base 16px → 19px).
 ///
-/// `fontFamily` is baked in because the design-system `Text` never reads a
-/// `ThemeData` to inherit one from. `ThemeData.textTheme` in
-/// `lib/util/async/app_theme.dart` points Material's slots at these tokens.
+/// Tokens carry no `fontFamily`: the family depends on the app language
+/// (Figma variable `font/family/FontFamily` — English mode Heebo, Hebrew mode
+/// Rubik), so [familyFor] picks it. The theme and the design-system widgets
+/// call it; anything else inherits the family from the theme, so a widget
+/// never sets `fontFamily: 'Heebo'` itself.
 abstract class AppTypeScale {
   static const String family = 'Heebo';
+  static const String hebrewFamily = 'Rubik';
+
+  /// The family for [locale]. A null locale (no `Localizations` above the
+  /// widget) gets the default family.
+  static String familyFor(Locale? locale) =>
+      locale?.languageCode == 'he' ? hebrewFamily : family;
 
   // -- Display --
 
   static const TextStyle displayHugeExtraBold = TextStyle(
-    fontFamily: family,
     fontSize: 68,
     fontWeight: AppFontWeight.extraBold,
     height: 74 / 68,
   );
 
   static const TextStyle displayHugeRegular = TextStyle(
-    fontFamily: family,
     fontSize: 68,
     fontWeight: AppFontWeight.regular,
     height: 74 / 68,
   );
 
   static const TextStyle displayHeroExtraBold = TextStyle(
-    fontFamily: family,
     fontSize: 34,
     fontWeight: AppFontWeight.extraBold,
     height: 44 / 34,
   );
 
   static const TextStyle displayHeroRegular = TextStyle(
-    fontFamily: family,
     fontSize: 34,
     fontWeight: AppFontWeight.regular,
     height: 44 / 34,
@@ -52,25 +59,21 @@ abstract class AppTypeScale {
   // -- Heading --
 
   static const TextStyle headingH1 = TextStyle(
-    fontFamily: family,
     fontSize: 28,
     fontWeight: AppFontWeight.medium,
   );
 
   static const TextStyle headingH2 = TextStyle(
-    fontFamily: family,
     fontSize: 22,
     fontWeight: AppFontWeight.semiBold,
   );
 
   static const TextStyle headingH3 = TextStyle(
-    fontFamily: family,
     fontSize: 20,
     fontWeight: AppFontWeight.bold,
   );
 
   static const TextStyle headingH4 = TextStyle(
-    fontFamily: family,
     fontSize: 17,
     fontWeight: AppFontWeight.bold,
   );
@@ -78,32 +81,27 @@ abstract class AppTypeScale {
   // -- Title --
 
   static const TextStyle titleLarge = TextStyle(
-    fontFamily: family,
     fontSize: 17,
     fontWeight: AppFontWeight.semiBold,
   );
 
   static const TextStyle titleBase = TextStyle(
-    fontFamily: family,
     fontSize: 16,
     fontWeight: AppFontWeight.regular,
   );
 
   static const TextStyle titleBaseBold = TextStyle(
-    fontFamily: family,
     fontSize: 16,
     fontWeight: AppFontWeight.bold,
     height: 20 / 16,
   );
 
   static const TextStyle titleSmall = TextStyle(
-    fontFamily: family,
     fontSize: 15,
     fontWeight: AppFontWeight.semiBold,
   );
 
   static const TextStyle titleSmallBold = TextStyle(
-    fontFamily: family,
     fontSize: 15,
     fontWeight: AppFontWeight.bold,
   );
@@ -116,45 +114,38 @@ abstract class AppTypeScale {
   // -- Body --
 
   static const TextStyle bodyLarge = TextStyle(
-    fontFamily: family,
     fontSize: 17,
     fontWeight: AppFontWeight.regular,
   );
 
   static const TextStyle bodyBase = TextStyle(
-    fontFamily: family,
     fontSize: 16,
     fontWeight: AppFontWeight.regular,
   );
 
   static const TextStyle bodyBaseMedium = TextStyle(
-    fontFamily: family,
     fontSize: 16,
     fontWeight: AppFontWeight.medium,
   );
 
   static const TextStyle bodyBaseParagraph = TextStyle(
-    fontFamily: family,
     fontSize: 16,
     fontWeight: AppFontWeight.regular,
     height: 22 / 16,
   );
 
   static const TextStyle bodySmall = TextStyle(
-    fontFamily: family,
     fontSize: 15,
     fontWeight: AppFontWeight.regular,
   );
 
   static const TextStyle bodySmallParagraph = TextStyle(
-    fontFamily: family,
     fontSize: 15,
     fontWeight: AppFontWeight.regular,
     height: 20 / 15,
   );
 
   static const TextStyle bodyXSmall = TextStyle(
-    fontFamily: family,
     fontSize: 14,
     fontWeight: AppFontWeight.regular,
   );
@@ -162,7 +153,6 @@ abstract class AppTypeScale {
   // -- Label --
 
   static const TextStyle labelLarge = TextStyle(
-    fontFamily: family,
     fontSize: 14,
     fontWeight: AppFontWeight.semiBold,
   );
@@ -172,13 +162,11 @@ abstract class AppTypeScale {
   static const TextStyle labelLargeUppercase = labelLarge;
 
   static const TextStyle labelBase = TextStyle(
-    fontFamily: family,
     fontSize: 13,
     fontWeight: AppFontWeight.semiBold,
   );
 
   static const TextStyle labelSmall = TextStyle(
-    fontFamily: family,
     fontSize: 12,
     fontWeight: AppFontWeight.semiBold,
   );
@@ -186,13 +174,11 @@ abstract class AppTypeScale {
   // -- Caption --
 
   static const TextStyle captionBase = TextStyle(
-    fontFamily: family,
     fontSize: 13,
     fontWeight: AppFontWeight.regular,
   );
 
   static const TextStyle captionSmall = TextStyle(
-    fontFamily: family,
     fontSize: 12,
     fontWeight: AppFontWeight.regular,
     height: 18 / 12,
@@ -200,7 +186,6 @@ abstract class AppTypeScale {
   );
 
   static const TextStyle captionMicro = TextStyle(
-    fontFamily: family,
     fontSize: 10,
     fontWeight: AppFontWeight.semiBold,
     height: 16 / 10,

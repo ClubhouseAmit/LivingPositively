@@ -21,6 +21,7 @@ enum AppTextStyle {
 /// Built directly on Flutter's `Text` (from `widgets.dart`, not `material.dart`) so it
 /// never reads `Theme.of(context)` — the font, size, weight and line height
 /// all come from `AppTypeScale`, not from a Material `ThemeData` ancestor.
+/// The font follows the app language (`AppTypeScale.familyFor`).
 /// This is deliberate: a widget in `design_system/` must render correctly
 /// with no `MaterialApp`/`Theme` above it at all.
 ///
@@ -64,7 +65,10 @@ class Text extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle resolved = _tokens[style]!.copyWith(color: color);
+    final TextStyle resolved = _tokens[style]!.copyWith(
+      color: color,
+      fontFamily: AppTypeScale.familyFor(Localizations.maybeLocaleOf(context)),
+    );
     return flutter.Text(
       data,
       style: resolved,

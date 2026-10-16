@@ -1,8 +1,9 @@
 // Guards the two decisions behind issue #338 for the onboarding intro flow:
 //
-//   1. Heebo is the only font family the app ships (Rubik until #431). The Figma source
-//      names Epilogue (field labels) and Assistant (safety-plan buttons); both
-//      are rendered in Heebo at the design's sizes and weights instead.
+//   1. The app ships one font family per language: Heebo, and Rubik for Hebrew
+//      (#431). The Figma source names Epilogue (field labels) and Assistant
+//      (safety-plan buttons); both are rendered in the app font at the
+//      design's sizes and weights instead.
 //   2. These screens do not use AutoSizeText. `myAutoSizedText` resolves to its
 //      `maxFontSize` ceiling rather than the style's `fontSize` whenever
 //      maxLines is null inside an unbounded-height scroll view, which is why
@@ -21,6 +22,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/design_system/tokens/type_scale.dart';
 import 'package:mazilon/pages/onboarding_page.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page1.dart';
 import 'package:mazilon/features/onboarding/ui/initial_form_page2.dart';
@@ -45,16 +47,20 @@ PhonePageData _phoneData() => PhonePageData(
   phoneDescription: const <String>[],
 );
 
-/// Sizes and weights of every Heebo-styled [Text] currently on screen.
+/// Sizes and weights of every text on screen painted in the app's own font
+/// (Heebo, or Rubik in Hebrew), read from the painted [RichText] so styles
+/// inherited from the theme count too.
 ///
 /// Third-party widgets (the country picker renders Roboto) are excluded — this
 /// asserts about the app's own typography, not its dependencies'.
 List<({double size, FontWeight weight})> _appTextStyles(WidgetTester tester) {
+  const appFamilies = {AppTypeScale.family, AppTypeScale.hebrewFamily};
   return tester
-      .widgetList<Text>(find.byType(Text))
-      .where((t) => t.style?.fontFamily == 'Heebo')
-      .where((t) => t.style?.fontSize != null && t.style?.fontWeight != null)
-      .map((t) => (size: t.style!.fontSize!, weight: t.style!.fontWeight!))
+      .widgetList<RichText>(find.byType(RichText))
+      .map((t) => t.text.style)
+      .where((s) => appFamilies.contains(s?.fontFamily))
+      .where((s) => s?.fontSize != null && s?.fontWeight != null)
+      .map((s) => (size: s!.fontSize!, weight: s.fontWeight!))
       .toList();
 }
 
@@ -112,7 +118,9 @@ void main() {
           findsNothing,
           reason: '$screen must not size text through AutoSizeText',
         );
-        for (final style in _appTextStyles(tester)) {
+        final styles = _appTextStyles(tester);
+        expect(styles, isNotEmpty, reason: '$screen paints no app-font text');
+        for (final style in styles) {
           expect(
             allowedSizes,
             contains(style.size),
