@@ -64,6 +64,8 @@ class _LpPressableState extends State<LpPressable> {
       button: true,
       enabled: enabled,
       label: widget.semanticLabel,
+      // excludeSemantics hides the GestureDetector's tap, so re-expose it.
+      onTap: widget.onPressed,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,

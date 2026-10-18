@@ -65,6 +65,17 @@ void main() {
       );
     });
 
+    testWidgets('a screen reader can activate it', (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      var taps = 0;
+      await tester.pumpWidget(
+        _host(LpButton(label: 'Go', onPressed: () => taps++)),
+      );
+      tester.semantics.tap(find.semantics.byLabel('Go'));
+      expect(taps, 1);
+      handle.dispose();
+    });
+
     testWidgets('disabled ignores taps and uses the disabled fill', (
       tester,
     ) async {
