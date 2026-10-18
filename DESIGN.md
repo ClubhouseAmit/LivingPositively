@@ -71,6 +71,7 @@ same way existing code does.
 | `accent/highlight` | `accentHighlight` / `darkAccentHighlight` | `#F2ED4E` | `#D8D34A` |
 | `accent/muted` | `accentMuted` / `darkAccentMuted` | `#DC9BF6` | `#DD89FF` |
 | `accent/on-container` | `accentOnContainer` / `darkAccentOnContainer` | `#22005D` | `#EADDFF` |
+| `accent/pressed` | `accentPressed` / `darkAccentPressed` | `#963CBA` | `#A94DCE` |
 | `accent/primary` | `accentPrimary` / `darkAccentPrimary` | `#B44FDD` | `#B968D9` |
 | `accent/wash` | `accentWash` / `darkAccentWash` | `#EFE9FE` | `#2C2440` |
 | `action/emergency` | `actionEmergency` / `darkActionEmergency` | `#33373D` | `#7C838E` |
@@ -289,6 +290,11 @@ Describe and construct layout features using these reusable primitives instead o
 For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTextStyle` tokens, use a §2.2 token via `Theme.of(context).textTheme.<slot>` with Flutter's `Text` (prefix the Flutter import), or `myText(content, style, align)` (deprecated; it no longer adds anything, since the theme applies the font family) for one-off text. Do not hand-write `fontSize`/`fontWeight`. `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` is for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer Flutter's `Text`/`myText` at a §2.2 size over reaching for it.
 
 ### 3.2 Action Buttons
+
+LP-DS buttons (`LpButton`, `LpIconButton`, `LpTextButton` in
+`lib/design_system/widgets/`) are rolling out gradually. Use them on screens
+being moved to the new style; the widgets below stay for existing screens until
+they move.
 
 - **Primary Confirmation Button:**
   Prefer `Button` (`lib/design_system/widgets/button.dart`) with the `primary` variant: `Button(label: 'Confirm', onPressed: onConfirm, variant: ButtonVariant.primary)`.
