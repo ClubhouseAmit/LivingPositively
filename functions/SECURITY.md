@@ -10,7 +10,7 @@ The dependency review on 2026-10-01 upgraded Firebase Admin to 14.5.0 and
 Firebase Functions to 7.4.0. Admin now resolves `@google-cloud/storage` 8.2.0
 through its own `^8.1.0` requirement, so the former storage override is removed.
 
-Two scoped security overrides remain:
+Three scoped security overrides remain:
 
 - Storage 8.2.0 uses Gaxios 6.7.1, which requires UUID `^9.0.1`. The `gaxios`
   parent override replaces its UUID dependency with 11.1.1, the final
@@ -31,6 +31,16 @@ Two scoped security overrides remain:
   and [error disclosure](https://github.com/advisories/GHSA-f596-whhp-79r4).
   This stays within gRPC's major version and is exercised by the Firestore
   emulator rules suite. The root Firebase SDK uses the same scoped override.
+- Admin Firestore 9.3.0 (and 9.4.0) allows only `@google-cloud/firestore-api`
+  `^0.2.0`, whose Google Gax 5.0.8 and its pinned Gaxios 7.1.3 both list
+  rimraf `^5.0.1`. Rimraf 5 requires glob `^10`, and no glob 10 or minimatch 9
+  release fixes the [glob traversal](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)
+  and [minimatch DoS](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+  advisories (reported 2026-10). The `rimraf` parent override supplies glob
+  14.0.3, which brings patched minimatch 11. Neither Gax nor Gaxios loads
+  rimraf at runtime (it is a stray dependency), and rimraf 5 still loads with
+  glob 14 under Node 22. Re-evaluate when Admin Firestore accepts a newer
+  `firestore-api`, whose Gax 6 has no rimraf dependency; then remove it.
 
 The Functions lockfile supplies the rules SDK explicitly as a development
 dependency. Production and full development audits must both remain clean.
@@ -44,7 +54,8 @@ The Functions manifest selects npm 11.14.0 with `engines.npm`, the supported
 CI and the release runner install that version before `npm ci` and
 verify the installed dependency graph using `npm run verify:dependencies`.
 The script checks Storage/Gaxios's resolved UUID version and CommonJS `v4`
-API, Admin Firestore's gRPC version, and the Firestore test SDK's gRPC version.
+API, Admin Firestore's gRPC version, the Firestore API Gax/rimraf glob version,
+and the Firestore test SDK's gRPC version.
 CI and the pre-release runner explicitly execute `npm run gcp-build`. That
 pipeline runs the verifier with `--managed` to assert Node 22 and
 npm 11.14.0, audits the complete installed graph with
