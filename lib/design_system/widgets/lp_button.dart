@@ -22,6 +22,11 @@ enum LpButtonVariant {
 
   /// Raised-high fill (white in light mode) with a hairline border.
   raised,
+
+  /// Figma `button-text`: a label and an optional icon, no fill or border.
+  /// Always hugs its content and has one size, so it ignores [LpButton.size]
+  /// and [LpButton.fullWidth].
+  text,
 }
 
 enum LpButtonSize { m, s }
@@ -40,23 +45,21 @@ enum LpIconVariant {
 
 enum LpIconSize { xs, s, m }
 
-/// Figma `button-text` alignment. [start] has a smaller start-side padding
-/// so the label lines up with the content edge above it.
+/// [LpButtonVariant.text] alignment. [start] has a smaller start-side
+/// padding so the label lines up with the content edge above it.
 enum LpTextAlignment { center, start }
 
-enum _Family { main, icon, text }
+enum _Family { main, icon }
 
-/// The LP-DS button. One widget for the three Figma button components:
+/// The LP-DS button. One widget for the Figma button components:
 ///
 /// - `LpButton(...)`: `Button-primary`, a pill with a label and an optional
-///   start-side icon. Full width by default, like `Button`.
+///   start-side icon, full width by default like `Button`; and, with
+///   [LpButtonVariant.text], `button-text`.
 /// - `LpButton.icon(...)`: `Button-icon`, icon only. [semanticLabel] is
 ///   required: an icon alone tells a screen reader nothing.
-/// - `LpButton.text(...)`: `button-text`, a label and an optional icon with
-///   no fill or border.
 ///
-/// Each constructor takes only its own component's options, so combinations
-/// Figma does not have do not compile. `onPressed: null` disables it.
+/// `onPressed: null` disables it.
 class LpButton extends StatefulWidget {
   const LpButton({
     super.key,
@@ -66,11 +69,15 @@ class LpButton extends StatefulWidget {
     this.size = LpButtonSize.m,
     this.icon,
     this.fullWidth = true,
-  }) : _family = _Family.main,
+    this.alignment = LpTextAlignment.center,
+  }) : assert(
+         alignment == LpTextAlignment.center || variant == LpButtonVariant.text,
+         'alignment applies to the text variant only',
+       ),
+       _family = _Family.main,
        semanticLabel = null,
        iconVariant = LpIconVariant.primary,
-       iconSize = LpIconSize.s,
-       alignment = LpTextAlignment.center;
+       iconSize = LpIconSize.s;
 
   const LpButton.icon({
     super.key,
@@ -92,20 +99,6 @@ class LpButton extends StatefulWidget {
        fullWidth = false,
        alignment = LpTextAlignment.center;
 
-  const LpButton.text({
-    super.key,
-    required String this.label,
-    required this.onPressed,
-    this.icon,
-    this.alignment = LpTextAlignment.center,
-  }) : _family = _Family.text,
-       semanticLabel = null,
-       variant = LpButtonVariant.primary,
-       size = LpButtonSize.m,
-       iconVariant = LpIconVariant.primary,
-       iconSize = LpIconSize.s,
-       fullWidth = false;
-
   final _Family _family;
 
   /// The visible text. Null only for [LpButton.icon].
@@ -126,9 +119,12 @@ class LpButton extends StatefulWidget {
   State<LpButton> createState() => _LpButtonState();
 
   Widget _face(BuildContext context, bool pressed) => switch (_family) {
+    _Family.main when variant == LpButtonVariant.text => _buildTextFace(
+      context,
+      pressed,
+    ),
     _Family.main => _buildMainFace(context, pressed),
     _Family.icon => _buildIconFace(context, pressed),
-    _Family.text => _buildTextFace(context, pressed),
   };
 
   // -- LpButton --
@@ -224,10 +220,10 @@ class LpButton extends StatefulWidget {
     );
   }
 
-  // -- LpButton.text --
+  // -- LpButtonVariant.text --
 
   Widget _buildTextFace(BuildContext context, bool pressed) {
-    final Color color = _textColor(_isDark(context), pressed);
+    final Color color = _mainLook(_isDark(context), pressed).content;
     return ConstrainedBox(
       constraints: const BoxConstraints(
         minHeight: LpButtonSizes.textButtonHeight,
@@ -258,8 +254,8 @@ class LpButton extends StatefulWidget {
   }
 }
 
-/// Tap, pressed state, semantics and the minimum tap area, shared by all
-/// three constructors. The tap area is at least
+/// Tap, pressed state, semantics and the minimum tap area, shared by both
+/// constructors. The tap area is at least
 /// [LpButtonSizes.minTapTarget] square even when the visible button is
 /// smaller (Figma sizes s and xs), with the visible part centered.
 class _LpButtonState extends State<LpButton> {

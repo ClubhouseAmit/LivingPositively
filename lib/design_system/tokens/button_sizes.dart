@@ -29,7 +29,7 @@ abstract class LpButtonSizes {
   static const iconButtonRadius = 20.0;
   static const iconButtonPressedRadius = 8.0;
 
-  // -- LpButton.text --
+  // -- LpButtonVariant.text --
   static const textButtonHeight = 32.0;
   static const textButtonMinWidth = 48.0;
   static const textButtonIcon = 16.0;

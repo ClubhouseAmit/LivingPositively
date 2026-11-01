@@ -18,6 +18,13 @@ bool _isDark(BuildContext context) =>
 extension _LpButtonLooks on LpButton {
   _Look _disabledMainLook(bool dark) {
     Color c(Color light, Color darkColor) => dark ? darkColor : light;
+    if (variant == LpButtonVariant.text) {
+      return (
+        fill: null,
+        border: null,
+        content: c(AppColors.contentTertiary, AppColors.darkContentTertiary),
+      );
+    }
     return variant == LpButtonVariant.emphasis
         ? (
             fill: c(AppColors.accentMuted, AppColors.darkAccentMuted),
@@ -91,6 +98,13 @@ extension _LpButtonLooks on LpButton {
         border: hairline,
         content: content,
       ),
+      LpButtonVariant.text => (
+        fill: null,
+        border: null,
+        content: pressed
+            ? c(AppColors.contentSecondary, AppColors.darkContentSecondary)
+            : content,
+      ),
     };
   }
 
@@ -120,15 +134,5 @@ extension _LpButtonLooks on LpButton {
       return dark ? AppColors.darkContentPrimary : AppColors.contentPrimary;
     }
     return dark ? AppColors.darkContentSecondary : AppColors.contentSecondary;
-  }
-
-  Color _textColor(bool dark, bool pressed) {
-    if (onPressed == null) {
-      return dark ? AppColors.darkContentTertiary : AppColors.contentTertiary;
-    }
-    if (pressed) {
-      return dark ? AppColors.darkContentSecondary : AppColors.contentSecondary;
-    }
-    return dark ? AppColors.darkContentPrimary : AppColors.contentPrimary;
   }
 }

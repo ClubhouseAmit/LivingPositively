@@ -311,12 +311,13 @@ void main() {
     });
   });
 
-  group('LpButton.text', () {
+  group('LpButtonVariant.text', () {
     testWidgets('fires onPressed and keeps a 48 tap area', (tester) async {
       var taps = 0;
       await tester.pumpWidget(
         _host(
-          LpButton.text(
+          LpButton(
+            variant: LpButtonVariant.text,
             label: 'Not now',
             onPressed: () => taps++,
             icon: Icons.add,
@@ -336,7 +337,8 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _host(
-          const LpButton.text(
+          const LpButton(
+            variant: LpButtonVariant.text,
             label: 'Not now',
             onPressed: null,
             icon: Icons.add,
@@ -345,6 +347,32 @@ void main() {
       );
       await tester.tap(find.text('Not now'), warnIfMissed: false);
       expect(_iconColorIn(tester, LpButton), AppColors.contentTertiary);
+    });
+
+    testWidgets('hugs its content and dims the label while held', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          LpButton(
+            variant: LpButtonVariant.text,
+            label: 'Not now',
+            onPressed: () {},
+            icon: Icons.add,
+          ),
+        ),
+      );
+      expect(
+        tester.getSize(find.byType(LpButton)).width,
+        lessThan(tester.getSize(find.byType(Directionality)).width),
+        reason: 'ignores fullWidth, which defaults to true',
+      );
+      final TestGesture gesture = await tester.startGesture(
+        tester.getCenter(find.text('Not now')),
+      );
+      await tester.pump();
+      expect(_iconColorIn(tester, LpButton), AppColors.contentSecondary);
+      await gesture.up();
     });
   });
 }
