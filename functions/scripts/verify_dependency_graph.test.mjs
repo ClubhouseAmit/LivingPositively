@@ -22,8 +22,11 @@ function fixture(t, uuid = "11.1.1", uuidApi = "exports.v4 = () => '12345678-123
   pkg("gaxios", "6.7.1");
   pkg("uuid", uuid, uuidApi);
   pkg("@google-cloud/firestore", "8.0.0");
+  pkg("@google-cloud/firestore-api", "0.2.0");
   pkg("google-gax", "5.0.0");
   pkg("@grpc/grpc-js", "1.14.5");
+  pkg("rimraf", "5.0.10");
+  pkg("glob", "14.0.3");
   file("package.json", JSON.stringify({engines: {npm: "11.14.0"}}));
   file("scripts/verify.mjs", readFileSync(new URL("./verify_dependency_graph.mjs", import.meta.url)));
   file("scripts/verify_build_toolchain.mjs",
@@ -43,6 +46,15 @@ test("accepts a patched production consumer graph without the development SDK", 
   const result = fixture(t).run();
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /UUID 11\.1\.1 \(CommonJS v4\)/);
+});
+
+test("rejects an unpatched glob under rimraf", (t) => {
+  const graph = fixture(t);
+  graph.file("node_modules/glob/package.json",
+    JSON.stringify({name: "glob", version: "10.5.0", main: "index.js"}));
+  const result = graph.run();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /10\.5\.0/);
 });
 
 test("rejects an unpatched UUID from the consuming package", (t) => {

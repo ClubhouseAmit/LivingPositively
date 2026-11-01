@@ -25,9 +25,15 @@ const adminFirestore = createRequire(require.resolve("@google-cloud/firestore"))
 const googleGax = createRequire(adminFirestore.resolve("google-gax"));
 assert.equal(googleGax("@grpc/grpc-js/package.json").version, "1.14.5");
 
+const firestoreApiPath = adminFirestore.resolve("@google-cloud/firestore-api/package.json");
+assert.equal(require(firestoreApiPath).version, "0.2.0", "Recheck the glob override after a Firestore API upgrade");
+const legacyGax = createRequire(createRequire(firestoreApiPath).resolve("google-gax"));
+const rimrafRequire = createRequire(legacyGax.resolve("rimraf/package.json"));
+assert.equal(rimrafRequire("glob/package.json").version, "14.0.3");
+
 if (!process.argv.includes("--production")) {
   const firestoreRequire = createRequire(require.resolve("@firebase/firestore/package.json"));
   assert.equal(firestoreRequire("@grpc/grpc-js/package.json").version, "1.14.5");
 }
 
-console.log("Dependency graph verified: Storage/Gaxios 6.7.1 -> UUID 11.1.1 (CommonJS v4); Firestore -> gRPC 1.14.5");
+console.log("Dependency graph verified: Storage/Gaxios 6.7.1 -> UUID 11.1.1 (CommonJS v4); Firestore -> gRPC 1.14.5; Firestore API 0.2.0/Gax -> rimraf -> glob 14.0.3");
