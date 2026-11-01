@@ -1,46 +1,15 @@
+import 'package:flutter/material.dart' show Brightness, Theme;
 import 'package:flutter/widgets.dart' hide Text;
 
+import 'package:mazilon/design_system/tokens/button_sizes.dart';
 import 'package:mazilon/design_system/tokens/colors.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
-import 'package:mazilon/design_system/widgets/lp_pressable.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
 
-/// Button measurements from the LP-DS Figma file, page "Buttons" (70:2383).
-///
-/// Owned here rather than borrowed from `AppRadii`/`AppSpacing` values that
-/// happen to match: a badge or spacing change must not reshape the buttons.
-/// Padding and gaps do use `AppSpacing`, since those are the shared scale.
-abstract class LpButtonSizes {
-  /// Figma radius 99: a full pill at any button height.
-  static const pillRadius = 99.0;
-  static const border = 1.0;
-
-  // -- LpButton --
-  static const heightM = 48.0;
-  static const heightS = 32.0;
-  static const minWidthM = 72.0;
-  static const minWidthS = 48.0;
-  static const iconM = 22.0;
-  static const iconS = 18.0;
-
-  // -- LpIconButton --
-  static const iconButtonXs = 24.0;
-  static const iconButtonS = 32.0;
-  static const iconButtonM = 48.0;
-  static const iconButtonIconXs = 16.0;
-  static const iconButtonIconS = 24.0;
-  static const iconButtonIconM = 40.0;
-  static const iconButtonRadius = 20.0;
-  static const iconButtonPressedRadius = 8.0;
-
-  // -- LpTextButton --
-  static const textButtonHeight = 32.0;
-  static const textButtonMinWidth = 48.0;
-  static const textButtonIcon = 16.0;
-}
+part 'lp_button_looks.dart';
 
 /// Figma `Button-primary`: `type` primary/secondary plus the `purple` and
-/// `White` switches, flattened into one choice.
+/// `White` switches, flattened into one choice named by role.
 enum LpButtonVariant {
   /// Beige fill with a hairline border.
   primary,
@@ -48,54 +17,125 @@ enum LpButtonVariant {
   /// Hairline border, no fill.
   secondary,
 
-  /// Accent fill, white label.
-  purple,
+  /// Accent (purple) fill, white label.
+  emphasis,
 
   /// Raised-high fill (white in light mode) with a hairline border.
-  white,
+  raised,
 }
 
 enum LpButtonSize { m, s }
 
-typedef _Look = ({Color? fill, Color? border, Color content});
+/// Figma `Button-icon` types.
+enum LpIconVariant {
+  /// No fill, primary-color icon.
+  primary,
 
-/// The LP-DS main button (Figma `Button-primary`, labelled "button-main").
+  /// No fill, secondary-color icon.
+  secondary,
+
+  /// Filled circle. Figma draws it in sizes xs and s only.
+  rounded,
+}
+
+enum LpIconSize { xs, s, m }
+
+/// Figma `button-text` alignment. [start] has a smaller start-side padding
+/// so the label lines up with the content edge above it.
+enum LpTextAlignment { center, start }
+
+enum _Family { main, icon, text }
+
+/// The LP-DS button. One widget for the three Figma button components:
 ///
-/// A pill with a label and an optional icon at the start side. Full width
-/// by default, like `Button`; set [fullWidth] to false to size it to its
-/// content (with Figma's minimum width).
+/// - `LpButton(...)`: `Button-primary`, a pill with a label and an optional
+///   start-side icon. Full width by default, like `Button`.
+/// - `LpButton.icon(...)`: `Button-icon`, icon only. [semanticLabel] is
+///   required: an icon alone tells a screen reader nothing.
+/// - `LpButton.text(...)`: `button-text`, a label and an optional icon with
+///   no fill or border.
 ///
-/// `onPressed: null` disables it.
-class LpButton extends StatelessWidget {
+/// Each constructor takes only its own component's options, so combinations
+/// Figma does not have do not compile. `onPressed: null` disables it.
+class LpButton extends StatefulWidget {
   const LpButton({
     super.key,
-    required this.label,
+    required String this.label,
     required this.onPressed,
     this.variant = LpButtonVariant.primary,
     this.size = LpButtonSize.m,
     this.icon,
     this.fullWidth = true,
-  });
+  }) : _family = _Family.main,
+       semanticLabel = null,
+       iconVariant = LpIconVariant.primary,
+       iconSize = LpIconSize.s,
+       alignment = LpTextAlignment.center;
 
-  final String label;
+  const LpButton.icon({
+    super.key,
+    required IconData this.icon,
+    required String this.semanticLabel,
+    required this.onPressed,
+    LpIconVariant variant = LpIconVariant.primary,
+    LpIconSize size = LpIconSize.s,
+  }) : assert(
+         variant != LpIconVariant.rounded || size != LpIconSize.m,
+         'Figma has no rounded icon button in size m',
+       ),
+       _family = _Family.icon,
+       label = null,
+       iconVariant = variant,
+       iconSize = size,
+       variant = LpButtonVariant.primary,
+       size = LpButtonSize.m,
+       fullWidth = false,
+       alignment = LpTextAlignment.center;
+
+  const LpButton.text({
+    super.key,
+    required String this.label,
+    required this.onPressed,
+    this.icon,
+    this.alignment = LpTextAlignment.center,
+  }) : _family = _Family.text,
+       semanticLabel = null,
+       variant = LpButtonVariant.primary,
+       size = LpButtonSize.m,
+       iconVariant = LpIconVariant.primary,
+       iconSize = LpIconSize.s,
+       fullWidth = false;
+
+  final _Family _family;
+
+  /// The visible text. Null only for [LpButton.icon].
+  final String? label;
+
+  /// What a screen reader announces for [LpButton.icon].
+  final String? semanticLabel;
   final VoidCallback? onPressed;
+  final IconData? icon;
   final LpButtonVariant variant;
   final LpButtonSize size;
-  final IconData? icon;
+  final LpIconVariant iconVariant;
+  final LpIconSize iconSize;
+  final LpTextAlignment alignment;
   final bool fullWidth;
 
   @override
-  Widget build(BuildContext context) {
-    return LpPressable(
-      onPressed: onPressed,
-      semanticLabel: label,
-      builder: _buildFace,
-    );
-  }
+  State<LpButton> createState() => _LpButtonState();
 
-  Widget _buildFace(BuildContext context, bool pressed) {
+  Widget _face(BuildContext context, bool pressed) => switch (_family) {
+    _Family.main => _buildMainFace(context, pressed),
+    _Family.icon => _buildIconFace(context, pressed),
+    _Family.text => _buildTextFace(context, pressed),
+  };
+
+  // -- LpButton --
+
+  Widget _buildMainFace(BuildContext context, bool pressed) {
     final bool m = size == LpButtonSize.m;
-    final _Look look = _look(lpIsDark(context), pressed);
+    final _Look look = _mainLook(_isDark(context), pressed);
     Widget face = ConstrainedBox(
       constraints: BoxConstraints(
         minHeight: m ? LpButtonSizes.heightM : LpButtonSizes.heightS,
@@ -114,7 +154,7 @@ class LpButton extends StatelessWidget {
           child: Center(
             widthFactor: 1,
             heightFactor: 1,
-            child: _content(m, look.content),
+            child: _mainContent(m, look.content),
           ),
         ),
       ),
@@ -123,7 +163,7 @@ class LpButton extends StatelessWidget {
     return face;
   }
 
-  Widget _content(bool m, Color color) {
+  Widget _mainContent(bool m, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -137,7 +177,7 @@ class LpButton extends StatelessWidget {
         ],
         Flexible(
           child: Text(
-            label,
+            label!,
             style: m ? AppTextStyle.labelLarge : AppTextStyle.bodySmall,
             color: color,
             textAlign: TextAlign.center,
@@ -147,81 +187,124 @@ class LpButton extends StatelessWidget {
     );
   }
 
-  _Look _disabledLook(bool dark) {
-    Color c(Color light, Color darkColor) => dark ? darkColor : light;
-    return variant == LpButtonVariant.purple
-        ? (
-            fill: c(AppColors.accentMuted, AppColors.darkAccentMuted),
-            border: null,
-            content: c(AppColors.surfaceWhite75, AppColors.darkSurfaceWhite75),
-          )
-        : (
-            fill: c(AppColors.surfaceDisabled, AppColors.darkSurfaceDisabled),
-            border: null,
-            content: c(
-              AppColors.contentTertiary,
-              AppColors.darkContentTertiary,
-            ),
-          );
-  }
+  // -- LpButton.icon --
 
-  _Look _look(bool dark, bool pressed) {
-    if (onPressed == null) return _disabledLook(dark);
-    Color c(Color light, Color darkColor) => dark ? darkColor : light;
-    final Color hairline = c(
-      AppColors.effectHairline,
-      AppColors.darkEffectHairline,
-    );
-    final Color content = c(
-      AppColors.contentPrimary,
-      AppColors.darkContentPrimary,
-    );
-    final bool m = size == LpButtonSize.m;
-
-    return switch (variant) {
-      // Figma draws pressed beige at 90% in size m and solid in size s.
-      LpButtonVariant.primary when pressed => (
-        fill: m
-            ? c(
-                AppColors.surfaceRaisedHighest90,
-                AppColors.darkSurfaceRaisedHighest90,
-              )
-            : c(
-                AppColors.surfaceRaisedHighest,
-                AppColors.darkSurfaceRaisedHighest,
-              ),
-        border: hairline,
-        content: content,
+  Widget _buildIconFace(BuildContext context, bool pressed) {
+    final bool dark = _isDark(context);
+    final (double box, double glyph) = switch (iconSize) {
+      LpIconSize.xs => (
+        LpButtonSizes.iconButtonXs,
+        LpButtonSizes.iconButtonIconXs,
       ),
-      LpButtonVariant.primary => (
-        fill: c(AppColors.surfaceSunken, AppColors.darkSurfaceSunken),
-        border: hairline,
-        content: content,
+      LpIconSize.s => (
+        LpButtonSizes.iconButtonS,
+        LpButtonSizes.iconButtonIconS,
       ),
-      LpButtonVariant.secondary => (
-        fill: pressed
-            ? c(AppColors.surfaceRaised, AppColors.darkSurfaceRaised)
-            : null,
-        border: hairline,
-        content: content,
-      ),
-      LpButtonVariant.purple => (
-        fill: pressed
-            ? c(AppColors.accentPressed, AppColors.darkAccentPressed)
-            : c(AppColors.accentPrimary, AppColors.darkAccentPrimary),
-        border: null,
-        content: c(AppColors.surfaceWhite, AppColors.darkSurfaceWhite),
-      ),
-      LpButtonVariant.white => (
-        fill: pressed
-            ? c(
-                AppColors.surfaceRaisedHighest,
-                AppColors.darkSurfaceRaisedHighest,
-              )
-            : c(AppColors.surfaceRaisedHigh, AppColors.darkSurfaceRaisedHigh),
-        border: hairline,
-        content: content,
+      LpIconSize.m => (
+        LpButtonSizes.iconButtonM,
+        LpButtonSizes.iconButtonIconM,
       ),
     };
+    final bool rounded = iconVariant == LpIconVariant.rounded;
+    return SizedBox.square(
+      dimension: box,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _iconFill(dark, pressed),
+          borderRadius: BorderRadius.circular(
+            pressed && !rounded
+                ? LpButtonSizes.iconButtonPressedRadius
+                : LpButtonSizes.iconButtonRadius,
+          ),
+        ),
+        child: Center(
+          child: Icon(icon, size: glyph, color: _iconColor(dark, pressed)),
+        ),
+      ),
+    );
+  }
+
+  // -- LpButton.text --
+
+  Widget _buildTextFace(BuildContext context, bool pressed) {
+    final Color color = _textColor(_isDark(context), pressed);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: LpButtonSizes.textButtonHeight,
+        minWidth: LpButtonSizes.textButtonMinWidth,
+      ),
+      child: Padding(
+        padding: alignment == LpTextAlignment.start
+            ? const EdgeInsetsDirectional.only(
+                start: AppSpacing.xs,
+                end: AppSpacing.sm,
+              )
+            : const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              // Matches the label: Figma's old icon style has no token.
+              Icon(icon, size: LpButtonSizes.textButtonIcon, color: color),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            Flexible(
+              child: Text(label!, style: AppTextStyle.labelLarge, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tap, pressed state, semantics and the minimum tap area, shared by all
+/// three constructors. The tap area is at least
+/// [LpButtonSizes.minTapTarget] square even when the visible button is
+/// smaller (Figma sizes s and xs), with the visible part centered.
+class _LpButtonState extends State<LpButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (!mounted || widget.onPressed == null) return;
+    setState(() => _pressed = value);
+  }
+
+  void _onTapDown(TapDownDetails _) => _setPressed(true);
+
+  void _onTapUp(TapUpDetails _) => _setPressed(false);
+
+  void _onTapCancel() => _setPressed(false);
+
+  @override
+  Widget build(BuildContext context) {
+    final bool enabled = widget.onPressed != null;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      // Replaces the visible text, so the label is not read twice.
+      label: widget.label ?? widget.semanticLabel,
+      // excludeSemantics hides the GestureDetector's tap, so re-expose it.
+      onTap: widget.onPressed,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onPressed,
+        onTapDown: _onTapDown,
+        onTapUp: _onTapUp,
+        onTapCancel: _onTapCancel,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: LpButtonSizes.minTapTarget,
+            minHeight: LpButtonSizes.minTapTarget,
+          ),
+          child: Center(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: widget._face(context, enabled && _pressed),
+          ),
+        ),
+      ),
+    );
   }
 }

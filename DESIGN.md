@@ -291,8 +291,8 @@ For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTe
 
 ### 3.2 Action Buttons
 
-LP-DS buttons (`LpButton`, `LpIconButton`, `LpTextButton` in
-`lib/design_system/widgets/`) are rolling out gradually. Use them on screens
+The LP-DS button (`LpButton`, with `LpButton.icon` and `LpButton.text`, in
+`lib/design_system/widgets/lp_button.dart`) is rolling out gradually. Use them on screens
 being moved to the new style; the widgets below stay for existing screens until
 they move.
 

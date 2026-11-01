@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart' show Brightness, Icons, Theme, ThemeData;
 import 'package:flutter/widgets.dart' hide Text;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/design_system/tokens/button_sizes.dart';
 import 'package:mazilon/design_system/tokens/colors.dart';
 import 'package:mazilon/design_system/widgets/lp_button.dart';
-import 'package:mazilon/design_system/widgets/lp_icon_button.dart';
-import 'package:mazilon/design_system/widgets/lp_text_button.dart';
-import 'package:mazilon/design_system/widgets/lp_pressable.dart';
 
 /// No `MaterialApp`: the LP buttons must work with only `Directionality`
 /// above them. [brightness] adds a bare `Theme` for the dark-mode cases.
@@ -104,7 +102,7 @@ void main() {
       expect(_decorationIn(tester, LpButton).color, AppColors.surfaceSunken);
     });
 
-    testWidgets('purple uses the dark tokens under a dark theme', (
+    testWidgets('emphasis uses the dark tokens under a dark theme', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -112,7 +110,7 @@ void main() {
           LpButton(
             label: 'Go',
             onPressed: () {},
-            variant: LpButtonVariant.purple,
+            variant: LpButtonVariant.emphasis,
             icon: Icons.arrow_back,
           ),
           brightness: Brightness.dark,
@@ -125,13 +123,13 @@ void main() {
       expect(_iconColorIn(tester, LpButton), AppColors.darkSurfaceWhite);
     });
 
-    testWidgets('purple shows the pressed fill while held', (tester) async {
+    testWidgets('emphasis shows the pressed fill while held', (tester) async {
       await tester.pumpWidget(
         _host(
           LpButton(
             label: 'Go',
             onPressed: () {},
-            variant: LpButtonVariant.purple,
+            variant: LpButtonVariant.emphasis,
           ),
         ),
       );
@@ -145,7 +143,7 @@ void main() {
       expect(_decorationIn(tester, LpButton).color, AppColors.accentPrimary);
     });
 
-    testWidgets('white uses the raised-high fill under a dark theme', (
+    testWidgets('raised uses the raised-high fill under a dark theme', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -153,7 +151,7 @@ void main() {
           LpButton(
             label: 'Go',
             onPressed: () {},
-            variant: LpButtonVariant.white,
+            variant: LpButtonVariant.raised,
           ),
           brightness: Brightness.dark,
         ),
@@ -165,7 +163,7 @@ void main() {
     });
 
     testWidgets('size s pressed keeps the border', (tester) async {
-      for (final variant in [LpButtonVariant.primary, LpButtonVariant.white]) {
+      for (final variant in [LpButtonVariant.primary, LpButtonVariant.raised]) {
         await tester.pumpWidget(
           _host(
             LpButton(
@@ -190,7 +188,7 @@ void main() {
       }
     });
 
-    testWidgets('white shows the raised-highest fill while held', (
+    testWidgets('raised shows the raised-highest fill while held', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -198,7 +196,7 @@ void main() {
           LpButton(
             label: 'Go',
             onPressed: () {},
-            variant: LpButtonVariant.white,
+            variant: LpButtonVariant.raised,
           ),
         ),
       );
@@ -230,7 +228,7 @@ void main() {
       );
       expect(
         tester.getSize(find.byType(LpButton)).height,
-        greaterThanOrEqualTo(LpPressable.minTapTarget),
+        greaterThanOrEqualTo(LpButtonSizes.minTapTarget),
       );
       expect(
         tester.getSize(find.byType(DecoratedBox)).height,
@@ -252,12 +250,12 @@ void main() {
     });
   });
 
-  group('LpIconButton', () {
+  group('LpButton.icon', () {
     testWidgets('announces its label and fires onPressed', (tester) async {
       var taps = 0;
       await tester.pumpWidget(
         _host(
-          LpIconButton(
+          LpButton.icon(
             icon: Icons.arrow_back,
             semanticLabel: 'Back',
             onPressed: () => taps++,
@@ -265,24 +263,24 @@ void main() {
         ),
       );
       expect(find.bySemanticsLabel('Back'), findsOneWidget);
-      await tester.tap(find.byType(LpIconButton));
+      await tester.tap(find.byType(LpButton));
       expect(taps, 1);
     });
 
     testWidgets('xs keeps a 48 tap area', (tester) async {
       await tester.pumpWidget(
         _host(
-          LpIconButton(
+          LpButton.icon(
             icon: Icons.arrow_back,
             semanticLabel: 'Back',
             onPressed: () {},
-            size: LpIconButtonSize.xs,
+            size: LpIconSize.xs,
           ),
         ),
       );
       expect(
-        tester.getSize(find.byType(LpIconButton)),
-        const Size.square(LpPressable.minTapTarget),
+        tester.getSize(find.byType(LpButton)),
+        const Size.square(LpButtonSizes.minTapTarget),
       );
     });
 
@@ -291,34 +289,34 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _host(
-          LpIconButton(
+          LpButton.icon(
             icon: Icons.arrow_back,
             semanticLabel: 'Back',
             onPressed: () {},
           ),
         ),
       );
-      expect(_decorationIn(tester, LpIconButton).color, isNull);
-      expect(_iconColorIn(tester, LpIconButton), AppColors.contentPrimary);
+      expect(_decorationIn(tester, LpButton).color, isNull);
+      expect(_iconColorIn(tester, LpButton), AppColors.contentPrimary);
       final TestGesture gesture = await tester.startGesture(
-        tester.getCenter(find.byType(LpIconButton)),
+        tester.getCenter(find.byType(LpButton)),
       );
       await tester.pump();
       expect(
-        _decorationIn(tester, LpIconButton).color,
+        _decorationIn(tester, LpButton).color,
         AppColors.surfaceSunken,
       );
-      expect(_iconColorIn(tester, LpIconButton), AppColors.contentSecondary);
+      expect(_iconColorIn(tester, LpButton), AppColors.contentSecondary);
       await gesture.up();
     });
   });
 
-  group('LpTextButton', () {
+  group('LpButton.text', () {
     testWidgets('fires onPressed and keeps a 48 tap area', (tester) async {
       var taps = 0;
       await tester.pumpWidget(
         _host(
-          LpTextButton(
+          LpButton.text(
             label: 'Not now',
             onPressed: () => taps++,
             icon: Icons.add,
@@ -328,8 +326,8 @@ void main() {
       await tester.tap(find.text('Not now'));
       expect(taps, 1);
       expect(
-        tester.getSize(find.byType(LpTextButton)).height,
-        greaterThanOrEqualTo(LpPressable.minTapTarget),
+        tester.getSize(find.byType(LpButton)).height,
+        greaterThanOrEqualTo(LpButtonSizes.minTapTarget),
       );
     });
 
@@ -338,7 +336,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _host(
-          const LpTextButton(
+          const LpButton.text(
             label: 'Not now',
             onPressed: null,
             icon: Icons.add,
@@ -346,7 +344,7 @@ void main() {
         ),
       );
       await tester.tap(find.text('Not now'), warnIfMissed: false);
-      expect(_iconColorIn(tester, LpTextButton), AppColors.contentTertiary);
+      expect(_iconColorIn(tester, LpButton), AppColors.contentTertiary);
     });
   });
 }
