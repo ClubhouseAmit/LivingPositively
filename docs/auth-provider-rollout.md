@@ -103,7 +103,8 @@ acceptance requirement. Keep PR #420 in draft until the evidence below exists.
 
 ### Builds and configuration
 
-Use the candidate commit, Flutter 3.47.5, and the committed Dart/native locks.
+Use the candidate commit, Flutter 3.47.8 (Dart 3.13.7), and the committed
+Dart/native locks.
 Record the commit, artifact identifier, OS version, package/bundle ID, and
 certificate fingerprints with each result. Do not attach tokens or account data.
 

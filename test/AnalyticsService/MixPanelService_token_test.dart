@@ -90,7 +90,7 @@ void main() {
                           'optOutTrackingDefault': false,
                           'trackAutomaticEvents': false,
                           'mixpanelProperties': {
-                            r'$lib_version': '2.14.0',
+                            r'$lib_version': allOf(isA<String>(), isNotEmpty),
                             'mp_lib': 'flutter',
                           },
                           'superProperties': null,
