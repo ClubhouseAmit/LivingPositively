@@ -135,6 +135,7 @@ class AppColors {
   static const Color accentHighlight = Color(0xFFF2ED4E);
   static const Color accentMuted = Color(0xFFDC9BF6);
   static const Color accentOnContainer = Color(0xFF22005D);
+  static const Color accentPressed = Color(0xFF963CBA);
   static const Color accentPrimary = Color(0xFFB44FDD);
   static const Color accentWash = Color(0xFFEFE9FE);
 
@@ -199,6 +200,7 @@ class AppColors {
   static const Color darkAccentHighlight = Color(0xFFD8D34A);
   static const Color darkAccentMuted = Color(0xFFDD89FF);
   static const Color darkAccentOnContainer = Color(0xFFEADDFF);
+  static const Color darkAccentPressed = Color(0xFFA94DCE);
   static const Color darkAccentPrimary = Color(0xFFB968D9);
   static const Color darkAccentWash = Color(0xFF2C2440);
 
