@@ -109,7 +109,7 @@ Users without verified enabled state must explicitly enable their new reminder.
 
 ## 3. Validate the selected revision
 
-Use Flutter **3.47.5** (Dart **3.13**), JDK **17** for Android, and Node.js
+Use Flutter **3.47.8** (Dart **3.13.7**), JDK **17** for Android, and Node.js
 **22** for Functions, matching the workflow. The app version in [pubspec.yaml](../pubspec.yaml) is
 `1.7.1`. Work from the repository root with the release configuration installed.
 

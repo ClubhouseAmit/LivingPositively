@@ -19,8 +19,8 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.7.2
 
 environment:
-  sdk: ">=3.13.0 <4.0.0"
-  flutter: ">=3.47.0"
+  sdk: ">=3.13.7 <4.0.0"
+  flutter: ">=3.47.8"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -33,52 +33,53 @@ dependencies:
     sdk: flutter
 
   encrypt: ^5.0.3
-  shared_preferences: ^2.5.5
-  url_launcher: 6.3.2
+  shared_preferences: ^2.5.6
+  url_launcher: 6.3.3
 
   permission_handler: ^13.0.2
   speech_to_text: ^7.5.0
-  geolocator: 14.1.1
-  flutter_local_notifications: ^22.3.1
+  geolocator: 14.1.2
+  flutter_local_notifications: ^22.3.3
   pdf: ^3.13.1
   printing: ^5.15.1
   path_provider: ^2.1.6
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^2.0.0
-  mixpanel_flutter: 2.14.0
+  mixpanel_flutter: 3.2.0
   getwidget: ^7.0.2
   fluttericon: ^2.0.0
   dotted_border: ^3.1.0
   keyboard_dismisser: ^3.0.0
   provider: ^6.1.5+1
+  # Keep Firebase on Apple SDK 12 until google_sign_in_ios supports GoogleSignIn 10.
   cloud_firestore: 6.10.0
   firebase_core: 4.15.0
   cloud_firestore_web: 5.7.3
-  fluttertoast: ^10.0.0
+  fluttertoast: ^10.0.2
   firebase_auth: 6.7.0
   firebase_messaging: 16.7.0
   font_awesome_flutter: ^11.0.0
-  share_plus: ^13.3.0
+  share_plus: ^13.3.1
   flutter_screenutil: ^5.9.3
   auto_size_text: ^3.0.0
-  image_picker: ^1.2.3
+  image_picker: ^1.2.4
   youtube_player_flutter: ^10.0.1
   url_launcher_platform_interface: ^2.3.2
   uuid: ^4.6.0
   qr_flutter: ^4.1.0
-  mobile_scanner: ^7.4.2
+  mobile_scanner: ^7.5.0
   firebase_database: 12.6.0
-  file_picker: 13.1.0
+  file_picker: 13.3.2
   googleapis: ^17.0.0
-  googleapis_auth: ^2.3.4
+  googleapis_auth: ^2.3.5
   http: ^1.6.0
   get_it: ^9.3.0
-  sentry_flutter: 9.30.1
+  sentry_flutter: 10.3.0
   device_preview: ^3.0.0
-  flutter_timezone: ^5.1.0
+  flutter_timezone: ^5.1.1
   numberpicker: ^2.1.2
-  flutter_contacts: ^2.5.0
+  flutter_contacts: ^2.6.0
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.3
@@ -86,7 +87,7 @@ dependencies:
   devicelocale: ^0.9.1
   upgrader: ^13.7.0
   country_code_picker: ^3.4.1
-  flutter_svg: ^2.3.0
+  flutter_svg: ^2.3.2
   google_sign_in: 7.2.0
   sign_in_with_apple: 8.2.0
 dev_dependencies:
@@ -108,7 +109,7 @@ dev_dependencies:
   # NOTE: Flutter 3.47 lifts the meta pin that previously blocked solid_lints.
   # Adding it and migrating the guideline checks require a separate decision;
   # see AGENTS.md 0.9.
-  fake_cloud_firestore: ^4.3.0
+  fake_cloud_firestore: ^4.4.0
   very_good_analysis: ^11.0.0
 
 # For information on the generic Dart part of this file, see the

@@ -57,7 +57,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     env:
-      FLUTTER_SWIFT_PACKAGE_MANAGER: "false"
+      FLUTTER_SWIFT_PACKAGE_MANAGER: "true"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,7 +65,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.47.5"
+          flutter-version: "3.47.8"
           cache: true
 
       - name: Install Dart dependencies
@@ -93,11 +93,9 @@ jobs:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       IOS_PODS_CACHE_VERSION: v1
       IOS_DERIVED_DATA_CACHE_VERSION: v1
-      # cloud_firestore 6.4.1's SwiftPM manifest allows firebase-ios-sdk
-      # 12.14.0, whose Firestore pipeline bridge changed initializer
-      # signatures. Keep this iOS coverage job on the CocoaPods path until
-      # FlutterFire updates cloud_firestore's iOS parser for that API.
-      FLUTTER_SWIFT_PACKAGE_MANAGER: "false"
+      # Sentry 10 requires SwiftPM; Flutter migrates the Xcode project when
+      # the simulator test builds it. CocoaPods handles remaining plugins.
+      FLUTTER_SWIFT_PACKAGE_MANAGER: "true"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -111,7 +109,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.47.5"
+          flutter-version: "3.47.8"
           cache: true
 
       - name: Install dependencies
@@ -182,10 +180,11 @@ jobs:
 
           for attempt in 1 2 3; do
             echo "Resolving CocoaPods dependencies (attempt ${attempt}/3)."
+            # SwiftPM migration removes pods from the tracked pre-upgrade lockfile.
             if [[ "$attempt" -eq 2 ]]; then
-              set -- --repo-update --deployment
+              set -- --repo-update
             else
-              set -- --deployment
+              set --
             fi
             if pod install "$@" 2>&1 | tee -a "$pod_log"; then
               exit 0
