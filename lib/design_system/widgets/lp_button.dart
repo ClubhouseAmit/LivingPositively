@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart' show Brightness, Theme;
 import 'package:flutter/widgets.dart' hide Text;
 
 import 'package:mazilon/design_system/tokens/button_sizes.dart';
-import 'package:mazilon/design_system/tokens/colors.dart';
+import 'package:mazilon/design_system/tokens/color_tokens.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
 
@@ -131,7 +130,7 @@ class LpButton extends StatefulWidget {
 
   Widget _buildMainFace(BuildContext context, bool pressed) {
     final bool m = size == LpButtonSize.m;
-    final _Look look = _mainLook(_isDark(context), pressed);
+    final _Look look = _mainLook(context.colors, pressed);
     Widget face = ConstrainedBox(
       constraints: BoxConstraints(
         minHeight: m ? LpButtonSizes.heightM : LpButtonSizes.heightS,
@@ -186,7 +185,7 @@ class LpButton extends StatefulWidget {
   // -- LpButton.icon --
 
   Widget _buildIconFace(BuildContext context, bool pressed) {
-    final bool dark = _isDark(context);
+    final AppColorTokens colors = context.colors;
     final (double box, double glyph) = switch (iconSize) {
       LpIconSize.xs => (
         LpButtonSizes.iconButtonXs,
@@ -206,7 +205,7 @@ class LpButton extends StatefulWidget {
       dimension: box,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: _iconFill(dark, pressed),
+          color: _iconFill(colors, pressed),
           borderRadius: BorderRadius.circular(
             pressed && !rounded
                 ? LpButtonSizes.iconButtonPressedRadius
@@ -214,7 +213,7 @@ class LpButton extends StatefulWidget {
           ),
         ),
         child: Center(
-          child: Icon(icon, size: glyph, color: _iconColor(dark, pressed)),
+          child: Icon(icon, size: glyph, color: _iconColor(colors, pressed)),
         ),
       ),
     );
@@ -223,7 +222,7 @@ class LpButton extends StatefulWidget {
   // -- LpButtonVariant.text --
 
   Widget _buildTextFace(BuildContext context, bool pressed) {
-    final Color color = _mainLook(_isDark(context), pressed).content;
+    final Color color = _mainLook(context.colors, pressed).content;
     return ConstrainedBox(
       constraints: const BoxConstraints(
         minHeight: LpButtonSizes.textButtonHeight,

@@ -10,6 +10,7 @@ import 'package:mazilon/util/async/service_locator.dart';
 import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mazilon/features/shell/ui/async_state_view.dart';
+import 'package:mazilon/features/shell/ui/app_builder.dart';
 import 'package:mazilon/features/shell/ui/app_time_format.dart';
 import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/async/app_theme.dart';
@@ -28,7 +29,6 @@ import 'package:mazilon/features/notifications/data/fcm_scheduled_notification_s
 import 'package:mazilon/features/notifications/ui/notification_locale_rescheduler.dart';
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:upgrader/upgrader.dart';
-//testing:
 import 'package:mazilon/pages/first_page.dart';
 
 List<String> checkboxCollectionNames = [
@@ -119,7 +119,6 @@ Future<Widget> bootstrapApp({
   final app = MultiProvider(
     providers: [
       for (int i = 0; i < checkboxCollectionNames.length; i++)
-        // Initialize the checkbox models
         // Initialize the phonePageData provider
         ChangeNotifierProvider(
           create: (context) => PhonePageData(
@@ -137,7 +136,6 @@ Future<Widget> bootstrapApp({
           )..loadItemsFromPrefs(), // Initialize phonePageData
         ),
 
-      // Initialize the APP information provider
       ChangeNotifierProvider(create: (context) => AppInformation()),
       // Initialize the User information provider
       ChangeNotifierProvider(create: (context) => UserInformation()),
@@ -319,7 +317,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     loadFirstTime();
     super.initState();
     _startSession();
-    //initMixpanel();
     personalPlanPhonesPageData = {
       'phoneName': <String>[],
       'emergencyPhones': <String>[],
@@ -545,9 +542,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (localeName == '') {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
+        builder: appBuilder,
         theme: buildLightTheme(),
         darkTheme: buildDarkTheme(),
         themeMode: themeMode,
+        themeAnimationDuration: Duration.zero,
         // Phase E (ADR-005 §Decision step 5): this boot spinner renders
         // before the localization delegates are wired, so it passes an
         // explicit English label rather than reading AppLocalizations.
@@ -564,11 +563,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         supportedLocales: AppLocalizations.supportedLocales,
         locale: Locale(localeService.getLocale()),
         localizationsDelegates: appLocalizationsDelegates,
-        builder: appTimeFormatBuilder,
+        builder: appBuilder,
         debugShowCheckedModeBanner: false,
         theme: buildLightTheme(Locale(localeService.getLocale())),
         darkTheme: buildDarkTheme(Locale(localeService.getLocale())),
         themeMode: themeMode,
+        themeAnimationDuration: Duration.zero,
         home: UpgradeAlert(
           child: Scaffold(
             resizeToAvoidBottomInset: false,
