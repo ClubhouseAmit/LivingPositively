@@ -24,6 +24,19 @@ void main() {
     };
   }
 
+  // A value of another shape (`Color(0x…)`, `AppColors.x.withValues(…)`)
+  // would be skipped by setFields in both sets alike, so count fields too.
+  final int fieldCount = RegExp(
+    r'^    required this\.\w+,',
+    multiLine: true,
+  ).allMatches(source).length;
+
+  test('every field is a plain AppColors constant in both sets', () {
+    expect(fieldCount, greaterThan(0));
+    expect(setFields('light'), hasLength(fieldCount));
+    expect(setFields('dark'), hasLength(fieldCount));
+  });
+
   test('light uses the plain name for every field', () {
     final Map<String, String> light = setFields('light');
     expect(light, isNotEmpty);
