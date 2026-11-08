@@ -111,8 +111,9 @@ Deviations from the skill, which is written for a greenfield app:
   `Card`, `Glass`, `Button`). Nothing in it imports Material or
   Cupertino (0.15); colors for the current mode come from `context.colors`
   — a future re-skin touches these implementations, never a feature's
-  call sites. Exception: the LP-DS redesign does not edit existing looks; it
-  ships beside them and screens move one at a time (DESIGN.md §1A). Use
+  call sites. The LP-DS redesign is the one exception to re-skinning in
+  place: it does not edit existing looks, but ships new widgets beside them
+  while screens move one at a time (DESIGN.md §1A). Use
   these over a raw Material `Text`/`Card`/`TextButton` in `ui/`; see 0.12. Import `design_system/widgets/` and hide Flutter's names.
 
 **Frozen trees.** `lib/pages/` is flat: one `*.dart` file per top-level
