@@ -50,6 +50,7 @@ void main() {
         savedPhoneNumbers: [],
         phoneDescription: [],
       );
+      final cleanUp = _cleanUpAfter(tester, phones);
       await pumpWithProviders(
         tester,
         ChangeNotifierProvider<PhonePageData>.value(
@@ -79,9 +80,7 @@ void main() {
       );
       await tester.pump();
       expect(find.text('7:05 PM', skipOffstage: false), findsOneWidget);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(seconds: 10));
-      phones.dispose();
+      await cleanUp();
     });
 
     testWidgets('the boot spinner app also gets appBuilder', (tester) async {
@@ -101,6 +100,7 @@ void main() {
         savedPhoneNumbers: [],
         phoneDescription: [],
       );
+      final cleanUp = _cleanUpAfter(tester, phones);
       // Only the first frame: the locale loads asynchronously, so MyApp
       // still shows its boot MaterialApp.
       await tester.pumpWidget(
@@ -121,9 +121,30 @@ void main() {
       expect(app.localizationsDelegates, isNull, reason: 'boot app');
       expect(app.builder, appBuilder);
       expect(app.themeAnimationDuration, Duration.zero);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(seconds: 10));
-      phones.dispose();
+      await cleanUp();
     });
   });
+}
+
+/// Unmounts MyApp, drains its timers and disposes [phones], once.
+///
+/// Call the result at the end of the test body: Flutter checks for pending
+/// timers before teardowns run. It is also registered as a teardown, so a
+/// failed expect cannot skip it and make the next test fail for an
+/// unrelated reason (services reset under a still-mounted app).
+Future<void> Function() _cleanUpAfter(
+  WidgetTester tester,
+  PhonePageData phones,
+) {
+  var done = false;
+  Future<void> cleanUp() async {
+    if (done) return;
+    done = true;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 10));
+    phones.dispose();
+  }
+
+  addTearDown(cleanUp);
+  return cleanUp;
 }
