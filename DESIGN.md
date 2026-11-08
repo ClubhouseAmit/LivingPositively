@@ -61,9 +61,21 @@ Documentation - Color Tokens" (node 88:332). Every Figma variable is an
 value under the camelCased Figma name, the dark-mode value under the same name
 prefixed with `dark`. Alpha variants carry the opacity in the hex alpha byte.
 
-**New code uses these names.** Prefer `Theme.of(context).colorScheme` where a
-slot exists (it already resolves light/dark); otherwise pick `x` / `darkX` the
-same way existing code does.
+**New code asks for a color by name and never checks the mode:**
+
+```dart
+color: context.colors.surfaceSunken,
+```
+
+`context.colors` (`lib/design_system/tokens/color_tokens.dart`) is
+`AppColorTokens`, the Figma tokens for the current mode. `appBuilder`
+(`lib/features/shell/ui/app_builder.dart`) sets it once on every app root
+from the mode `MaterialApp` resolved from the user's setting. A token missing
+from `AppColorTokens` is added there (to both `light` and `dark`) by the
+first widget that needs it. `AppColors.darkX` is read only where the sets are
+built. `Theme.of(context).colorScheme` is for Material's own
+widgets, not LP-DS ones. A test or preview wraps its widget in
+`AppColorScope`; without one, `context.colors` fails in debug.
 
 | Figma token | `AppColors` (light / dark) | Light | Dark |
 | :-- | :-- | :-- | :-- |
@@ -129,6 +141,8 @@ content/on-accent.
 **Known contrast gaps (shipped as designed, tracked in #433):**
 - `content/on-accent` on `accent/primary` — the primary button label — is
   4.12:1 (light) / 4.29:1 (dark), under WCAG AA's 4.5:1 for normal text.
+- `LpButton` emphasis labels with `surface/white`, as the Figma dark screens
+  do, not `content/on-accent`: 4.12:1 (light) / 3.47:1 (dark).
 - `effect/hairline` as an idle input border is 1.6:1 (light) / 1.4:1 (dark),
   under WCAG 1.4.11's 3:1 for component boundaries. Fine for dividers.
 

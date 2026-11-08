@@ -24,6 +24,7 @@ import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/shell/ui/app_time_format.dart';
+import 'package:mazilon/features/shell/ui/app_builder.dart';
 import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
 import 'package:mazilon/features/wellness_tools/ui/video_player_page_factory.dart';
 import 'package:mazilon/features/phone/data/sos_location_service.dart';
@@ -464,7 +465,7 @@ Future<void> pumpWithProviders(
         locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: appLocalizationsDelegates,
-        builder: appTimeFormatBuilder,
+        builder: appBuilder,
         home: ScreenUtilInit(
           designSize: designSize,
           child: Builder(builder: (context) => child),

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/features/shell/ui/app_builder.dart';
 import 'package:mazilon/main.dart' show MyApp;
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/util/async/app_material_localizations.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -48,6 +50,7 @@ void main() {
         savedPhoneNumbers: [],
         phoneDescription: [],
       );
+      final cleanUp = _cleanUpAfter(tester, phones);
       await pumpWithProviders(
         tester,
         ChangeNotifierProvider<PhonePageData>.value(
@@ -63,7 +66,9 @@ void main() {
         app.localizationsDelegates!.first,
         isA<AppMaterialLocalizationsDelegate>(),
       );
-      expect(app.builder, isNotNull);
+      // appBuilder also hands LP widgets their color tokens (#443).
+      expect(app.builder, appBuilder);
+      expect(app.themeAnimationDuration, Duration.zero);
       final navigator =
           GetIt.instance<GlobalKey<NavigatorState>>().currentState!;
       navigator.push<void>(
@@ -75,9 +80,71 @@ void main() {
       );
       await tester.pump();
       expect(find.text('7:05 PM', skipOffstage: false), findsOneWidget);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(seconds: 10));
-      phones.dispose();
+      await cleanUp();
+    });
+
+    testWidgets('the boot spinner app also gets appBuilder', (tester) async {
+      registerTestServices();
+      addTearDown(resetTestServices);
+      SharedPreferences.setMockInitialValues({});
+      final phones = PhonePageData(
+        key: 'PhonePage',
+        phoneNames: [],
+        phoneNumbers: [],
+        header: '',
+        subTitle: '',
+        midTitle: '',
+        phoneNameTitle: '',
+        phoneNumberTitle: '',
+        savedPhoneNames: [],
+        savedPhoneNumbers: [],
+        phoneDescription: [],
+      );
+      final cleanUp = _cleanUpAfter(tester, phones);
+      // Only the first frame: the locale loads asynchronously, so MyApp
+      // still shows its boot MaterialApp.
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<UserInformation>.value(
+              value: UserInformation(),
+            ),
+            ChangeNotifierProvider<AppInformation>.value(
+              value: AppInformation(),
+            ),
+            ChangeNotifierProvider<PhonePageData>.value(value: phones),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(app.localizationsDelegates, isNull, reason: 'boot app');
+      expect(app.builder, appBuilder);
+      expect(app.themeAnimationDuration, Duration.zero);
+      await cleanUp();
     });
   });
+}
+
+/// Unmounts MyApp, drains its timers and disposes [phones], once.
+///
+/// Call the result at the end of the test body: Flutter checks for pending
+/// timers before teardowns run. It is also registered as a teardown, so a
+/// failed expect cannot skip it and make the next test fail for an
+/// unrelated reason (services reset under a still-mounted app).
+Future<void> Function() _cleanUpAfter(
+  WidgetTester tester,
+  PhonePageData phones,
+) {
+  var done = false;
+  Future<void> cleanUp() async {
+    if (done) return;
+    done = true;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 10));
+    phones.dispose();
+  }
+
+  addTearDown(cleanUp);
+  return cleanUp;
 }

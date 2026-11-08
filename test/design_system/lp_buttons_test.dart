@@ -1,26 +1,24 @@
-import 'package:flutter/material.dart' show Brightness, Icons, Theme, ThemeData;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart' hide Text;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/design_system/tokens/button_sizes.dart';
+import 'package:mazilon/design_system/tokens/color_tokens.dart';
 import 'package:mazilon/design_system/tokens/colors.dart';
 import 'package:mazilon/design_system/widgets/lp_button.dart';
 
-/// No `MaterialApp`: the LP buttons must work with only `Directionality`
-/// above them. [brightness] adds a bare `Theme` for the dark-mode cases.
+/// No `MaterialApp` or `Theme`: the LP buttons need only `Directionality`
+/// and the color tokens above them. [colors] picks the mode.
 Widget _host(
   Widget child, {
-  Brightness? brightness,
+  AppColorTokens colors = AppColorTokens.light,
   TextDirection direction = TextDirection.ltr,
 }) {
-  final Widget centered = Center(child: child);
   return Directionality(
     textDirection: direction,
-    child: brightness == null
-        ? centered
-        : Theme(
-            data: ThemeData(brightness: brightness),
-            child: centered,
-          ),
+    child: AppColorScope(
+      tokens: colors,
+      child: Center(child: child),
+    ),
   );
 }
 
@@ -56,11 +54,17 @@ void main() {
       );
       await tester.tap(find.text('Go'));
       expect(taps, 1);
-      expect(
-        _decorationIn(tester, LpButton).color,
-        AppColors.surfaceSunken,
-        reason: 'light theme by default when no Theme is above',
+      expect(_decorationIn(tester, LpButton).color, AppColors.surfaceSunken);
+    });
+
+    testWidgets('fails loudly with no AppColorScope above', (tester) async {
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: LpButton(label: 'Go', onPressed: () {}),
+        ),
       );
+      expect(tester.takeException(), isAssertionError);
     });
 
     testWidgets('a screen reader can activate it', (tester) async {
@@ -113,7 +117,7 @@ void main() {
             variant: LpButtonVariant.emphasis,
             icon: Icons.arrow_back,
           ),
-          brightness: Brightness.dark,
+          colors: AppColorTokens.dark,
         ),
       );
       expect(
@@ -153,7 +157,7 @@ void main() {
             onPressed: () {},
             variant: LpButtonVariant.raised,
           ),
-          brightness: Brightness.dark,
+          colors: AppColorTokens.dark,
         ),
       );
       expect(
