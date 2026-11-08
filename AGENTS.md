@@ -30,6 +30,8 @@ ever disagree, the script is right and this table is stale.
 | 0.12 | **In `features/*/ui/`, use the design-system widget, not the Material widget it replaces.** No bare `TextButton(` — use `Button` (`lib/design_system/widgets/`), or `LpButton` on a screen migrated to LP-DS (DESIGN.md §1A). `Card`/`Text`/`Dialog` in ui/ are the design-system widgets; hide Flutter's names at the import. Extends only as new widgets ship; this is not a blanket Material ban. | A component built to fix drift (§0.10a) is worthless if new screens keep reaching past it for the widget underneath. |
 | 0.13 | **A `currentScreen` widget does not set `appBar:`.** The class list is read from `lib/menu.dart`, not restated. A route opened with `Navigator.push` keeps its bar. | `menu.dart` already owns the scaffold. A second `AppBar` is a nested scaffold. Existing bars park by count. |
 | 0.14 | **No widget class under `lib/util/`.** No `StatelessWidget` / `StatefulWidget` / `State<`. | Util is infra. A widget there is a feature in the wrong tree. |
+| 0.15 | **Nothing under `lib/design_system/` imports `material.dart` or `cupertino.dart`.** A design-system widget gets its colors from `context.colors`, not `Theme`. | The layer is platform-agnostic (see "Where new code goes"). Unchecked, the rule was broken by the first widget that needed dark mode. |
+| 0.16 | **No `AppColors.dark…` outside `design_system/tokens/` and `util/async/app_theme.dart`.** Ask `context.colors.<figmaName>` (DESIGN.md §2.1); it already holds the current mode. | A widget that picks light or dark itself is one more place dark mode breaks. Existing reads park by count. |
 
 ### 0.5a What the words mean
 
@@ -107,7 +109,8 @@ Deviations from the skill, which is written for a greenfield app:
 - `lib/design_system/` is the platform-agnostic component layer: `tokens/`
   (colors, spacing, radii, shadows, type scale) and `widgets/` (`Text`,
   `Card`, `Glass`, `Button`). Nothing in it imports Material or
-  Cupertino — a future re-skin touches these implementations, never a feature's
+  Cupertino (0.15); colors for the current mode come from `context.colors`
+  — a future re-skin touches these implementations, never a feature's
   call sites. Exception: the LP-DS redesign does not edit existing looks; it
   ships beside them and screens move one at a time (DESIGN.md §1A). Use
   these over a raw Material `Text`/`Card`/`TextButton` in `ui/`; see 0.12. Import `design_system/widgets/` and hide Flutter's names.

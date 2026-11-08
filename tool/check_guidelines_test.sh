@@ -384,6 +384,62 @@ class C {
 }
 DART
 
+# --- 0.15 design_system/ is Material-free ------------------------------------
+expect_at 1 "0.15 a Material import in design_system/ is rejected" "design_system/widgets/x.dart" <<'DART'
+import 'package:flutter/material.dart' show Brightness, Theme;
+class C {}
+DART
+
+expect_at 1 "0.15 a Cupertino import in design_system/ is rejected" "design_system/tokens/x.dart" <<'DART'
+import 'package:flutter/cupertino.dart';
+class C {}
+DART
+
+expect_at 0 "0.15 widgets.dart in design_system/ is fine" "design_system/widgets/x.dart" <<'DART'
+import 'package:flutter/widgets.dart' hide Text;
+class C {}
+DART
+
+expect_at 0 "0.15 Material outside design_system/ is not this rule's business" "features/x/ui/x_page.dart" <<'DART'
+import 'package:flutter/material.dart';
+class C {}
+DART
+
+# --- 0.16 widgets do not pick the dark color ---------------------------------
+expect_at 1 "0.16 a new AppColors.dark read in a feature is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Color c(bool dark) => dark ? AppColors.darkSurfaceSunken : AppColors.surfaceSunken;
+}
+DART
+
+expect_at 1 "0.16 a new AppColors.dark read in a design-system widget is rejected" "design_system/widgets/x.dart" <<'DART'
+class C {
+  Color c(bool dark) => dark ? AppColors.darkSurfaceSunken : AppColors.surfaceSunken;
+}
+DART
+
+expect_at 0 "0.16 the token sets may read AppColors.dark" "design_system/tokens/x.dart" <<'DART'
+const c = AppColors.darkSurfaceSunken;
+DART
+
+expect_at 0 "0.16 context.colors is fine" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Widget build(BuildContext context) => ColoredBox(color: context.colors.surfaceSunken);
+}
+DART
+
+# directional_widgets.dart reads AppColors.dark twice at the merge base.
+CHECK_ORIGIN=lib/features/shell/ui/directional_widgets.dart expect_at 0 "0.16 existing AppColors.dark reads are parked" "features/shell/ui/directional_widgets.dart" <<'DART'
+final a = AppColors.darkSurfaceRaised;
+final b = AppColors.darkContentPrimary;
+DART
+
+CHECK_ORIGIN=lib/features/shell/ui/directional_widgets.dart expect_at 1 "0.16 a parked file may not add one" "features/shell/ui/directional_widgets.dart" <<'DART'
+final a = AppColors.darkSurfaceRaised;
+final b = AppColors.darkContentPrimary;
+final c = AppColors.darkSurfaceSunken;
+DART
+
 # --- rename follow: a git mv is not a new file --------------------------------
 # 0.2/0.5/0.12 would treat a new path as greenfield and reject parked debt.
 # CHECK_ORIGIN is the test hook for origin_for(); production uses git rename.

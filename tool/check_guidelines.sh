@@ -389,6 +389,38 @@ for f in "${FILES[@]:-}"; do
     fi
   fi
 
+  # 0.15 design_system/ is Material-free --------------------------------------
+  # No ratchet: nothing under design_system/ imports Material or Cupertino.
+  # A mode or theme value comes from AppColorTokens.of(context), not Theme.
+  case "$rel" in
+    design_system/*)
+      if grep -qE "^import ['\"]package:flutter/(material|cupertino)\.dart" "$f"; then
+        note "$f: imports Material/Cupertino — design_system/ is platform-agnostic; colors come from context.colors [AGENTS.md 0.15]"
+      fi
+      ;;
+  esac
+
+  # 0.16 widgets do not pick the dark color ----------------------------------
+  # AppColors.darkX is read only where the per-mode sets are built. Everyone
+  # else asks context.colors, which already holds the current mode. Ratchet
+  # by count, so the existing hand-written mode checks park.
+  case "$rel" in
+    design_system/tokens/*|util/async/app_theme.dart) ;;
+    *)
+      bad_re='AppColors\.dark[A-Z]'; allow_re=""
+      now=$(offenders < "$f" | wc -l | tr -d ' ')
+      if [ "${now:-0}" -gt 0 ]; then
+        was=0
+        [ -n "$mb" ] && [ -n "$origin" ] && \
+          was=$(git show "$mb:$origin" 2>/dev/null | offenders | wc -l | tr -d ' ')
+        was=${was:-0}
+        if [ "$now" -gt "$was" ]; then
+          note "$f: $now AppColors.dark… read(s), was $was at $BASE_REF — use context.colors (design_system/tokens/color_tokens.dart) [AGENTS.md 0.16]"
+        fi
+      fi
+      ;;
+  esac
+
   fi
 done
 

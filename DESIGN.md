@@ -145,7 +145,7 @@ color: context.colors.surfaceSunken,
 from the mode `MaterialApp` resolved from the user's setting. A token missing
 from `AppColorTokens` is added there (to both `light` and `dark`) by the
 first widget that needs it. `AppColors.darkX` is read only where the sets are
-built. `Theme.of(context).colorScheme` is for Material's own
+built (AGENTS.md 0.16). `Theme.of(context).colorScheme` is for Material's own
 widgets, not LP-DS ones. A test or preview wraps its widget in
 `AppColorScope`; without one, `context.colors` fails in debug.
 
