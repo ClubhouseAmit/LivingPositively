@@ -60,6 +60,10 @@ edited to the new look**: that would change screens nobody migrated.
 
 > This section is the working approach while #441 is discussed. If #441 settles
 > differently, this section changes to match it.
+>
+> No script checks these rules (AGENTS.md section 0 is the only checked set).
+> They are enforced in review: a PR that breaks one needs a reason in its
+> description.
 
 ### How each widget is built
 
@@ -79,6 +83,10 @@ Which file the work goes in depends on the case:
 | **Color-only new look** on an existing control | `Alert` `info` / `warning` / `success`, if Figma only changes colors | Extend the existing file: one new enum value and one new `switch` arm. Existing arms unchanged; the default stays today's look. |
 
 If you can't tell whether a change is color-only, it isn't: use the first row.
+The color-only row also needs the widget to read its colors from
+`context.colors` already (§2.1). Most existing widgets read light-only
+`AppColors` constants, so a new arm there would ignore dark mode: use the
+first row instead.
 
 `LpButton` is the reference for the first row.
 

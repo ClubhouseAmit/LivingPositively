@@ -395,6 +395,16 @@ import 'package:flutter/cupertino.dart';
 class C {}
 DART
 
+expect_at 1 "0.15 re-exporting Material from design_system/ is rejected" "design_system/widgets/x.dart" <<'DART'
+export 'package:flutter/material.dart' show Theme;
+class C {}
+DART
+
+expect_at 1 "0.15 a flutter/src/material import in design_system/ is rejected" "design_system/widgets/x.dart" <<'DART'
+import 'package:flutter/src/material/theme.dart';
+class C {}
+DART
+
 expect_at 0 "0.15 widgets.dart in design_system/ is fine" "design_system/widgets/x.dart" <<'DART'
 import 'package:flutter/widgets.dart' hide Text;
 class C {}
@@ -405,7 +415,7 @@ import 'package:flutter/material.dart';
 class C {}
 DART
 
-# --- 0.16 widgets do not pick the dark color ---------------------------------
+# --- 0.16 widgets do not pick light or dark themselves ----------------------
 expect_at 1 "0.16 a new AppColors.dark read in a feature is rejected" "features/x/ui/x_page.dart" <<'DART'
 class C {
   Color c(bool dark) => dark ? AppColors.darkSurfaceSunken : AppColors.surfaceSunken;
@@ -418,8 +428,32 @@ class C {
 }
 DART
 
+expect_at 1 "0.16 a new Brightness.dark check in a feature is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Color c(ThemeData theme) => theme.brightness == Brightness.dark ? a : b;
+}
+DART
+
+expect_at 1 "0.16 a != Brightness.dark check split over two lines is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  bool light(BuildContext context) => Theme.of(context).brightness !=
+      Brightness.dark;
+}
+DART
+
+expect_at 0 "0.16 a comment naming a dark token is not a read" "features/x/ui/x_page.dart" <<'DART'
+/// The [AppColors.darkLogoOutline] is confined to the logo.
+// Brightness.dark is decided in appBuilder.
+class C {}
+DART
+
 expect_at 0 "0.16 the token sets may read AppColors.dark" "design_system/tokens/x.dart" <<'DART'
 const c = AppColors.darkSurfaceSunken;
+DART
+
+expect_at 0 "0.16 appBuilder may read Brightness.dark" "features/shell/ui/app_builder.dart" <<'DART'
+Widget appBuilder(BuildContext context, Widget? child) =>
+    Theme.of(context).brightness == Brightness.dark ? a : b;
 DART
 
 expect_at 0 "0.16 context.colors is fine" "features/x/ui/x_page.dart" <<'DART'
@@ -428,17 +462,27 @@ class C {
 }
 DART
 
-# directional_widgets.dart reads AppColors.dark twice at the merge base.
-CHECK_ORIGIN=lib/features/shell/ui/directional_widgets.dart expect_at 0 "0.16 existing AppColors.dark reads are parked" "features/shell/ui/directional_widgets.dart" <<'DART'
-final a = AppColors.darkSurfaceRaised;
-final b = AppColors.darkContentPrimary;
-DART
-
-CHECK_ORIGIN=lib/features/shell/ui/directional_widgets.dart expect_at 1 "0.16 a parked file may not add one" "features/shell/ui/directional_widgets.dart" <<'DART'
-final a = AppColors.darkSurfaceRaised;
-final b = AppColors.darkContentPrimary;
-final c = AppColors.darkSurfaceSunken;
-DART
+# Parking: plant as many choices as directional_widgets.dart has at the merge
+# base (counted the way the checker counts), then one more. Read live, so
+# cleaning up that file can't break these tests.
+{
+  parked_origin=lib/features/shell/ui/directional_widgets.dart
+  parked_mb=$(git merge-base "${CHECK_BASE_REF:-main}" HEAD)
+  parked=$(git show "$parked_mb:$parked_origin" \
+    | grep -nE 'AppColors\.dark[A-Z]|Brightness\.dark' \
+    | grep -cvE '^[0-9]+:[[:space:]]*//')
+  # Planted into a file, not piped: a pipe runs expect_at in a subshell and
+  # its pass/fail would not reach the totals.
+  plant() { i=0; while [ "$i" -lt "$1" ]; do echo "final v$i = Brightness.dark;"; i=$((i+1)); done; }
+  plant "$parked" > "$TMP/parked.dart"
+  CHECK_ORIGIN=$parked_origin expect_at 0 \
+    "0.16 existing choices are parked ($parked at the merge base)" \
+    "features/shell/ui/directional_widgets.dart" < "$TMP/parked.dart"
+  plant $((parked + 1)) > "$TMP/parked.dart"
+  CHECK_ORIGIN=$parked_origin expect_at 1 \
+    "0.16 a parked file may not add one" \
+    "features/shell/ui/directional_widgets.dart" < "$TMP/parked.dart"
+}
 
 # --- rename follow: a git mv is not a new file --------------------------------
 # 0.2/0.5/0.12 would treat a new path as greenfield and reject parked debt.
