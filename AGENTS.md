@@ -27,9 +27,11 @@ ever disagree, the script is right and this table is stale.
 | 0.5 | **No raw number in a spacing/radius slot.** Use `AppSpacing.*`, `AppRadii.*`, or theme. `0` is allowed. | Not even a number that equals a token's value: nobody can tell `20` from `AppSpacing.xl` by reading it. |
 | 0.10 | **A top-level page goes in `lib/pages/*.dart`.** Feature internals go in `lib/features/<name>/{data,ui}` — not the page. `pages/<folder>/`, `util/`, `MainPageHelpers/`, `form/`, `initialForm/` and the `lib/` root stay frozen. | A page that lives inside its feature, or a feature folder under `pages/`, is how one concern ends up in four directories. See 0.10a. |
 | 0.11 | **Layers point one way.** `data/` must not import a widget library. `ui/` must not import a file from `data/` other than `*_models`, `*_types`, `*_repository`. | A view model that reaches around its repository grows until nobody can test it. |
-| 0.12 | **In `features/*/ui/`, use the design-system widget, not the Material widget it replaces.** No bare `TextButton(` — use `Button` (`lib/design_system/widgets/`). `Card`/`Text`/`Dialog` in ui/ are the design-system widgets; hide Flutter's names at the import. Extends only as new widgets ship; this is not a blanket Material ban. | A component built to fix drift (§0.10a) is worthless if new screens keep reaching past it for the widget underneath. |
+| 0.12 | **In `features/*/ui/`, use the design-system widget, not the Material widget it replaces.** No bare `TextButton(` — use `Button` (`lib/design_system/widgets/`), or `LpButton` on a screen migrated to LP-DS (DESIGN.md §1A). `Card`/`Text`/`Dialog` in ui/ are the design-system widgets; hide Flutter's names at the import. Extends only as new widgets ship; this is not a blanket Material ban. | A component built to fix drift (§0.10a) is worthless if new screens keep reaching past it for the widget underneath. |
 | 0.13 | **A `currentScreen` widget does not set `appBar:`.** The class list is read from `lib/menu.dart`, not restated. A route opened with `Navigator.push` keeps its bar. | `menu.dart` already owns the scaffold. A second `AppBar` is a nested scaffold. Existing bars park by count. |
 | 0.14 | **No widget class under `lib/util/`.** No `StatelessWidget` / `StatefulWidget` / `State<`. | Util is infra. A widget there is a feature in the wrong tree. |
+| 0.15 | **Nothing under `lib/design_system/` imports or exports `material.dart` or `cupertino.dart`** (or `flutter/src/material`). A design-system widget gets its colors from `context.colors`, not `Theme`. | The layer is platform-agnostic (see "Where new code goes"). Unchecked, the rule was broken by the first widget that needed dark mode. |
+| 0.16 | **A widget does not pick light or dark itself: no `AppColors.dark…` and no `Brightness.dark`** outside `design_system/tokens/`, `util/async/app_theme.dart` and `features/shell/ui/app_builder.dart`. Ask `context.colors.<figmaName>` (DESIGN.md §2.1); it already holds the current mode. Comment lines don't count. | Each hand-written mode check is one more place dark mode breaks. Existing ones park by count. |
 
 ### 0.5a What the words mean
 
@@ -107,9 +109,13 @@ Deviations from the skill, which is written for a greenfield app:
 - `lib/design_system/` is the platform-agnostic component layer: `tokens/`
   (colors, spacing, radii, shadows, type scale) and `widgets/` (`Text`,
   `Card`, `Glass`, `Button`). Nothing in it imports Material or
-  Cupertino — a future re-skin touches these implementations, never a feature's
-  call sites. Use these over a raw Material `Text`/`Card`/`TextButton` in
-  `ui/`; see 0.12. Import `design_system/widgets/` and hide Flutter's names.
+  Cupertino (0.15); colors for the current mode come from `context.colors`
+  — a future re-skin touches these implementations, never a feature's
+  call sites. The LP-DS redesign is the one exception to re-skinning in
+  place: it does not edit existing looks, but ships new widgets beside them
+  while screens move one at a time (DESIGN.md §1A). Use
+  these over a raw Material `Text`/`Card`/`TextButton` in `ui/`; see 0.12.
+  Import `design_system/widgets/` and hide Flutter's names.
 
 **Frozen trees.** `lib/pages/` is flat: one `*.dart` file per top-level
 screen. A subdirectory under `pages/` is a feature in the wrong place.

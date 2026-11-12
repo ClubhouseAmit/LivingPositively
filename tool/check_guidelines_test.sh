@@ -384,6 +384,105 @@ class C {
 }
 DART
 
+# --- 0.15 design_system/ is Material-free ------------------------------------
+expect_at 1 "0.15 a Material import in design_system/ is rejected" "design_system/widgets/x.dart" <<'DART'
+import 'package:flutter/material.dart' show Brightness, Theme;
+class C {}
+DART
+
+expect_at 1 "0.15 a Cupertino import in design_system/ is rejected" "design_system/tokens/x.dart" <<'DART'
+import 'package:flutter/cupertino.dart';
+class C {}
+DART
+
+expect_at 1 "0.15 re-exporting Material from design_system/ is rejected" "design_system/widgets/x.dart" <<'DART'
+export 'package:flutter/material.dart' show Theme;
+class C {}
+DART
+
+expect_at 1 "0.15 a flutter/src/material import in design_system/ is rejected" "design_system/widgets/x.dart" <<'DART'
+import 'package:flutter/src/material/theme.dart';
+class C {}
+DART
+
+expect_at 0 "0.15 widgets.dart in design_system/ is fine" "design_system/widgets/x.dart" <<'DART'
+import 'package:flutter/widgets.dart' hide Text;
+class C {}
+DART
+
+expect_at 0 "0.15 Material outside design_system/ is not this rule's business" "features/x/ui/x_page.dart" <<'DART'
+import 'package:flutter/material.dart';
+class C {}
+DART
+
+# --- 0.16 widgets do not pick light or dark themselves ----------------------
+expect_at 1 "0.16 a new AppColors.dark read in a feature is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Color c(bool dark) => dark ? AppColors.darkSurfaceSunken : AppColors.surfaceSunken;
+}
+DART
+
+expect_at 1 "0.16 a new AppColors.dark read in a design-system widget is rejected" "design_system/widgets/x.dart" <<'DART'
+class C {
+  Color c(bool dark) => dark ? AppColors.darkSurfaceSunken : AppColors.surfaceSunken;
+}
+DART
+
+expect_at 1 "0.16 a new Brightness.dark check in a feature is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Color c(ThemeData theme) => theme.brightness == Brightness.dark ? a : b;
+}
+DART
+
+expect_at 1 "0.16 a != Brightness.dark check split over two lines is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  bool light(BuildContext context) => Theme.of(context).brightness !=
+      Brightness.dark;
+}
+DART
+
+expect_at 0 "0.16 a comment naming a dark token is not a read" "features/x/ui/x_page.dart" <<'DART'
+/// The [AppColors.darkLogoOutline] is confined to the logo.
+// Brightness.dark is decided in appBuilder.
+class C {}
+DART
+
+expect_at 0 "0.16 the token sets may read AppColors.dark" "design_system/tokens/x.dart" <<'DART'
+const c = AppColors.darkSurfaceSunken;
+DART
+
+expect_at 0 "0.16 appBuilder may read Brightness.dark" "features/shell/ui/app_builder.dart" <<'DART'
+Widget appBuilder(BuildContext context, Widget? child) =>
+    Theme.of(context).brightness == Brightness.dark ? a : b;
+DART
+
+expect_at 0 "0.16 context.colors is fine" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Widget build(BuildContext context) => ColoredBox(color: context.colors.surfaceSunken);
+}
+DART
+
+# Parking: directional_widgets.dart may keep the dark checks it already has
+# on main, but no new ones. That count is read from git, not hard-coded.
+{
+  parked_origin=lib/features/shell/ui/directional_widgets.dart
+  parked_mb=$(git merge-base "${CHECK_BASE_REF:-main}" HEAD)
+  parked=$(git show "$parked_mb:$parked_origin" \
+    | grep -nE 'AppColors\.dark[A-Z]|Brightness\.dark' \
+    | grep -cvE '^[0-9]+:[[:space:]]*//')
+  # Planted into a file, not piped: a pipe runs expect_at in a subshell and
+  # its pass/fail would not reach the totals.
+  plant() { i=0; while [ "$i" -lt "$1" ]; do echo "final v$i = Brightness.dark;"; i=$((i+1)); done; }
+  plant "$parked" > "$TMP/parked.dart"
+  CHECK_ORIGIN=$parked_origin expect_at 0 \
+    "0.16 existing choices are parked ($parked at the merge base)" \
+    "features/shell/ui/directional_widgets.dart" < "$TMP/parked.dart"
+  plant $((parked + 1)) > "$TMP/parked.dart"
+  CHECK_ORIGIN=$parked_origin expect_at 1 \
+    "0.16 a parked file may not add one" \
+    "features/shell/ui/directional_widgets.dart" < "$TMP/parked.dart"
+}
+
 # --- rename follow: a git mv is not a new file --------------------------------
 # 0.2/0.5/0.12 would treat a new path as greenfield and reject parked debt.
 # CHECK_ORIGIN is the test hook for origin_for(); production uses git rename.

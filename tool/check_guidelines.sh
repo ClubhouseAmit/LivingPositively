@@ -16,9 +16,10 @@
 # KNOWN CEILING — these checks are regex over text, not a Dart parse. They catch
 # the common shapes, not every shape. Documented gaps: expression-bodied (=>)
 # methods, signatures wrapped across lines, local functions with inferred or
-# custom return types, spacing values laundered through a named constant. Do not
-# read "0 violations" as "this code is good"; read it as "none of the shapes
-# below were found". See tool/check_guidelines_test.sh for what is proven.
+# custom return types, spacing values laundered through a named constant,
+# Material re-exported through a project file (0.15). Do not read
+# "0 violations" as "this code is good"; read it as "none of the shapes below
+# were found". See tool/check_guidelines_test.sh for what is proven.
 # ponytail: text heuristics; move to the `analyzer` package for a real AST if
 # these gaps start getting exploited.
 
@@ -388,6 +389,43 @@ for f in "${FILES[@]:-}"; do
       fi
     fi
   fi
+
+  # 0.15 design_system/ is Material-free --------------------------------------
+  # No ratchet: nothing under design_system/ imports Material or Cupertino.
+  # A mode or theme value comes from AppColorTokens.of(context), not Theme.
+  # Covers import and export, and flutter/src/material paths. Not covered: a
+  # project file that re-exports Material (a text check can't follow it).
+  case "$rel" in
+    design_system/*)
+      if grep -qE "^(import|export) .*package:flutter/(src/)?(material|cupertino)[/.]" "$f"; then
+        note "$f: imports Material/Cupertino — design_system/ is platform-agnostic; colors come from context.colors [AGENTS.md 0.15]"
+      fi
+      ;;
+  esac
+
+  # 0.16 widgets do not pick light or dark themselves ------------------------
+  # Two shapes of the same decision: naming a dark color (AppColors.darkX) and
+  # asking the theme (Brightness.dark). Only the token sets, the theme and the
+  # app builder that hands tokens down may do either; everyone else asks
+  # context.colors. Comment lines don't count. Ratchet by count, so the
+  # existing hand-written mode checks park.
+  case "$rel" in
+    design_system/tokens/*|util/async/app_theme.dart|features/shell/ui/app_builder.dart) ;;
+    *)
+      bad_re='AppColors\.dark[A-Z]|Brightness\.dark'
+      allow_re='^[0-9]+:[[:space:]]*//'
+      now=$(offenders < "$f" | wc -l | tr -d ' ')
+      if [ "${now:-0}" -gt 0 ]; then
+        was=0
+        [ -n "$mb" ] && [ -n "$origin" ] && \
+          was=$(git show "$mb:$origin" 2>/dev/null | offenders | wc -l | tr -d ' ')
+        was=${was:-0}
+        if [ "$now" -gt "$was" ]; then
+          note "$f: $now light/dark choice(s) (AppColors.dark… or Brightness.dark), was $was at $BASE_REF — use context.colors (design_system/tokens/color_tokens.dart) [AGENTS.md 0.16]"
+        fi
+      fi
+      ;;
+  esac
 
   fi
 done

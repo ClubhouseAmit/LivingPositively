@@ -51,6 +51,86 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 
 ---
 
+## 1A. LP-DS migration (in progress)
+
+The app is moving to the LP-DS Figma design gradually. The existing
+design-system widgets (`Button`, `Card`, `Text`, `Sheet`, …) are already on
+screens, so **an existing arm or shared line of an existing widget is never
+edited to the new look**: that would change screens nobody migrated.
+
+> This section is the working approach while #441 is discussed. If #441 settles
+> differently, this section changes to match it.
+>
+> No script checks these rules (AGENTS.md section 0 is the only checked set).
+> They are enforced in review: a PR that breaks one needs a reason in its
+> description.
+
+### How each widget is built
+
+Rules inside every widget (from #441, after shadcn/ui + CVA): a new *behavior*
+is a new widget, a new *look* is a new variant key. Variants and sizes are
+enums, with defaults in the constructor. State (`pressed`, `disabled`, `index`,
+`checked`) is a prop, never a variant key. An icon is a slot on the widget
+(`Widget?` / `IconData?`), not a separate `IconButton` class. Every value comes
+from a token.
+
+Which file the work goes in depends on the case:
+
+| Case | Example | Where |
+|---|---|---|
+| **Redesign of an existing control**: Figma changes more than color (geometry, borders, pressed behavior, sizes, dark mode) | `Button` → `LpButton` | New `lp_<name>.dart`, class `Lp<Name>`, built from Figma. When the last screen moves over, delete the old widget and rename `Lp<Name>` → `<Name>`. |
+| **New control** with no old version | `Toggle`, `Tabs`, `ListRow` | `<name>.dart`, plain name, no `Lp` prefix. |
+| **Color-only new look** on an existing control | `Alert` `info` / `warning` / `success`, if Figma only changes colors | Extend the existing file: one new enum value and one new `switch` arm. Existing arms unchanged; the default stays today's look. |
+
+If you can't tell whether a change is color-only, it isn't: use the first row.
+The color-only row also needs the widget to read its colors from
+`context.colors` already (§2.1). Most existing widgets read light-only
+`AppColors` constants, so a new arm there would ignore dark mode: use the
+first row instead.
+
+`LpButton` is the reference for the first row.
+
+### Phase 1 — widgets (now)
+
+- Build the widgets above from the Figma file, not from an existing widget's
+  look.
+- Do not put the new widgets on screens yet, and do not migrate screens.
+- A human decides when phase 1 is done.
+
+### Phase 2 — screens (later, one at a time)
+
+- Migrate a whole screen in one change: when done, the screen uses only the
+  new design (`Lp*` widgets, new controls, new variant keys), not a mix of old
+  and new.
+- One screen per change, and only the screen you were asked to migrate.
+- If a screen needs a component the new design has no widget for yet, stop and
+  ask: build the widget first (phase 1 work), do not hand-roll it in the screen.
+- An old widget or variant is deleted once no screen uses it.
+
+Which new widgets exist and which screens use them is read from the code
+(`lib/design_system/widgets/`, and grep for `Lp` in a screen), not listed here,
+so it cannot go stale.
+
+### External references
+
+When Figma does not settle how a component should behave, two libraries are
+references for **patterns only**:
+
+- [shadcn/ui](https://ui.shadcn.com/docs/components): which components exist,
+  their usual variants, and accessibility behavior (focus, keyboard, screen
+  reader).
+- [CVA](https://cva.style): the shape of a component's options — a fixed set of
+  variants as enums, defaults, all styling decided inside the widget.
+
+Order of authority: LP-DS Figma, then this file's tokens, then these
+references. Never take from them: values (colors, radii, spacing), Tailwind
+class names, npm packages, or CVA's `class`/`className` escape hatch. A
+design-system widget has no "extra style" parameter; spacing around it is the
+caller's `Padding` with an `AppSpacing` token, and a genuinely new look is a
+new variant.
+
+---
+
 ## 2. Design Tokens
 
 ### 2.1 Colors
@@ -73,7 +153,7 @@ color: context.colors.surfaceSunken,
 from the mode `MaterialApp` resolved from the user's setting. A token missing
 from `AppColorTokens` is added there (to both `light` and `dark`) by the
 first widget that needs it. `AppColors.darkX` is read only where the sets are
-built. `Theme.of(context).colorScheme` is for Material's own
+built (AGENTS.md 0.16). `Theme.of(context).colorScheme` is for Material's own
 widgets, not LP-DS ones. A test or preview wraps its widget in
 `AppColorScope`; without one, `context.colors` fails in debug.
 
@@ -306,9 +386,9 @@ For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTe
 ### 3.2 Action Buttons
 
 The LP-DS button (`LpButton`, with `LpButton.icon` and the `text` variant, in
-`lib/design_system/widgets/lp_button.dart`) is rolling out gradually. Use them on screens
-being moved to the new style; the widgets below stay for existing screens until
-they move.
+`lib/design_system/widgets/lp_button.dart`) is the new-design button; see §1A
+for when screens may use it. Until a screen is migrated, it keeps the widgets
+below.
 
 - **Primary Confirmation Button:**
   Prefer `Button` (`lib/design_system/widgets/button.dart`) with the `primary` variant: `Button(label: 'Confirm', onPressed: onConfirm, variant: ButtonVariant.primary)`.
