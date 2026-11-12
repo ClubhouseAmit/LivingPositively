@@ -462,9 +462,8 @@ class C {
 }
 DART
 
-# Parking: plant as many choices as directional_widgets.dart has at the merge
-# base (counted the way the checker counts), then one more. Read live, so
-# cleaning up that file can't break these tests.
+# Parking: directional_widgets.dart may keep the dark checks it already has
+# on main, but no new ones. That count is read from git, not hard-coded.
 {
   parked_origin=lib/features/shell/ui/directional_widgets.dart
   parked_mb=$(git merge-base "${CHECK_BASE_REF:-main}" HEAD)
