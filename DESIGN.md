@@ -353,6 +353,10 @@ Material and Figma use some of the same names for different things (Material's
 `bodyLarge` is Figma's `Body/Base`, not `Body/Large`). `AppTypeScale` always
 means the Figma style.
 
+`AppTextStyle.figmaLabelLarge` is Figma's Label/Large (14 / 600) and has no
+Material slot, since Material's `labelLarge` is already Title/Small. The theme
+doesn't use it, so no existing screen changes. `Chip` uses it.
+
 ### 2.3 Border Radii
 
 - **`Radius: 20.0` (Standard Buttons):** Circular rounding for all action buttons.

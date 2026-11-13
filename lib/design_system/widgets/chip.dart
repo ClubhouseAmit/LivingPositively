@@ -4,7 +4,8 @@ import 'package:mazilon/design_system/tokens/color_tokens.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
 
-/// The LP-DS chip (Figma `chip`, page "Chips" 4:95): a label that is on or
+/// The LP-DS chip (Figma component set `chip` 4:101, page "Chips" 4:95): a
+/// label that is on or
 /// off. On/off is [pressed], state rather than a variant; Figma has one look,
 /// so there is no variant enum yet.
 ///
@@ -35,6 +36,7 @@ class Chip extends StatelessWidget {
     final Color fill = pressed ? colors.accentPrimary : colors.surfaceRaised;
     return Semantics(
       button: true,
+      enabled: true,
       toggled: pressed,
       label: label,
       onTap: onPressed,
@@ -60,11 +62,17 @@ class Chip extends StatelessWidget {
                 horizontal: horizontalPadding,
                 vertical: AppSpacing.sm,
               ),
-              child: Text(
-                label,
-                style: AppTextStyle.labelLarge,
-                // Like LpButton emphasis: surface/white on accent/primary.
-                color: pressed ? colors.surfaceWhite : colors.contentPrimary,
+              // Centers the label when its line is shorter than the 36 box
+              // (Rubik's line height is) or the chip is given a wider width.
+              child: Center(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: Text(
+                  label,
+                  style: AppTextStyle.figmaLabelLarge,
+                  // Like LpButton emphasis: surface/white on accent/primary.
+                  color: pressed ? colors.surfaceWhite : colors.contentPrimary,
+                ),
               ),
             ),
           ),

@@ -2,7 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import 'package:mazilon/design_system/tokens/color_tokens.dart';
 
-/// Figma `check-box-base` `rounded`.
+/// The two looks of Figma `check-box-base`, from its `rounded` property
+/// (false = [square], true = [rounded]).
 enum LpCheckboxVariant {
   /// 28 square, radius 8, thick check.
   square,
@@ -11,7 +12,8 @@ enum LpCheckboxVariant {
   rounded,
 }
 
-/// The LP-DS checkbox (Figma `check-box-base`, page "Checkbox" 3:2). A box
+/// The LP-DS checkbox (Figma component set `check-box-base` 3:6, page
+/// "Checkbox" 3:2). A box
 /// only: a row with a title is the caller's (or a later `ListRow`'s) job.
 ///
 /// Checked is [value], state rather than a variant. Figma has no disabled or
@@ -35,7 +37,6 @@ class LpCheckbox extends StatelessWidget {
   static const squareSize = 28.0;
   static const squareRadius = 8.0;
   static const roundedSize = 24.0;
-  static const roundedRadius = 99.0;
   static const border = 1.0;
 
   @override
@@ -67,9 +68,8 @@ class LpCheckbox extends StatelessWidget {
         decoration: BoxDecoration(
           color: value ? colors.contentPrimary : null,
           border: value ? null : Border.all(color: idleBorder, width: border),
-          borderRadius: BorderRadius.circular(
-            rounded ? roundedRadius : squareRadius,
-          ),
+          shape: rounded ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius: rounded ? null : BorderRadius.circular(squareRadius),
         ),
         child: value
             ? CustomPaint(

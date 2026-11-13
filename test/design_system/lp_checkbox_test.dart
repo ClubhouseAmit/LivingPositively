@@ -128,20 +128,36 @@ void main() {
     expect(_check(), findsOneWidget);
   });
 
-  testWidgets('takes only its Figma size, no extra tap area', (tester) async {
+  for (final (variant, size) in [
+    (LpCheckboxVariant.square, LpCheckbox.squareSize),
+    (LpCheckboxVariant.rounded, LpCheckbox.roundedSize),
+  ]) {
+    testWidgets('${variant.name} takes only its Figma size', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          LpCheckbox(
+            value: false,
+            onChanged: (_) {},
+            semanticLabel: 'x',
+            variant: variant,
+          ),
+        ),
+      );
+      expect(tester.getSize(find.byType(LpCheckbox)), Size.square(size));
+    });
+  }
+
+  testWidgets('rounded is drawn as a circle', (tester) async {
     await tester.pumpWidget(
       _host(
         LpCheckbox(
-          value: false,
+          value: true,
           onChanged: (_) {},
           semanticLabel: 'x',
           variant: LpCheckboxVariant.rounded,
         ),
       ),
     );
-    expect(
-      tester.getSize(find.byType(LpCheckbox)),
-      const Size.square(LpCheckbox.roundedSize),
-    );
+    expect(_decoration(tester).shape, BoxShape.circle);
   });
 }
