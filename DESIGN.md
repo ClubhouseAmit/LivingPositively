@@ -79,7 +79,7 @@ Which file the work goes in depends on the case:
 | Case | Example | Where |
 |---|---|---|
 | **Redesign of an existing control**: Figma changes more than color (geometry, borders, pressed behavior, sizes, dark mode) | `Button` → `LpButton` | New `lp_<name>.dart`, class `Lp<Name>`, built from Figma. When the last screen moves over, delete the old widget and rename `Lp<Name>` → `<Name>`. |
-| **New control** with no old version | `Toggle`, `Tabs`, `ListRow` | `<name>.dart`, plain name, no `Lp` prefix. |
+| **New control** with no old version | `Chip`, `Tabs`, `ListRow` | `<name>.dart`, plain name, no `Lp` prefix. |
 | **Color-only new look** on an existing control | `Alert` `info` / `warning` / `success`, if Figma only changes colors | Extend the existing file: one new enum value and one new `switch` arm. Existing arms unchanged; the default stays today's look. |
 
 If you can't tell whether a change is color-only, it isn't: use the first row.
@@ -456,6 +456,26 @@ Hide Flutter's names at the import if the file also uses Material.
 
 - **Bottom Navigation Bar:**
   A custom `BottomNavigationBar` with background color `AppColors.surface` (light mode) or `AppColors.darkNavBackground` (dark mode), item labels, and active item tint `AppColors.primary`.
+
+### 3.7 Selection controls (LP-DS)
+
+New-design widgets (§1A phase 1, not on screens yet). Each takes exactly
+its Figma size, with no extra tap area around it (both pass WCAG 2.2 AA's
+24px minimum). Figma has no disabled look for either yet, so their
+callbacks are required.
+
+- **Checkbox:** `LpCheckbox(value:, onChanged:, semanticLabel:, variant:)`
+  (`lib/design_system/widgets/lp_checkbox.dart`), Figma `check-box-base`.
+  `square` (28, radius 8, default) or `rounded` (24 circle, the one Figma
+  `List` uses). Checked is content/primary with a surface/canvas check. Idle
+  is a content/primary border (square) or effect/hairline border (rounded).
+  A box only: the row with its text belongs to the caller. The existing
+  `Checkbox` stays on existing screens.
+- **Chip:** `Chip(label:, pressed:, onPressed:)`
+  (`lib/design_system/widgets/chip.dart`), Figma `chip`. 36 high, radius
+  16. Idle is surface/raised with an effect/hairline border. Pressed (on) is
+  accent/primary with a surface/white label. Figma's `chip empty` (the
+  dashed "add" pill) is an add action, not a chip, and isn't built yet.
 
 ---
 

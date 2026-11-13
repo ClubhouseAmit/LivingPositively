@@ -23,6 +23,7 @@ enum AppColorTokens {
     contentSecondary: AppColors.contentSecondary,
     contentTertiary: AppColors.contentTertiary,
     effectHairline: AppColors.effectHairline,
+    surfaceCanvas: AppColors.surfaceCanvas,
     surfaceDisabled: AppColors.surfaceDisabled,
     surfaceRaised: AppColors.surfaceRaised,
     surfaceRaisedHigh: AppColors.surfaceRaisedHigh,
@@ -40,6 +41,7 @@ enum AppColorTokens {
     contentSecondary: AppColors.darkContentSecondary,
     contentTertiary: AppColors.darkContentTertiary,
     effectHairline: AppColors.darkEffectHairline,
+    surfaceCanvas: AppColors.darkSurfaceCanvas,
     surfaceDisabled: AppColors.darkSurfaceDisabled,
     surfaceRaised: AppColors.darkSurfaceRaised,
     surfaceRaisedHigh: AppColors.darkSurfaceRaisedHigh,
@@ -58,6 +60,7 @@ enum AppColorTokens {
     required this.contentSecondary,
     required this.contentTertiary,
     required this.effectHairline,
+    required this.surfaceCanvas,
     required this.surfaceDisabled,
     required this.surfaceRaised,
     required this.surfaceRaisedHigh,
@@ -75,6 +78,7 @@ enum AppColorTokens {
   final Color contentSecondary;
   final Color contentTertiary;
   final Color effectHairline;
+  final Color surfaceCanvas;
   final Color surfaceDisabled;
   final Color surfaceRaised;
   final Color surfaceRaisedHigh;
