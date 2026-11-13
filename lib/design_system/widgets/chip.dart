@@ -5,9 +5,8 @@ import 'package:mazilon/design_system/tokens/spacing.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
 
 /// The LP-DS chip (Figma component set `chip` 4:101, page "Chips" 4:95): a
-/// label that is on or
-/// off. On/off is [pressed], state rather than a variant; Figma has one look,
-/// so there is no variant enum yet.
+/// label that is on or off. On/off is [pressed], state rather than a variant;
+/// Figma has one look, so there is no variant enum yet.
 ///
 /// Figma's `chip empty` (the dashed "add" pill) is an add action, not an
 /// on/off control, so it is not this widget. Figma has no disabled look yet,
