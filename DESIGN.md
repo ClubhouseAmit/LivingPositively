@@ -106,6 +106,12 @@ first row instead.
 - If a screen needs a component the new design has no widget for yet, stop and
   ask: build the widget first (phase 1 work), do not hand-roll it in the screen.
 - An old widget or variant is deleted once no screen uses it.
+- **Known gap: keyboard.** The design-system widgets (old and LP-DS) can't
+  be reached with Tab or activated with Space/Enter; the Material widgets
+  most screens use today can. Screen readers are unaffected (each widget sets
+  its semantics). Before a migrated screen ships on web, add keyboard support
+  to every design-system widget in one change, with a focus look from the
+  designer.
 
 Which new widgets exist and which screens use them is read from the code
 (`lib/design_system/widgets/`, and grep for `Lp` in a screen), not listed here,
