@@ -4,7 +4,8 @@ import 'package:flutter/widgets.dart' as flutter show Text;
 import 'package:mazilon/design_system/tokens/type_scale.dart';
 
 /// Named type-scale slots. Each maps to the `AppTypeScale` token that
-/// `ThemeData.textTheme` uses for the same Material slot (`app_theme.dart`).
+/// `ThemeData.textTheme` uses for the same Material slot (`app_theme.dart`),
+/// except [figmaLabelLarge].
 enum AppTextStyle {
   headlineLarge,
   headlineMedium,
@@ -14,6 +15,10 @@ enum AppTextStyle {
   bodyLarge,
   bodySmall,
   labelSmall,
+
+  /// Figma's Label/Large (14/600), with no Material slot: Material's
+  /// [labelLarge] is already Figma's Title/Small (15/600), for buttons.
+  figmaLabelLarge,
 }
 
 /// Design-system text primitive.
@@ -61,6 +66,7 @@ class Text extends StatelessWidget {
     AppTextStyle.bodyLarge: AppTypeScale.bodyBase,
     AppTextStyle.bodySmall: AppTypeScale.bodyXSmall,
     AppTextStyle.labelSmall: AppTypeScale.captionMicro,
+    AppTextStyle.figmaLabelLarge: AppTypeScale.labelLarge,
   };
 
   @override
