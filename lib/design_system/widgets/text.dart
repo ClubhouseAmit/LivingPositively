@@ -5,7 +5,7 @@ import 'package:mazilon/design_system/tokens/type_scale.dart';
 
 /// Named type-scale slots. Each maps to the `AppTypeScale` token that
 /// `ThemeData.textTheme` uses for the same Material slot (`app_theme.dart`),
-/// except [figmaLabelLarge].
+/// except [figmaLabelLarge] and [figmaBodyLarge].
 enum AppTextStyle {
   headlineLarge,
   headlineMedium,

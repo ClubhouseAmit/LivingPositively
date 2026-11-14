@@ -175,6 +175,91 @@ void main() {
     );
   });
 
+  testWidgets('tapping the card padding or the gap by the button toggles', (
+    tester,
+  ) async {
+    final values = <bool>[];
+    await tester.pumpWidget(
+      _host(
+        ListRow(
+          title: 'Breathe',
+          checked: false,
+          onChanged: values.add,
+          actionIcon: Icons.graphic_eq,
+          actionLabel: 'Play',
+          onAction: () {},
+        ),
+      ),
+    );
+    // Inside the 16 side padding, and in the 8 gap before the button.
+    await tester.tapAt(
+      tester.getTopLeft(find.byType(ListRow)) + const Offset(4, 4),
+    );
+    await tester.tapAt(
+      tester.getRect(find.byType(LpButton)).centerLeft - const Offset(4, 0),
+    );
+    expect(values, [true, true]);
+  });
+
+  testWidgets('tapping a disabled action does not toggle the row', (
+    tester,
+  ) async {
+    final values = <bool>[];
+    await tester.pumpWidget(
+      _host(
+        ListRow(
+          title: 'Breathe',
+          checked: false,
+          onChanged: values.add,
+          actionIcon: Icons.graphic_eq,
+          actionLabel: 'Play',
+        ),
+      ),
+    );
+    await tester.tap(find.byType(LpButton));
+    expect(values, isEmpty);
+  });
+
+  testWidgets('a long title wraps and grows the row without overflow', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        ListRow(
+          title: 'Breathe slowly for four counts, hold, then let it go',
+          checked: false,
+          onChanged: (_) {},
+          actionIcon: Icons.graphic_eq,
+          actionLabel: 'Play',
+          onAction: () {},
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byType(ListRow)).height,
+      greaterThan(ListRow.height),
+    );
+  });
+
+  testWidgets('larger system text grows the row without overflow', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+        child: _host(
+          ListRow(title: 'Breathe', checked: false, onChanged: (_) {}),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byType(ListRow)).height,
+      greaterThan(ListRow.height),
+    );
+  });
+
   testWidgets('uses the dark tokens under dark colors', (tester) async {
     await tester.pumpWidget(
       _host(

@@ -493,8 +493,9 @@ callbacks are required.
   `LpCheckbox`, then the title in Body/Large
   (`AppTextStyle.figmaBodyLarge`), then an optional icon button that the row
   builds at Figma's size s (the caller picks only the icon). A one-line row
-  is always 57 high, checked or not, with or without the button. Tapping
-  anywhere but the button toggles it. Figma's `empty state` and `edit` looks
+  at the default text size is always 57 high, checked or not, with or
+  without the button; a longer title or much larger text grows it. Tapping
+  anywhere on the card but the button toggles it. Figma's `empty state` and `edit` looks
   are a text entry, not a checklist row, and aren't built yet (#450).
 
 ---
