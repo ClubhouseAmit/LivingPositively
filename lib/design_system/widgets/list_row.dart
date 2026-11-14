@@ -73,6 +73,9 @@ class ListRow extends StatelessWidget {
     // own recognizer wins in its area, enabled or not.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // _content's Semantics already exposes the toggle; without this a
+      // screen reader also finds an unlabeled card-sized tap target.
+      excludeFromSemantics: true,
       onTap: _toggle,
       child: DecoratedBox(
         decoration: BoxDecoration(

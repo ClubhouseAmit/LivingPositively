@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart' hide Text;
-import 'package:flutter/rendering.dart' show RenderParagraph;
+import 'package:flutter/rendering.dart' show RenderParagraph, SemanticsAction;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/design_system/tokens/color_tokens.dart';
 import 'package:mazilon/design_system/tokens/colors.dart';
@@ -109,6 +109,15 @@ void main() {
     );
     expect(find.bySemanticsLabel('Breathe'), findsOneWidget);
     expect(find.bySemanticsLabel('Play'), findsOneWidget);
+    // No unlabeled tap target (the card's own detector) beside the two.
+    expect(
+      find.semantics.byPredicate(
+        (node) =>
+            node.getSemanticsData().hasAction(SemanticsAction.tap) &&
+            node.label.isEmpty,
+      ),
+      findsNothing,
+    );
     tester.semantics.tap(find.semantics.byLabel('Breathe'));
     expect(values, [false]);
     handle.dispose();
