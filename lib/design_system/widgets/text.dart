@@ -19,6 +19,10 @@ enum AppTextStyle {
   /// Figma's Label/Large (14/600), with no Material slot: Material's
   /// [labelLarge] is already Figma's Title/Small (15/600), for buttons.
   figmaLabelLarge,
+
+  /// Figma's Body/Large (17/400), with no Material slot: Material's
+  /// [bodyLarge] is already Figma's Body/Base (16/400).
+  figmaBodyLarge,
 }
 
 /// Design-system text primitive.
@@ -67,6 +71,7 @@ class Text extends StatelessWidget {
     AppTextStyle.bodySmall: AppTypeScale.bodyXSmall,
     AppTextStyle.labelSmall: AppTypeScale.captionMicro,
     AppTextStyle.figmaLabelLarge: AppTypeScale.labelLarge,
+    AppTextStyle.figmaBodyLarge: AppTypeScale.bodyLarge,
   };
 
   @override
