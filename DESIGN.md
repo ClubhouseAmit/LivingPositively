@@ -486,6 +486,16 @@ callbacks are required.
   16. Idle is surface/raised with an effect/hairline border. Pressed (on) is
   accent/primary with a surface/white label. Figma's `chip empty` (the
   dashed "add" pill) is an add action, not a chip, and isn't built yet.
+- **List row:** `ListRow(title:, checked:, onChanged:, actionIcon:,
+  actionLabel:, onAction:)` (`lib/design_system/widgets/list_row.dart`),
+  Figma `List` (its `checked` and `to do` looks). surface/raised card,
+  radius 20, 0.5 effect/hairline border, 16 side padding. A rounded
+  `LpCheckbox`, then the title in Body/Large
+  (`AppTextStyle.figmaBodyLarge`), then an optional icon button that the row
+  builds at Figma's size s (the caller picks only the icon). A one-line row
+  is always 57 high, checked or not, with or without the button. Tapping
+  anywhere but the button toggles it. Figma's `empty state` and `edit` looks
+  are a text entry, not a checklist row, and aren't built yet (#450).
 
 ---
 
