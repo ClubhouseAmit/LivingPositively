@@ -519,6 +519,14 @@ callbacks are required.
   without the button; a longer title or much larger text grows it. Tapping
   anywhere on the card but the button toggles it. Figma's `empty state` and `edit` looks
   are a text entry, not a checklist row, and aren't built yet (#450).
+- **Switch:** `LpSwitch(value:, onChanged:, semanticLabel:)`
+  (`lib/design_system/widgets/lp_switch.dart`), Figma `Toggle`. A 64×28
+  pill track with a 38×24 surface/white knob, 2 in from the edge. On is
+  accent/primary with the knob at the end (it mirrors in RTL), off is
+  surface/backdrop. A null `onChanged` disables it: surface/sunken track,
+  knob kept in place, whole switch at 50% opacity. Unlike the controls
+  above, its tap area is 48 high around the 28 track. The existing `Switch`
+  stays on existing screens.
 
 ---
 
