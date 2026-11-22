@@ -186,13 +186,13 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `effect/scrim` | `effectScrim` / `darkEffectScrim` | `#000000 @32%` | `#000000 @60%` |
 | `effect/shadow` | `effectShadow` / `darkEffectShadow` | `#16264A @7%` | `#000000 @50%` |
 | `nav/inactive` | `navInactive` / `darkNavInactive` | `#8A8E97` | `#8A8279` |
-| `notifications/error-bg` | `notificationsErrorBg` / `darkNotificationsErrorBg` | `#FFF5F7` | `#8C1D18` (interim) |
-| `notifications/error-content` | `notificationsErrorContent` / `darkNotificationsErrorContent` | `#C7364C` | `#F2B8B5` (interim) |
-| `notifications/info-bg` | `notificationsInfoBg` / `darkNotificationsInfoBg` | `#F3F7FF` | `#22407F` (interim) |
-| `notifications/success-bg` | `notificationsSuccessBg` / `darkNotificationsSuccessBg` | `#EEFFF9` | `#1E5236` (interim) |
-| `notifications/success-content` | `notificationsSuccessContent` / `darkNotificationsSuccessContent` | `#009C63` | `#7FE0A5` (interim) |
-| `notifications/warning-bg` | `notificationsWarningBg` / `darkNotificationsWarningBg` | `#FFFAEA` | `#5C3600` (interim) |
-| `notifications/warning-content` | `notificationsWarningContent` / `darkNotificationsWarningContent` | `#994200` | `#FFB77C` (interim) |
+| `notifications/error-bg` | `notificationsErrorBg` / `darkNotificationsErrorBg` | `#FFF5F7` | `#FDC4D0` |
+| `notifications/error-content` | `notificationsErrorContent` / `darkNotificationsErrorContent` | `#C7364C` | `#7A212F` |
+| `notifications/info-bg` | `notificationsInfoBg` / `darkNotificationsInfoBg` | `#F3F7FF` | `#5C81CB` |
+| `notifications/success-bg` | `notificationsSuccessBg` / `darkNotificationsSuccessBg` | `#EEFFF9` | `#94F4D2` |
+| `notifications/success-content` | `notificationsSuccessContent` / `darkNotificationsSuccessContent` | `#009C63` | `#006942` |
+| `notifications/warning-bg` | `notificationsWarningBg` / `darkNotificationsWarningBg` | `#FFFAEA` | `#FFF1C4` |
+| `notifications/warning-content` | `notificationsWarningContent` / `darkNotificationsWarningContent` | `#994200` | `#662C00` |
 | `plan/professional` | `planProfessional` / `darkPlanProfessional` | `#3A5BA9` | `#B4C5FF` |
 | `plan/professional-container` | `planProfessionalContainer` / `darkPlanProfessionalContainer` | `#DBE1FF` | `#22407F` |
 | `plan/support` | `planSupport` / `darkPlanSupport` | `#206A50` | `#8CD6B4` |
@@ -221,12 +221,6 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `surface/white` | `surfaceWhite` / `darkSurfaceWhite` | `#FFFFFF` | `#FFFFFF` |
 | `surface/white 75` | `surfaceWhite75` / `darkSurfaceWhite75` | `#FFFFFF @75%` | `#FFFFFF @75%` |
 
-**Interim dark values:** Figma's Dark column for `notifications/*` repeats
-the light values, which would put a light banner on a dark screen. Until the
-designer sets real ones, each `darkNotifications*` constant points at the
-nearest dark status/plan token (info → plan/professional, warning →
-plan/warning, error → status/danger, success → status/success).
-
 **Theme mapping** (`lib/util/async/app_theme.dart`, same in both modes):
 `primary` → accent/primary · `primaryContainer`, `secondary` → accent/container ·
 `tertiary` → status/success · `surface` → surface/raised · `onSurface` →
@@ -245,6 +239,8 @@ content/on-accent.
   do, not `content/on-accent`: 4.12:1 (light) / 3.47:1 (dark).
 - `notifications/success-content` on `notifications/success-bg` (`LpAlert`
   success text) is 3.42:1 (light), under 4.5:1.
+- `LpAlert` info text (content/primary) on `notifications/info-bg` is 3.3:1
+  (dark), under 4.5:1.
 - `effect/hairline` as an idle input border is 1.6:1 (light) / 1.4:1 (dark),
   under WCAG 1.4.11's 3:1 for component boundaries. Fine for dividers.
 - `LpSwitch` off: the `surface/sunken more` track on `surface/canvas` is

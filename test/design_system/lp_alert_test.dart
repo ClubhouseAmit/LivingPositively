@@ -53,20 +53,20 @@ void main() {
       AppColors.notificationsSuccessContent,
     ),
     (LpAlertVariant.info, true): (
-      AppColors.darkPlanProfessionalContainer,
+      AppColors.darkNotificationsInfoBg,
       AppColors.darkContentPrimary,
     ),
     (LpAlertVariant.warning, true): (
-      AppColors.darkPlanWarningContainer,
-      AppColors.darkPlanWarning,
+      AppColors.darkNotificationsWarningBg,
+      AppColors.darkNotificationsWarningContent,
     ),
     (LpAlertVariant.error, true): (
-      AppColors.darkStatusDangerContainer,
-      AppColors.darkStatusDanger,
+      AppColors.darkNotificationsErrorBg,
+      AppColors.darkNotificationsErrorContent,
     ),
     (LpAlertVariant.success, true): (
-      AppColors.darkStatusSuccessContainer,
-      AppColors.darkStatusSuccess,
+      AppColors.darkNotificationsSuccessBg,
+      AppColors.darkNotificationsSuccessContent,
     ),
   };
 
