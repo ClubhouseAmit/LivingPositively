@@ -128,7 +128,7 @@ void main() {
     expect(tester.getRect(_knob()).right, track.right - 2);
   });
 
-  testWidgets('off is surface/backdrop with the knob at the start', (
+  testWidgets('off is the light backdrop with the knob at the start', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_switch(onChanged: (_) {})));
@@ -163,7 +163,8 @@ void main() {
     await tester.pumpWidget(
       _host(_switch(onChanged: (_) {}), colors: AppColorTokens.dark),
     );
-    expect(_fills(tester).first, AppColors.darkSurfaceBackdrop);
+    // Not Figma's dark surface/backdrop, which is lost on the dark canvas.
+    expect(_fills(tester).first, AppColors.surfaceBackdrop);
     await tester.pumpWidget(
       _host(_switch(value: true), colors: AppColorTokens.dark),
     );

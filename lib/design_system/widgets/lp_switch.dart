@@ -67,7 +67,7 @@ class LpSwitch extends StatelessWidget {
         ? colors.surfaceSunken
         : value
         ? colors.accentPrimary
-        : colors.surfaceBackdrop;
+        : colors.toggleTrackOff;
     return Container(
       width: trackWidth,
       height: trackHeight,

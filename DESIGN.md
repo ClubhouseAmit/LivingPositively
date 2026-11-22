@@ -212,6 +212,10 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `surface/sunken` | `surfaceSunken` / `darkSurfaceSunken` | `#EBE4DA` | `#100F0D` |
 | `surface/white` | `surfaceWhite` / `darkSurfaceWhite` | `#FFFFFF` | `#FFFFFF` |
 | `surface/white 75` | `surfaceWhite75` / `darkSurfaceWhite75` | `#FFFFFF @75%` | `#FFFFFF @75%` |
+| _(app only, not in Figma)_ | `toggleTrackOff` / `darkToggleTrackOff` | `#DFDAD3` | `#DFDAD3` |
+
+`toggleTrackOff` is the one app-only token: LpSwitch's off track (§3.7).
+It is an open question for the designer.
 
 **Theme mapping** (`lib/util/async/app_theme.dart`, same in both modes):
 `primary` → accent/primary · `primaryContainer`, `secondary` → accent/container ·
@@ -523,7 +527,10 @@ callbacks are required.
   (`lib/design_system/widgets/lp_switch.dart`), Figma `Toggle`. A 64×28
   pill track with a 38×24 surface/white knob, 2 in from the edge. On is
   accent/primary with the knob at the end (it mirrors in RTL), off is
-  surface/backdrop. A null `onChanged` disables it: surface/sunken track,
+  `toggleTrackOff`: Figma's light surface/backdrop (`#DFDAD3`) in **both**
+  modes. Figma's dark surface/backdrop (`#0E0D0C`) vanished on the dark
+  canvas on a real phone, and Figma's Toggle page shows the light switch on
+  black. An app token, not a Figma one, until the designer answers. A null `onChanged` disables it: surface/sunken track,
   knob kept in place, whole switch at 50% opacity. Unlike the controls
   above, its tap area is 48 high around the 28 track. The existing `Switch`
   stays on existing screens.

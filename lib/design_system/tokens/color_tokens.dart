@@ -24,7 +24,6 @@ enum AppColorTokens {
     contentSecondary: AppColors.contentSecondary,
     contentTertiary: AppColors.contentTertiary,
     effectHairline: AppColors.effectHairline,
-    surfaceBackdrop: AppColors.surfaceBackdrop,
     surfaceCanvas: AppColors.surfaceCanvas,
     surfaceDisabled: AppColors.surfaceDisabled,
     surfaceRaised: AppColors.surfaceRaised,
@@ -35,6 +34,7 @@ enum AppColorTokens {
     surfaceSunken: AppColors.surfaceSunken,
     surfaceWhite: AppColors.surfaceWhite,
     surfaceWhite75: AppColors.surfaceWhite75,
+    toggleTrackOff: AppColors.toggleTrackOff,
   ),
   dark(
     accentMuted: AppColors.darkAccentMuted,
@@ -45,7 +45,6 @@ enum AppColorTokens {
     contentSecondary: AppColors.darkContentSecondary,
     contentTertiary: AppColors.darkContentTertiary,
     effectHairline: AppColors.darkEffectHairline,
-    surfaceBackdrop: AppColors.darkSurfaceBackdrop,
     surfaceCanvas: AppColors.darkSurfaceCanvas,
     surfaceDisabled: AppColors.darkSurfaceDisabled,
     surfaceRaised: AppColors.darkSurfaceRaised,
@@ -56,6 +55,7 @@ enum AppColorTokens {
     surfaceSunken: AppColors.darkSurfaceSunken,
     surfaceWhite: AppColors.darkSurfaceWhite,
     surfaceWhite75: AppColors.darkSurfaceWhite75,
+    toggleTrackOff: AppColors.darkToggleTrackOff,
   );
 
   const AppColorTokens({
@@ -67,7 +67,6 @@ enum AppColorTokens {
     required this.contentSecondary,
     required this.contentTertiary,
     required this.effectHairline,
-    required this.surfaceBackdrop,
     required this.surfaceCanvas,
     required this.surfaceDisabled,
     required this.surfaceRaised,
@@ -78,6 +77,7 @@ enum AppColorTokens {
     required this.surfaceSunken,
     required this.surfaceWhite,
     required this.surfaceWhite75,
+    required this.toggleTrackOff,
   });
 
   final Color accentMuted;
@@ -88,7 +88,6 @@ enum AppColorTokens {
   final Color contentSecondary;
   final Color contentTertiary;
   final Color effectHairline;
-  final Color surfaceBackdrop;
   final Color surfaceCanvas;
   final Color surfaceDisabled;
   final Color surfaceRaised;
@@ -99,6 +98,9 @@ enum AppColorTokens {
   final Color surfaceSunken;
   final Color surfaceWhite;
   final Color surfaceWhite75;
+
+  /// Not a Figma token yet: same in both modes. See AppColors.toggleTrackOff.
+  final Color toggleTrackOff;
 
   /// The tokens for the current mode, from the nearest [AppColorScope].
   ///

@@ -257,4 +257,12 @@ class AppColors {
   static const Color darkSurfaceSunken = Color(0xFF100F0D);
   static const Color darkSurfaceWhite = Color(0xFFFFFFFF);
   static const Color darkSurfaceWhite75 = Color(0xBFFFFFFF);
+
+  // ================= App tokens (not in Figma yet) =================
+
+  /// LpSwitch's off track: Figma's light surface/backdrop in both modes.
+  /// Figma's dark surface/backdrop is lost on the dark canvas; the Toggle
+  /// page shows the light switch on black. Open question for the designer.
+  static const Color toggleTrackOff = surfaceBackdrop;
+  static const Color darkToggleTrackOff = surfaceBackdrop;
 }
