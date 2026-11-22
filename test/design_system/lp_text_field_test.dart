@@ -14,7 +14,7 @@ Widget _host(Widget child, {AppColorTokens colors = AppColorTokens.light}) {
       textDirection: TextDirection.ltr,
       child: AppColorScope(
         tokens: colors,
-        child: Center(child: SizedBox(width: 320, child: child)),
+        child: Center(child: child),
       ),
     ),
   );
