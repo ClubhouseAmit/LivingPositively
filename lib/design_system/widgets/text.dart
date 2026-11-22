@@ -5,7 +5,7 @@ import 'package:mazilon/design_system/tokens/type_scale.dart';
 
 /// Named type-scale slots. Each maps to the `AppTypeScale` token that
 /// `ThemeData.textTheme` uses for the same Material slot (`app_theme.dart`),
-/// except [figmaLabelLarge] and [figmaBodyLarge].
+/// except the `figma*` slots.
 enum AppTextStyle {
   headlineLarge,
   headlineMedium,
@@ -23,6 +23,12 @@ enum AppTextStyle {
   /// Figma's Body/Large (17/400), with no Material slot: Material's
   /// [bodyLarge] is already Figma's Body/Base (16/400).
   figmaBodyLarge,
+
+  /// Figma's Label/Small (12/600). Material's [labelSmall] is Caption/Micro.
+  figmaLabelSmall,
+
+  /// Figma's Caption/Small (12/400, line height 18).
+  figmaCaptionSmall,
 }
 
 /// Design-system text primitive.
@@ -72,6 +78,8 @@ class Text extends StatelessWidget {
     AppTextStyle.labelSmall: AppTypeScale.captionMicro,
     AppTextStyle.figmaLabelLarge: AppTypeScale.labelLarge,
     AppTextStyle.figmaBodyLarge: AppTypeScale.bodyLarge,
+    AppTextStyle.figmaLabelSmall: AppTypeScale.labelSmall,
+    AppTextStyle.figmaCaptionSmall: AppTypeScale.captionSmall,
   };
 
   @override

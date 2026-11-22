@@ -186,6 +186,13 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `effect/scrim` | `effectScrim` / `darkEffectScrim` | `#000000 @32%` | `#000000 @60%` |
 | `effect/shadow` | `effectShadow` / `darkEffectShadow` | `#16264A @7%` | `#000000 @50%` |
 | `nav/inactive` | `navInactive` / `darkNavInactive` | `#8A8E97` | `#8A8279` |
+| `notifications/error-bg` | `notificationsErrorBg` / `darkNotificationsErrorBg` | `#FFF5F7` | `#8C1D18` (interim) |
+| `notifications/error-content` | `notificationsErrorContent` / `darkNotificationsErrorContent` | `#C7364C` | `#F2B8B5` (interim) |
+| `notifications/info-bg` | `notificationsInfoBg` / `darkNotificationsInfoBg` | `#F3F7FF` | `#22407F` (interim) |
+| `notifications/success-bg` | `notificationsSuccessBg` / `darkNotificationsSuccessBg` | `#EEFFF9` | `#1E5236` (interim) |
+| `notifications/success-content` | `notificationsSuccessContent` / `darkNotificationsSuccessContent` | `#009C63` | `#7FE0A5` (interim) |
+| `notifications/warning-bg` | `notificationsWarningBg` / `darkNotificationsWarningBg` | `#FFFAEA` | `#5C3600` (interim) |
+| `notifications/warning-content` | `notificationsWarningContent` / `darkNotificationsWarningContent` | `#994200` | `#FFB77C` (interim) |
 | `plan/professional` | `planProfessional` / `darkPlanProfessional` | `#3A5BA9` | `#B4C5FF` |
 | `plan/professional-container` | `planProfessionalContainer` / `darkPlanProfessionalContainer` | `#DBE1FF` | `#22407F` |
 | `plan/support` | `planSupport` / `darkPlanSupport` | `#206A50` | `#8CD6B4` |
@@ -214,6 +221,12 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `surface/white` | `surfaceWhite` / `darkSurfaceWhite` | `#FFFFFF` | `#FFFFFF` |
 | `surface/white 75` | `surfaceWhite75` / `darkSurfaceWhite75` | `#FFFFFF @75%` | `#FFFFFF @75%` |
 
+**Interim dark values:** Figma's Dark column for `notifications/*` repeats
+the light values, which would put a light banner on a dark screen. Until the
+designer sets real ones, each `darkNotifications*` constant points at the
+nearest dark status/plan token (info → plan/professional, warning →
+plan/warning, error → status/danger, success → status/success).
+
 **Theme mapping** (`lib/util/async/app_theme.dart`, same in both modes):
 `primary` → accent/primary · `primaryContainer`, `secondary` → accent/container ·
 `tertiary` → status/success · `surface` → surface/raised · `onSurface` →
@@ -230,6 +243,8 @@ content/on-accent.
   4.12:1 (light) / 4.29:1 (dark), under WCAG AA's 4.5:1 for normal text.
 - `LpButton` emphasis labels with `surface/white`, as the Figma dark screens
   do, not `content/on-accent`: 4.12:1 (light) / 3.47:1 (dark).
+- `notifications/success-content` on `notifications/success-bg` (`LpAlert`
+  success text) is 3.42:1 (light), under 4.5:1.
 - `effect/hairline` as an idle input border is 1.6:1 (light) / 1.4:1 (dark),
   under WCAG 1.4.11's 3:1 for component boundaries. Fine for dividers.
 - `LpSwitch` off: the `surface/sunken more` track on `surface/canvas` is
@@ -540,6 +555,24 @@ callbacks are required.
   visible track is 28 high; the tap area adds 10 above and below to reach
   48. The existing `Switch` stays on existing screens.
 
+
+### 3.8 Alerts (LP-DS)
+
+- **Alert:** `LpAlert(icon:, title:, message:, variant:, trailingIcon:,
+  onTap:)` (`lib/design_system/widgets/lp_alert.dart`), Figma
+  `notification-item` (page "Notification"). An inline banner, not a toast:
+  `info` (default), `warning`, `error`, `success`. Background
+  `notifications/<variant>-bg`, with text and icons in
+  `notifications/<variant>-content` (info uses content/primary). Radius 8,
+  padding 12 × 8. A 16 icon (a slot; the caller picks it), then the title in
+  Label/Small (`AppTextStyle.figmaLabelSmall`) over the message in
+  Caption/Small (`figmaCaptionSmall`), 4 apart. Either may be null, not both.
+  `trailingIcon` is Figma's hidden-by-default chevron (24 in a 32 box). With
+  `onTap` the whole banner is one button. A screen reader reads the title and
+  message as one node; the icons are decorative. Two choices are pending the
+  designer: warning text uses `warning-content` (Figma uses `error-content`
+  there), and all four use the 12 / 8 spacing (Figma's info has 8 / 4). The
+  old `Alert` stays on existing screens.
 ---
 
 ## 4. Theme Integration Code

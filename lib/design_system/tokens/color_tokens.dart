@@ -24,6 +24,13 @@ enum AppColorTokens {
     contentSecondary: AppColors.contentSecondary,
     contentTertiary: AppColors.contentTertiary,
     effectHairline: AppColors.effectHairline,
+    notificationsErrorBg: AppColors.notificationsErrorBg,
+    notificationsErrorContent: AppColors.notificationsErrorContent,
+    notificationsInfoBg: AppColors.notificationsInfoBg,
+    notificationsSuccessBg: AppColors.notificationsSuccessBg,
+    notificationsSuccessContent: AppColors.notificationsSuccessContent,
+    notificationsWarningBg: AppColors.notificationsWarningBg,
+    notificationsWarningContent: AppColors.notificationsWarningContent,
     surfaceCanvas: AppColors.surfaceCanvas,
     surfaceDisabled: AppColors.surfaceDisabled,
     surfaceRaised: AppColors.surfaceRaised,
@@ -45,6 +52,13 @@ enum AppColorTokens {
     contentSecondary: AppColors.darkContentSecondary,
     contentTertiary: AppColors.darkContentTertiary,
     effectHairline: AppColors.darkEffectHairline,
+    notificationsErrorBg: AppColors.darkNotificationsErrorBg,
+    notificationsErrorContent: AppColors.darkNotificationsErrorContent,
+    notificationsInfoBg: AppColors.darkNotificationsInfoBg,
+    notificationsSuccessBg: AppColors.darkNotificationsSuccessBg,
+    notificationsSuccessContent: AppColors.darkNotificationsSuccessContent,
+    notificationsWarningBg: AppColors.darkNotificationsWarningBg,
+    notificationsWarningContent: AppColors.darkNotificationsWarningContent,
     surfaceCanvas: AppColors.darkSurfaceCanvas,
     surfaceDisabled: AppColors.darkSurfaceDisabled,
     surfaceRaised: AppColors.darkSurfaceRaised,
@@ -67,6 +81,13 @@ enum AppColorTokens {
     required this.contentSecondary,
     required this.contentTertiary,
     required this.effectHairline,
+    required this.notificationsErrorBg,
+    required this.notificationsErrorContent,
+    required this.notificationsInfoBg,
+    required this.notificationsSuccessBg,
+    required this.notificationsSuccessContent,
+    required this.notificationsWarningBg,
+    required this.notificationsWarningContent,
     required this.surfaceCanvas,
     required this.surfaceDisabled,
     required this.surfaceRaised,
@@ -88,6 +109,13 @@ enum AppColorTokens {
   final Color contentSecondary;
   final Color contentTertiary;
   final Color effectHairline;
+  final Color notificationsErrorBg;
+  final Color notificationsErrorContent;
+  final Color notificationsInfoBg;
+  final Color notificationsSuccessBg;
+  final Color notificationsSuccessContent;
+  final Color notificationsWarningBg;
+  final Color notificationsWarningContent;
   final Color surfaceCanvas;
   final Color surfaceDisabled;
   final Color surfaceRaised;

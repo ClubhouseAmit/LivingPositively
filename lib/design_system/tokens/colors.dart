@@ -161,6 +161,15 @@ class AppColors {
   // nav/*
   static const Color navInactive = Color(0xFF8A8E97);
 
+  // notifications/*
+  static const Color notificationsErrorBg = Color(0xFFFFF5F7);
+  static const Color notificationsErrorContent = Color(0xFFC7364C);
+  static const Color notificationsInfoBg = Color(0xFFF3F7FF);
+  static const Color notificationsSuccessBg = Color(0xFFEEFFF9);
+  static const Color notificationsSuccessContent = Color(0xFF009C63);
+  static const Color notificationsWarningBg = Color(0xFFFFFAEA);
+  static const Color notificationsWarningContent = Color(0xFF994200);
+
   // plan/*
   static const Color planProfessional = Color(0xFF3A5BA9);
   static const Color planProfessionalContainer = Color(0xFFDBE1FF);
@@ -226,6 +235,17 @@ class AppColors {
 
   // nav/*
   static const Color darkNavInactive = Color(0xFF8A8279);
+
+  // notifications/* — interim. Figma's Dark column repeats the light values
+  // (a light banner on a dark screen), so these borrow the nearest dark
+  // status/plan pair until the designer sets real ones.
+  static const Color darkNotificationsErrorBg = darkStatusDangerContainer;
+  static const Color darkNotificationsErrorContent = darkStatusDanger;
+  static const Color darkNotificationsInfoBg = darkPlanProfessionalContainer;
+  static const Color darkNotificationsSuccessBg = darkStatusSuccessContainer;
+  static const Color darkNotificationsSuccessContent = darkStatusSuccess;
+  static const Color darkNotificationsWarningBg = darkPlanWarningContainer;
+  static const Color darkNotificationsWarningContent = darkPlanWarning;
 
   // plan/*
   static const Color darkPlanProfessional = Color(0xFFB4C5FF);
