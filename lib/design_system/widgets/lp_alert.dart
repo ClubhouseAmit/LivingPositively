@@ -110,18 +110,19 @@ class LpAlert extends StatelessWidget {
         ),
       ),
     );
-    return Semantics(
-      container: true,
-      button: onTap != null,
-      onTap: onTap,
-      child: onTap == null
-          ? banner
-          : GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              excludeFromSemantics: true,
-              onTap: onTap,
-              child: banner,
-            ),
+    if (onTap == null) return Semantics(container: true, child: banner);
+    // One node: the button carries the text, so a screen reader stops once.
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        onTap: onTap,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          excludeFromSemantics: true,
+          onTap: onTap,
+          child: banner,
+        ),
+      ),
     );
   }
 

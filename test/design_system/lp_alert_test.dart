@@ -120,13 +120,16 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('with onTap it is a button, tappable anywhere', (tester) async {
+  testWidgets('with onTap it is one labeled button, tappable anywhere', (
+    tester,
+  ) async {
     final handle = tester.ensureSemantics();
     var taps = 0;
     await tester.pumpWidget(
       _host(
         LpAlert(
           icon: Icons.info_outline,
+          title: 'Settings',
           message: 'Open settings',
           trailingIcon: Icons.chevron_right,
           onTap: () => taps++,
@@ -136,9 +139,16 @@ void main() {
     await tester.tap(find.text('Open settings'));
     await tester.tap(find.byIcon(Icons.chevron_right));
     expect(taps, 2);
+    // The text and the tap are on the same node: no unlabeled button stop.
+    final Finder node = find.bySemanticsLabel('Settings\nOpen settings');
+    expect(node, findsOneWidget);
     expect(
-      tester.getSemantics(find.byType(LpAlert)),
-      isSemantics(isButton: true, hasTapAction: true),
+      tester.getSemantics(node),
+      isSemantics(
+        label: 'Settings\nOpen settings',
+        isButton: true,
+        hasTapAction: true,
+      ),
     );
     handle.dispose();
   });
