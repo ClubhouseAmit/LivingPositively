@@ -186,6 +186,13 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `effect/scrim` | `effectScrim` / `darkEffectScrim` | `#000000 @32%` | `#000000 @60%` |
 | `effect/shadow` | `effectShadow` / `darkEffectShadow` | `#16264A @7%` | `#000000 @50%` |
 | `nav/inactive` | `navInactive` / `darkNavInactive` | `#8A8E97` | `#8A8279` |
+| `notifications/error-bg` | `notificationsErrorBg` / `darkNotificationsErrorBg` | `#FFF5F7` | `#FDC4D0` |
+| `notifications/error-content` | `notificationsErrorContent` / `darkNotificationsErrorContent` | `#C7364C` | `#7A212F` |
+| `notifications/info-bg` | `notificationsInfoBg` / `darkNotificationsInfoBg` | `#F3F7FF` | `#5C81CB` |
+| `notifications/success-bg` | `notificationsSuccessBg` / `darkNotificationsSuccessBg` | `#EEFFF9` | `#94F4D2` |
+| `notifications/success-content` | `notificationsSuccessContent` / `darkNotificationsSuccessContent` | `#009C63` | `#006942` |
+| `notifications/warning-bg` | `notificationsWarningBg` / `darkNotificationsWarningBg` | `#FFFAEA` | `#FFF1C4` |
+| `notifications/warning-content` | `notificationsWarningContent` / `darkNotificationsWarningContent` | `#994200` | `#662C00` |
 | `plan/professional` | `planProfessional` / `darkPlanProfessional` | `#3A5BA9` | `#B4C5FF` |
 | `plan/professional-container` | `planProfessionalContainer` / `darkPlanProfessionalContainer` | `#DBE1FF` | `#22407F` |
 | `plan/support` | `planSupport` / `darkPlanSupport` | `#206A50` | `#8CD6B4` |
@@ -230,6 +237,10 @@ content/on-accent.
   4.12:1 (light) / 4.29:1 (dark), under WCAG AA's 4.5:1 for normal text.
 - `LpButton` emphasis labels with `surface/white`, as the Figma dark screens
   do, not `content/on-accent`: 4.12:1 (light) / 3.47:1 (dark).
+- `notifications/success-content` on `notifications/success-bg` (`LpAlert`
+  success text) is 3.42:1 (light), under 4.5:1.
+- `LpAlert` info text (content/primary) on `notifications/info-bg` is 3.3:1
+  (dark), under 4.5:1.
 - `effect/hairline` as an idle input border is 1.6:1 (light) / 1.4:1 (dark),
   under WCAG 1.4.11's 3:1 for component boundaries. Fine for dividers.
 - `LpSwitch` off: the `surface/sunken more` track on `surface/canvas` is
@@ -540,6 +551,24 @@ callbacks are required.
   visible track is 28 high; the tap area adds 10 above and below to reach
   48. The existing `Switch` stays on existing screens.
 
+
+### 3.8 Alerts (LP-DS)
+
+- **Alert:** `LpAlert(icon:, title:, message:, variant:, trailingIcon:,
+  onTap:)` (`lib/design_system/widgets/lp_alert.dart`), Figma
+  `notification-item` (page "Notification"). An inline banner, not a toast:
+  `info` (default), `warning`, `error`, `success`. Background
+  `notifications/<variant>-bg`, with text and icons in
+  `notifications/<variant>-content` (info uses content/primary). Radius 8,
+  padding 12 × 8. A 16 icon (a slot; the caller picks it), then the title in
+  Label/Small (`AppTextStyle.figmaLabelSmall`) over the message in
+  Caption/Small (`figmaCaptionSmall`), 4 apart. Either may be null, not both.
+  `trailingIcon` is Figma's hidden-by-default chevron (24 in a 32 box). With
+  `onTap` the whole banner is one button. A screen reader reads the title and
+  message as one node; the icons are decorative. Two choices are pending the
+  designer: warning text uses `warning-content` (Figma uses `error-content`
+  there), and all four use the 12 / 8 spacing (Figma's info has 8 / 4). The
+  old `Alert` stays on existing screens.
 ---
 
 ## 4. Theme Integration Code

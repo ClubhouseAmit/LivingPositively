@@ -161,6 +161,15 @@ class AppColors {
   // nav/*
   static const Color navInactive = Color(0xFF8A8E97);
 
+  // notifications/*
+  static const Color notificationsErrorBg = Color(0xFFFFF5F7);
+  static const Color notificationsErrorContent = Color(0xFFC7364C);
+  static const Color notificationsInfoBg = Color(0xFFF3F7FF);
+  static const Color notificationsSuccessBg = Color(0xFFEEFFF9);
+  static const Color notificationsSuccessContent = Color(0xFF009C63);
+  static const Color notificationsWarningBg = Color(0xFFFFFAEA);
+  static const Color notificationsWarningContent = Color(0xFF994200);
+
   // plan/*
   static const Color planProfessional = Color(0xFF3A5BA9);
   static const Color planProfessionalContainer = Color(0xFFDBE1FF);
@@ -226,6 +235,15 @@ class AppColors {
 
   // nav/*
   static const Color darkNavInactive = Color(0xFF8A8279);
+
+  // notifications/*
+  static const Color darkNotificationsErrorBg = Color(0xFFFDC4D0);
+  static const Color darkNotificationsErrorContent = Color(0xFF7A212F);
+  static const Color darkNotificationsInfoBg = Color(0xFF5C81CB);
+  static const Color darkNotificationsSuccessBg = Color(0xFF94F4D2);
+  static const Color darkNotificationsSuccessContent = Color(0xFF006942);
+  static const Color darkNotificationsWarningBg = Color(0xFFFFF1C4);
+  static const Color darkNotificationsWarningContent = Color(0xFF662C00);
 
   // plan/*
   static const Color darkPlanProfessional = Color(0xFFB4C5FF);
