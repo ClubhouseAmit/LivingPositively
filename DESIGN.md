@@ -231,6 +231,10 @@ content/on-accent.
   do, not `content/on-accent`: 4.12:1 (light) / 3.47:1 (dark).
 - `effect/hairline` as an idle input border is 1.6:1 (light) / 1.4:1 (dark),
   under WCAG 1.4.11's 3:1 for component boundaries. Fine for dividers.
+- `LpSwitch` off: the `surface/sunken` track on `surface/canvas` is 1.4:1
+  (light) / 2.1:1 (dark), and the `surface/white` knob on the track is
+  1.6:1 in light (8.8:1 in dark), under WCAG 1.4.11's 3:1. Asked the
+  designer. Disabled is fainter (1.2:1 / 1.4:1) but WCAG exempts it.
 
 #### Legacy aliases (do not use in new code)
 
