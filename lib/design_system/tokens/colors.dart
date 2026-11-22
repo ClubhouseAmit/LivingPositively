@@ -247,7 +247,7 @@ class AppColors {
   // surface/*
   static const Color darkSurfaceBackdrop = Color(0xFF0E0D0C);
   static const Color darkSurfaceCanvas = Color(0xFF161412);
-  static const Color darkSurfaceDisabled = Color(0xBF100F0D);
+  static const Color darkSurfaceDisabled = Color(0xFF241B1B);
   static const Color darkSurfaceFeatured = Color(0xFF2A2438);
   static const Color darkSurfaceInverse = Color(0xFFE9E1DA);
   static const Color darkSurfaceRaised = Color(0xFF221F1C);
