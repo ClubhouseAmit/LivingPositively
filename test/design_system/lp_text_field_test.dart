@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:ui' show SemanticsFlag;
+import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart' show ByteData, FontLoader;
@@ -155,8 +155,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(focus.hasFocus, isFalse);
       final node = tester.getSemantics(find.byType(EditableText));
-      expect(node.hasFlag(SemanticsFlag.hasEnabledState), isTrue);
-      expect(node.hasFlag(SemanticsFlag.isEnabled), isFalse);
+      // isFalse, not none: it has an enabled state, and it's off.
+      expect(node.flagsCollection.isEnabled, Tristate.isFalse);
       handle.dispose();
     });
 
