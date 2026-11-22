@@ -141,8 +141,16 @@ class _LpTextFieldState extends State<LpTextField>
   bool get selectionEnabled => widget.enabled;
 
   @override
+  void initState() {
+    super.initState();
+    _focus.canRequestFocus = widget.enabled;
+  }
+
+  @override
   void didUpdateWidget(LpTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Like Flutter's TextField, even on a passed node: disabled drops focus.
+    _focus.canRequestFocus = widget.enabled;
     final TextEditingController? old = oldWidget.controller;
     if (old == widget.controller) return;
     _ownedController?.dispose();
@@ -194,6 +202,7 @@ class _LpTextFieldState extends State<LpTextField>
   Widget _editor(TextStyle style, Color color, [Color? cursor]) {
     return Semantics(
       label: widget.label ?? widget.placeholder,
+      enabled: widget.enabled,
       child: EditableText(
         key: editableTextKey,
         controller: _controller,
@@ -295,7 +304,7 @@ class _LpTextFieldState extends State<LpTextField>
                     )
                   : const SizedBox.shrink(),
             ),
-            _editor(AppTypeScale.captionBase, look.value, look.cursor),
+            _editor(_valueStyle, look.value, look.cursor),
           ],
         ),
         if (!floating)
@@ -315,7 +324,10 @@ class _LpTextFieldState extends State<LpTextField>
   Widget _line(AppColorTokens colors) {
     final bool m = widget.size == LpTextFieldSize.m;
     final bool showClear =
-        widget.clearIcon != null && _focus.hasFocus && !_empty;
+        widget.enabled &&
+        widget.clearIcon != null &&
+        _focus.hasFocus &&
+        !_empty;
     final Widget row = ConstrainedBox(
       constraints: BoxConstraints(
         minHeight: m ? LpTextField.lineHeight : LpTextField.subLineHeight,
@@ -370,31 +382,5 @@ class _LpTextFieldState extends State<LpTextField>
         _interactive(row),
       ],
     );
-  }
-
-  /// Figma's own size, 24, with no extra tap area, like LpCheckbox (WCAG
-  /// 2.2 AA's 24px minimum).
-  Widget _clearButton(AppColorTokens colors) {
-    return Semantics(
-      button: true,
-      // Release builds skip the assert; never crash on it.
-      label: widget.clearLabel ?? widget.placeholder,
-      onTap: _clear,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _clear,
-        child: Icon(
-          widget.clearIcon,
-          size: LpTextField.iconSize,
-          color: colors.contentTertiary,
-        ),
-      ),
-    );
-  }
-
-  void _clear() {
-    _controller.clear();
-    widget.onChanged?.call('');
   }
 }

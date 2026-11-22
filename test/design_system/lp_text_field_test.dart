@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:ui' show SemanticsFlag;
+
 import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/services.dart' show ByteData, FontLoader;
 import 'package:flutter/widgets.dart' hide Text;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/design_system/tokens/color_tokens.dart';
@@ -138,6 +142,40 @@ void main() {
       expect(_box(tester).color, AppColors.surfaceDisabled);
     });
 
+    testWidgets('disabled: no focus, and screen readers hear it disabled', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', focusNode: focus, enabled: false)),
+      );
+      focus.requestFocus();
+      await tester.pumpAndSettle();
+      expect(focus.hasFocus, isFalse);
+      final node = tester.getSemantics(find.byType(EditableText));
+      expect(node.hasFlag(SemanticsFlag.hasEnabledState), isTrue);
+      expect(node.hasFlag(SemanticsFlag.isEnabled), isFalse);
+      handle.dispose();
+    });
+
+    testWidgets('disabling a focused field drops its focus', (tester) async {
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', focusNode: focus)),
+      );
+      focus.requestFocus();
+      await tester.pumpAndSettle();
+      expect(focus.hasFocus, isTrue);
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', focusNode: focus, enabled: false)),
+      );
+      await tester.pumpAndSettle();
+      expect(focus.hasFocus, isFalse);
+    });
+
     testWidgets('dark mode takes the dark tokens', (tester) async {
       await tester.pumpWidget(
         _host(
@@ -230,6 +268,30 @@ void main() {
   });
 
   group('line (Figma text field)', () {
+    testWidgets('a disabled line field never shows the clear button', (
+      tester,
+    ) async {
+      final focus = FocusNode();
+      final controller = TextEditingController(text: 'abc');
+      addTearDown(focus.dispose);
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        _host(
+          LpTextField.line(
+            placeholder: 'Write',
+            controller: controller,
+            focusNode: focus,
+            enabled: false,
+            clearIcon: Icons.cancel,
+            clearLabel: 'Clear',
+          ),
+        ),
+      );
+      focus.requestFocus();
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.cancel), findsNothing);
+    });
+
     testWidgets('m has a separator and placeholder; typing hides it', (
       tester,
     ) async {
@@ -315,5 +377,46 @@ void main() {
       expect(controller.text, isEmpty);
       handle.dispose();
     });
+  });
+
+  // Last in the file: loaded fonts stay loaded for every later test.
+  group('with the app fonts', () {
+    Future<void> load(String family, List<String> files) async {
+      final loader = FontLoader(family);
+      for (final String file in files) {
+        loader.addFont(
+          Future.value(ByteData.sublistView(File(file).readAsBytesSync())),
+        );
+      }
+      await loader.load();
+    }
+
+    for (final String language in ['en', 'he']) {
+      testWidgets('the box stays 56 when the label moves up ($language)', (
+        tester,
+      ) async {
+        // The test font draws 13px text 13 high, so only real fonts catch a
+        // value line taller than Figma's (Heebo grew the box to 59).
+        await load('Heebo', [
+          'fonts/Heebo-Regular.ttf',
+          'fonts/Heebo-SemiBold.ttf',
+        ]);
+        await load('Rubik', [
+          'fonts/Rubik-Regular.ttf',
+          'fonts/Rubik-SemiBold.ttf',
+        ]);
+        final controller = TextEditingController(text: 'a@b.c');
+        addTearDown(controller.dispose);
+        Widget field(TextEditingController? c) => Localizations(
+          locale: Locale(language),
+          delegates: const [DefaultWidgetsLocalizations.delegate],
+          child: _host(LpTextField(label: 'Email', controller: c)),
+        );
+        await tester.pumpWidget(field(null));
+        expect(tester.getSize(find.byType(LpTextField)).height, 56);
+        await tester.pumpWidget(field(controller));
+        expect(tester.getSize(find.byType(LpTextField)).height, 56);
+      });
+    }
   });
 }

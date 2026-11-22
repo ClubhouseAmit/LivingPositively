@@ -1,8 +1,9 @@
 part of 'lp_text_field.dart';
 
-// The colors of the box field (Figma `Input Field`) for each state, kept
-// apart from the layout like LpButton's looks. Each names a Figma token;
-// [AppColorTokens] already holds the current mode's values.
+// The look of LpTextField, kept apart from its layout like LpButton's looks:
+// the box field's colors per state, the value and selection styles, and the
+// line field's clear button. Each color names a Figma token; [AppColorTokens]
+// already holds the current mode's values.
 
 typedef _BoxLook = ({
   Color fill,
@@ -18,6 +19,13 @@ typedef _BoxLook = ({
 
 /// Figma's error fill: status/danger at 5%.
 const _errorFillAlpha = 0.05;
+
+/// The box field's value: Caption/Base at a fixed 16 line (Figma 15.7), so
+/// label (16) + value (16) fill the 32 inside the box in every font. Left to
+/// the font, Heebo's taller line grew the box from 56 to 59.
+final TextStyle _valueStyle = AppTypeScale.captionBase.copyWith(
+  height: 16 / 13,
+);
 
 extension _LpTextFieldLooks on _LpTextFieldState {
   /// Selected text's highlight, for both fields. Figma has no selection
@@ -62,5 +70,31 @@ extension _LpTextFieldLooks on _LpTextFieldState {
       cursor: colors.contentPrimary,
       icon: tertiary,
     );
+  }
+
+  /// Figma's own size, 24, with no extra tap area, like LpCheckbox (WCAG
+  /// 2.2 AA's 24px minimum).
+  Widget _clearButton(AppColorTokens colors) {
+    return Semantics(
+      button: true,
+      // Release builds skip the assert; never crash on it.
+      label: widget.clearLabel ?? widget.placeholder,
+      onTap: _clear,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _clear,
+        child: Icon(
+          widget.clearIcon,
+          size: LpTextField.iconSize,
+          color: colors.contentTertiary,
+        ),
+      ),
+    );
+  }
+
+  void _clear() {
+    _controller.clear();
+    widget.onChanged?.call('');
   }
 }
