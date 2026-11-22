@@ -196,6 +196,22 @@ void main() {
       expect(find.text('kept'), findsOneWidget);
     });
 
+    testWidgets('passing a controller disposes the field\'s own', (
+      tester,
+    ) async {
+      final given = TextEditingController();
+      addTearDown(given.dispose);
+      await tester.pumpWidget(_host(const LpTextField(label: 'Email')));
+      final TextEditingController own = tester
+          .widget<EditableText>(find.byType(EditableText))
+          .controller;
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', controller: given)),
+      );
+      // A disposed ChangeNotifier refuses new listeners in debug.
+      expect(() => own.addListener(() {}), throwsFlutterError);
+    });
+
     testWidgets('a new focus node drives the focused look', (tester) async {
       final first = FocusNode();
       final second = FocusNode();

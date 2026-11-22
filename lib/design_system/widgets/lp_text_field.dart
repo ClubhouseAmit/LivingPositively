@@ -117,7 +117,7 @@ class LpTextField extends StatefulWidget {
 
 class _LpTextFieldState extends State<LpTextField>
     implements TextSelectionGestureDetectorBuilderDelegate {
-  // Read on every use, like Flutter's TextField, so a parent can swap them.
+  // Read on every use, like Flutter's TextField; ours only while none is passed.
   TextEditingController? _ownedController;
   FocusNode? _ownedFocus;
   TextEditingController get _controller =>
@@ -143,12 +143,12 @@ class _LpTextFieldState extends State<LpTextField>
   @override
   void didUpdateWidget(LpTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // The parent stopped passing a controller: keep its text in ours.
     final TextEditingController? old = oldWidget.controller;
-    if (old != null && widget.controller == null) {
-      _ownedController?.dispose();
-      _ownedController = TextEditingController.fromValue(old.value);
-    }
+    if (old == widget.controller) return;
+    _ownedController?.dispose();
+    _ownedController = widget.controller == null
+        ? TextEditingController.fromValue(old!.value)
+        : null;
   }
 
   @override
