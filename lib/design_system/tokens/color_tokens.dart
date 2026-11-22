@@ -19,6 +19,7 @@ enum AppColorTokens {
     accentMuted: AppColors.accentMuted,
     accentPressed: AppColors.accentPressed,
     accentPrimary: AppColors.accentPrimary,
+    contentPlaceholder: AppColors.contentPlaceholder,
     contentPrimary: AppColors.contentPrimary,
     contentSecondary: AppColors.contentSecondary,
     contentTertiary: AppColors.contentTertiary,
@@ -29,6 +30,7 @@ enum AppColorTokens {
     surfaceRaisedHigh: AppColors.surfaceRaisedHigh,
     surfaceRaisedHighest: AppColors.surfaceRaisedHighest,
     surfaceRaisedHighest90: AppColors.surfaceRaisedHighest90,
+    statusDanger: AppColors.statusDanger,
     surfaceSunken: AppColors.surfaceSunken,
     surfaceWhite: AppColors.surfaceWhite,
     surfaceWhite75: AppColors.surfaceWhite75,
@@ -37,6 +39,7 @@ enum AppColorTokens {
     accentMuted: AppColors.darkAccentMuted,
     accentPressed: AppColors.darkAccentPressed,
     accentPrimary: AppColors.darkAccentPrimary,
+    contentPlaceholder: AppColors.darkContentPlaceholder,
     contentPrimary: AppColors.darkContentPrimary,
     contentSecondary: AppColors.darkContentSecondary,
     contentTertiary: AppColors.darkContentTertiary,
@@ -47,6 +50,7 @@ enum AppColorTokens {
     surfaceRaisedHigh: AppColors.darkSurfaceRaisedHigh,
     surfaceRaisedHighest: AppColors.darkSurfaceRaisedHighest,
     surfaceRaisedHighest90: AppColors.darkSurfaceRaisedHighest90,
+    statusDanger: AppColors.darkStatusDanger,
     surfaceSunken: AppColors.darkSurfaceSunken,
     surfaceWhite: AppColors.darkSurfaceWhite,
     surfaceWhite75: AppColors.darkSurfaceWhite75,
@@ -56,6 +60,7 @@ enum AppColorTokens {
     required this.accentMuted,
     required this.accentPressed,
     required this.accentPrimary,
+    required this.contentPlaceholder,
     required this.contentPrimary,
     required this.contentSecondary,
     required this.contentTertiary,
@@ -66,6 +71,7 @@ enum AppColorTokens {
     required this.surfaceRaisedHigh,
     required this.surfaceRaisedHighest,
     required this.surfaceRaisedHighest90,
+    required this.statusDanger,
     required this.surfaceSunken,
     required this.surfaceWhite,
     required this.surfaceWhite75,
@@ -74,6 +80,7 @@ enum AppColorTokens {
   final Color accentMuted;
   final Color accentPressed;
   final Color accentPrimary;
+  final Color contentPlaceholder;
   final Color contentPrimary;
   final Color contentSecondary;
   final Color contentTertiary;
@@ -84,6 +91,7 @@ enum AppColorTokens {
   final Color surfaceRaisedHigh;
   final Color surfaceRaisedHighest;
   final Color surfaceRaisedHighest90;
+  final Color statusDanger;
   final Color surfaceSunken;
   final Color surfaceWhite;
   final Color surfaceWhite75;

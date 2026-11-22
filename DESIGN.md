@@ -202,7 +202,7 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `status/success-container` | `statusSuccessContainer` / `darkStatusSuccessContainer` | `#A8F2C0` | `#1E5236` |
 | `surface/backdrop` | `surfaceBackdrop` / `darkSurfaceBackdrop` | `#DFDAD3` | `#0E0D0C` |
 | `surface/canvas` | `surfaceCanvas` / `darkSurfaceCanvas` | `#F4EFE8` | `#161412` |
-| `surface/disabled` | `surfaceDisabled` / `darkSurfaceDisabled` | `#EBE4DA @75%` | `#100F0D @75%` |
+| `surface/disabled` | `surfaceDisabled` / `darkSurfaceDisabled` | `#EBE4DA @75%` | `#241B1B` |
 | `surface/featured` | `surfaceFeatured` / `darkSurfaceFeatured` | `#14264C` | `#2A2438` |
 | `surface/inverse` | `surfaceInverse` / `darkSurfaceInverse` | `#322F35` | `#E9E1DA` |
 | `surface/raised` | `surfaceRaised` / `darkSurfaceRaised` | `#FBF9F6` | `#221F1C` |
@@ -447,6 +447,28 @@ Hide Flutter's names at the import if the file also uses Material.
 - **Text Form Field:**
   Inputs must have a height of 40.0, rounded corners 10.0, outline border `OutlineInputBorder(borderSide: BorderSide(color: AppColors.neutralLight))`.
   The width must be dynamically wrapped inside `formFieldWidth(context)` to prevent overflow on mobile.
+
+- **LP-DS text field:** `LpTextField` (`lib/design_system/widgets/lp_text_field.dart`)
+  is the new-design field (§1A phase 1, not on screens yet). Two constructors,
+  one per Figma component:
+  - `LpTextField(label:, icon:, errorText:, enabled:)` is Figma `Input Field`.
+    It's a 56-high box with radius 18. While the field is empty and
+    unfocused, the label sits inside it (Body/Large, content/placeholder).
+    Once focused or filled, the label moves above the value (Caption/Micro).
+    The value is Caption/Base. The fill and border change with the field's
+    state: idle and filled are surface/sunken with an effect/hairline border,
+    focused is surface/raised with an accent/primary border, error is
+    status/danger at 5% with a status/danger border, and disabled is
+    surface/disabled. In the error state, the message shows under the box.
+    The icon at the end is decorative.
+  - `LpTextField.line(placeholder:, size:, clearIcon:, clearLabel:)` is Figma
+    `text field`. It's bare text on the canvas with a content/tertiary
+    placeholder. `m` is Body/Base under an effect/hairline separator. `s`
+    (Figma `sub header`) is 14 with no separator. The optional clear button
+    shows while the field is focused and has text.
+  - Neither has a copy/paste menu or selection handles yet, because those
+    widgets are Material or Cupertino. Tapping to place the cursor,
+    double-tapping to select, and keyboard shortcuts work.
 
 ### 3.5 Headers & Progress
 
