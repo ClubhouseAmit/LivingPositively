@@ -32,6 +32,7 @@ enum AppColorTokens {
     surfaceRaisedHighest90: AppColors.surfaceRaisedHighest90,
     statusDanger: AppColors.statusDanger,
     surfaceSunken: AppColors.surfaceSunken,
+    surfaceSunkenMore: AppColors.surfaceSunkenMore,
     surfaceWhite: AppColors.surfaceWhite,
     surfaceWhite75: AppColors.surfaceWhite75,
   ),
@@ -52,6 +53,7 @@ enum AppColorTokens {
     surfaceRaisedHighest90: AppColors.darkSurfaceRaisedHighest90,
     statusDanger: AppColors.darkStatusDanger,
     surfaceSunken: AppColors.darkSurfaceSunken,
+    surfaceSunkenMore: AppColors.darkSurfaceSunkenMore,
     surfaceWhite: AppColors.darkSurfaceWhite,
     surfaceWhite75: AppColors.darkSurfaceWhite75,
   );
@@ -73,6 +75,7 @@ enum AppColorTokens {
     required this.surfaceRaisedHighest90,
     required this.statusDanger,
     required this.surfaceSunken,
+    required this.surfaceSunkenMore,
     required this.surfaceWhite,
     required this.surfaceWhite75,
   });
@@ -93,6 +96,7 @@ enum AppColorTokens {
   final Color surfaceRaisedHighest90;
   final Color statusDanger;
   final Color surfaceSunken;
+  final Color surfaceSunkenMore;
   final Color surfaceWhite;
   final Color surfaceWhite75;
 

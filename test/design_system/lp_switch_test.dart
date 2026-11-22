@@ -74,12 +74,15 @@ void main() {
 
   // That a disabled switch can't be tapped is checked by the screen-reader
   // test below (no tap action).
-  testWidgets('disabled on is surface/sunken at half opacity', (
+  testWidgets('disabled on is surface/sunken more at half opacity', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_switch(value: true)));
     expect(_opacity(tester), LpSwitch.disabledOpacity);
-    expect(_fills(tester), [AppColors.surfaceSunken, AppColors.surfaceWhite]);
+    expect(_fills(tester), [
+      AppColors.surfaceSunkenMore,
+      AppColors.surfaceWhite,
+    ]);
   });
 
   testWidgets('a screen reader hears on and can flip it', (tester) async {
@@ -129,11 +132,14 @@ void main() {
     expect(tester.getRect(_knob()).right, track.right - 2);
   });
 
-  testWidgets('off is surface/sunken with the knob at the start', (
+  testWidgets('off is surface/sunken more with the knob at the start', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_switch(onChanged: (_) {})));
-    expect(_fills(tester), [AppColors.surfaceSunken, AppColors.surfaceWhite]);
+    expect(_fills(tester), [
+      AppColors.surfaceSunkenMore,
+      AppColors.surfaceWhite,
+    ]);
     final Rect track = tester.getRect(find.byType(Container));
     expect(track.size, const Size(64, 28));
     expect(tester.getRect(_knob()).left, track.left + 2);
@@ -164,11 +170,11 @@ void main() {
     await tester.pumpWidget(
       _host(_switch(onChanged: (_) {}), colors: AppColorTokens.dark),
     );
-    expect(_fills(tester).first, AppColors.darkSurfaceSunken);
+    expect(_fills(tester).first, AppColors.darkSurfaceSunkenMore);
     await tester.pumpWidget(
       _host(_switch(value: true), colors: AppColorTokens.dark),
     );
-    expect(_fills(tester).first, AppColors.darkSurfaceSunken);
+    expect(_fills(tester).first, AppColors.darkSurfaceSunkenMore);
   });
 
   testWidgets('fails loudly with no AppColorScope above', (tester) async {

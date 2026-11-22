@@ -190,6 +190,7 @@ class AppColors {
   static const Color surfaceRaisedHighest = Color(0xFFF2EBE4);
   static const Color surfaceRaisedHighest90 = Color(0xE6F2EBE4);
   static const Color surfaceSunken = Color(0xFFD1CBC2);
+  static const Color surfaceSunkenMore = Color(0xFFBAB5AD);
   static const Color surfaceWhite = Color(0xFFFFFFFF);
   static const Color surfaceWhite75 = Color(0xBFFFFFFF);
 
@@ -255,6 +256,7 @@ class AppColors {
   static const Color darkSurfaceRaisedHighest = Color(0xFF363230);
   static const Color darkSurfaceRaisedHighest90 = Color(0xE6363230);
   static const Color darkSurfaceSunken = Color(0xFF4D4A47);
+  static const Color darkSurfaceSunkenMore = Color(0xFF4D4A47);
   static const Color darkSurfaceWhite = Color(0xFFFFFFFF);
   static const Color darkSurfaceWhite75 = Color(0xBFFFFFFF);
 }

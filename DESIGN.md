@@ -210,6 +210,7 @@ widgets, not LP-DS ones. A test or preview wraps its widget in
 | `surface/raised-highest` | `surfaceRaisedHighest` / `darkSurfaceRaisedHighest` | `#F2EBE4` | `#363230` |
 | `surface/raised-highest 90` | `surfaceRaisedHighest90` / `darkSurfaceRaisedHighest90` | `#F2EBE4 @90%` | `#363230 @90%` |
 | `surface/sunken` | `surfaceSunken` / `darkSurfaceSunken` | `#D1CBC2` | `#4D4A47` |
+| `surface/sunken more` | `surfaceSunkenMore` / `darkSurfaceSunkenMore` | `#BAB5AD` | `#4D4A47` |
 | `surface/white` | `surfaceWhite` / `darkSurfaceWhite` | `#FFFFFF` | `#FFFFFF` |
 | `surface/white 75` | `surfaceWhite75` / `darkSurfaceWhite75` | `#FFFFFF @75%` | `#FFFFFF @75%` |
 
@@ -231,10 +232,10 @@ content/on-accent.
   do, not `content/on-accent`: 4.12:1 (light) / 3.47:1 (dark).
 - `effect/hairline` as an idle input border is 1.6:1 (light) / 1.4:1 (dark),
   under WCAG 1.4.11's 3:1 for component boundaries. Fine for dividers.
-- `LpSwitch` off: the `surface/sunken` track on `surface/canvas` is 1.4:1
-  (light) / 2.1:1 (dark), and the `surface/white` knob on the track is
-  1.6:1 in light (8.8:1 in dark), under WCAG 1.4.11's 3:1. Asked the
-  designer. Disabled is fainter (1.2:1 / 1.4:1) but WCAG exempts it.
+- `LpSwitch` off: the `surface/sunken more` track on `surface/canvas` is
+  1.8:1 (light) / 2.1:1 (dark), and the `surface/white` knob on the track
+  is 2.0:1 in light (8.8:1 in dark), under WCAG 1.4.11's 3:1. Asked the
+  designer. Disabled is fainter (1.3:1 / 1.4:1) but WCAG exempts it.
 
 #### Legacy aliases (do not use in new code)
 
@@ -527,8 +528,10 @@ callbacks are required.
   (`lib/design_system/widgets/lp_switch.dart`), Figma `Toggle`. A 64×28
   pill track with a 38×24 surface/white knob, 2 in from the edge. On is
   accent/primary with the knob at the end (it mirrors in RTL), off is
-  surface/sunken. A null `onChanged` disables it: surface/sunken track,
-  knob kept in place, whole switch at 50% opacity. The visible track is
+  surface/sunken more. A null `onChanged` disables it: surface/sunken more
+  track, knob kept in place, whole switch at 50% opacity. Figma (2026-11-22)
+  puts sunken more on disabled only and leaves off on surface/sunken; the
+  app uses it for off too, for contrast, as a likely Figma slip. The visible track is
   28 high; the tap area adds 10 above and below to reach 48. The existing
   `Switch` stays on existing screens.
 

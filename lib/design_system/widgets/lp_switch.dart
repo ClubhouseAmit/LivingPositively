@@ -62,10 +62,11 @@ class LpSwitch extends StatelessWidget {
   }
 
   Widget _track(AppColorTokens colors, {required bool enabled}) {
-    // Figma draws off and both disabled looks on surface/sunken.
+    // Figma puts surface/sunken more on disabled and surface/sunken on off;
+    // off takes sunken more too, for contrast (taken as a Figma slip).
     final Color fill = enabled && value
         ? colors.accentPrimary
-        : colors.surfaceSunken;
+        : colors.surfaceSunkenMore;
     return Container(
       width: trackWidth,
       height: trackHeight,
