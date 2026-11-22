@@ -117,11 +117,12 @@ class LpTextField extends StatefulWidget {
 
 class _LpTextFieldState extends State<LpTextField>
     implements TextSelectionGestureDetectorBuilderDelegate {
-  late final TextEditingController _controller;
-  late final FocusNode _focus;
-  late final bool _ownsController;
-  late final bool _ownsFocus;
-  late final Listenable _changes;
+  // Read on every use, like Flutter's TextField, so a parent can swap them.
+  TextEditingController? _ownedController;
+  FocusNode? _ownedFocus;
+  TextEditingController get _controller =>
+      widget.controller ?? (_ownedController ??= TextEditingController());
+  FocusNode get _focus => widget.focusNode ?? (_ownedFocus ??= FocusNode());
 
   // Tap to place the caret, double tap to select a word, as in any text
   // field. shortcut: no copy/paste menu or selection handles (those are
@@ -140,34 +141,33 @@ class _LpTextFieldState extends State<LpTextField>
   bool get selectionEnabled => widget.enabled;
 
   @override
-  void initState() {
-    super.initState();
-    _ownsController = widget.controller == null;
-    _controller = widget.controller ?? TextEditingController();
-    _ownsFocus = widget.focusNode == null;
-    _focus = widget.focusNode ?? FocusNode();
-    _changes = Listenable.merge([_controller, _focus]);
+  void didUpdateWidget(LpTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The parent stopped passing a controller: keep its text in ours.
+    final TextEditingController? old = oldWidget.controller;
+    if (old != null && widget.controller == null) {
+      _ownedController?.dispose();
+      _ownedController = TextEditingController.fromValue(old.value);
+    }
   }
 
   @override
   void dispose() {
-    if (_ownsController) {
-      _controller.dispose();
-    }
-    if (_ownsFocus) {
-      _focus.dispose();
-    }
+    _ownedController?.dispose();
+    _ownedFocus?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(listenable: _changes, builder: _face);
+    return ListenableBuilder(
+      listenable: Listenable.merge([_controller, _focus]),
+      builder: _face,
+    );
   }
 
   Widget _face(BuildContext context, Widget? child) {
-    // In build, not the initializer: check_guidelines' text scan reads an
-    // initializer assert as an unclosed method.
+    // Not in the initializer: check_guidelines misreads asserts there.
     assert(
       widget.clearIcon == null || widget.clearLabel != null,
       'a clear button needs clearLabel for screen readers',

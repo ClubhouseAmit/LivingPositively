@@ -163,6 +163,56 @@ void main() {
     });
   });
 
+  group('swapping controller or focus node', () {
+    testWidgets('a new controller is used for text and the label', (
+      tester,
+    ) async {
+      final first = TextEditingController(text: 'old');
+      final second = TextEditingController();
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', controller: first)),
+      );
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', controller: second)),
+      );
+      // Empty and unfocused again: the label is back inside the box.
+      expect(find.text('old'), findsNothing);
+      await tester.tap(find.byType(LpTextField));
+      await tester.pump();
+      await tester.enterText(find.byType(EditableText), 'new');
+      expect(second.text, 'new');
+      expect(first.text, 'old');
+    });
+
+    testWidgets('dropping the controller keeps its text', (tester) async {
+      final given = TextEditingController(text: 'kept');
+      addTearDown(given.dispose);
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', controller: given)),
+      );
+      await tester.pumpWidget(_host(const LpTextField(label: 'Email')));
+      expect(find.text('kept'), findsOneWidget);
+    });
+
+    testWidgets('a new focus node drives the focused look', (tester) async {
+      final first = FocusNode();
+      final second = FocusNode();
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', focusNode: first)),
+      );
+      await tester.pumpWidget(
+        _host(LpTextField(label: 'Email', focusNode: second)),
+      );
+      second.requestFocus();
+      await tester.pumpAndSettle();
+      expect(_borderColor(tester), AppColors.accentPrimary);
+    });
+  });
+
   group('line (Figma text field)', () {
     testWidgets('m has a separator and placeholder; typing hides it', (
       tester,
