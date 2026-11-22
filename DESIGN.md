@@ -524,9 +524,9 @@ callbacks are required.
   pill track with a 38×24 surface/white knob, 2 in from the edge. On is
   accent/primary with the knob at the end (it mirrors in RTL), off is
   surface/sunken. A null `onChanged` disables it: surface/sunken track,
-  knob kept in place, whole switch at 50% opacity. Unlike the controls
-  above, its tap area is 48 high around the 28 track. The existing `Switch`
-  stays on existing screens.
+  knob kept in place, whole switch at 50% opacity. The visible track is
+  28 high; the tap area adds 10 above and below to reach 48. The existing
+  `Switch` stays on existing screens.
 
 ---
 

@@ -72,11 +72,12 @@ void main() {
     expect(changed, isFalse);
   });
 
-  testWidgets('disabled ignores taps and is drawn at half opacity', (
+  // That a disabled switch can't be tapped is checked by the screen-reader
+  // test below (no tap action).
+  testWidgets('disabled on is surface/sunken at half opacity', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_switch(value: true)));
-    await tester.tap(find.byType(LpSwitch), warnIfMissed: false);
     expect(_opacity(tester), LpSwitch.disabledOpacity);
     expect(_fills(tester), [AppColors.surfaceSunken, AppColors.surfaceWhite]);
   });
