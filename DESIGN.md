@@ -236,6 +236,11 @@ content/on-accent.
   1.8:1 (light) / 2.1:1 (dark), and the `surface/white` knob on the track
   is 2.0:1 in light (8.8:1 in dark), under WCAG 1.4.11's 3:1. Asked the
   designer. Disabled is fainter (1.3:1 / 1.4:1) but WCAG exempts it.
+- `LpTextField` idle box on `surface/sunken`: the placeholder label
+  (`content/placeholder`) is 3.9:1 (light) / 1.9:1 (dark), and a filled
+  field's label (`content/secondary`) is 3.8:1 in light, under WCAG AA's
+  4.5:1 for normal text. It dropped when `surface/sunken` changed for the
+  Toggle. Asked the designer.
 
 #### Legacy aliases (do not use in new code)
 
@@ -531,9 +536,9 @@ callbacks are required.
   surface/sunken more. A null `onChanged` disables it: surface/sunken more
   track, knob kept in place, whole switch at 50% opacity. Figma (2026-11-22)
   puts sunken more on disabled only and leaves off on surface/sunken; the
-  app uses it for off too, for contrast, as a likely Figma slip. The visible track is
-  28 high; the tap area adds 10 above and below to reach 48. The existing
-  `Switch` stays on existing screens.
+  app uses it for off too, for contrast, as a likely Figma slip. The
+  visible track is 28 high; the tap area adds 10 above and below to reach
+  48. The existing `Switch` stays on existing screens.
 
 ---
 
