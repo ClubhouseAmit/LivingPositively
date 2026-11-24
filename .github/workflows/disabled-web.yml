@@ -207,7 +207,7 @@ jobs:
           path: ${{ env.WEB_BUILD_PATH }}
 
       - name: Deploy to Azure Storage Static Website
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         with:
           inlineScript: |
             az storage blob upload-batch \
@@ -302,7 +302,7 @@ jobs:
           path: ${{ env.WEB_BUILD_PATH }}
 
       - name: Deploy to Azure Storage Static Website
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         with:
           inlineScript: |
             az storage blob upload-batch \
