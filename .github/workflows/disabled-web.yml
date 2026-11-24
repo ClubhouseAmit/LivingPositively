@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload web coverage report (telemetry — may be missing or stale)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-web-lcov
           path: coverage/lcov.info
@@ -201,7 +201,7 @@ jobs:
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
 
       - name: Upload Web Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-build
           path: ${{ env.WEB_BUILD_PATH }}
@@ -296,7 +296,7 @@ jobs:
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
 
       - name: Upload Web Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-build-dev
           path: ${{ env.WEB_BUILD_PATH }}
