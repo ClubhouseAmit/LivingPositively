@@ -509,6 +509,23 @@ Hide Flutter's names at the import if the file also uses Material.
 
 - **Bottom Navigation Bar:**
   A custom `BottomNavigationBar` with background color `AppColors.surface` (light mode) or `AppColors.darkNavBackground` (dark mode), item labels, and active item tint `AppColors.primary`.
+- **LP-DS bottom nav (not on screens yet):** `LpNavBar(tabs:, selectedIndex:,
+  onSelected:)` (`lib/features/shell/ui/lp_nav_bar.dart`, app chrome per
+  #441), Figma `Mobile` (page "Navigation bar"). Each tab is an `LpNavTab`
+  (`icon`, `label`, optional `selectedIcon`). A stadium pill:
+  surface/raised highest 90% with a 1px effect/hairline border and a
+  backdrop blur, padding 8 × 4, tabs sharing the width. A tab is a 24 icon
+  in a 56×32 pill over its label in Label/Small (`figmaLabelSmall`), 4
+  apart, 6 above and below (at least 48 high). The selected tab's pill is
+  content/primary 12%, its label content/primary and its icon the
+  `selectedIcon` (Figma's filled weight); the others have no pill and a
+  content/secondary label. Icons are content/primary. Tabs follow the text
+  direction (first tab on the right in Hebrew). No centre or floating
+  action: the facelift screens have none. The caller adds the side margin
+  (Figma: 12 on a 390 screen) and the bottom safe area. Each tab is a
+  button with its selected state announced. The Material bar in
+  `lib/menu.dart` stays until the switch is decided; then rename
+  `LpNavBar` → `NavBar`.
 
 ### 3.7 Selection controls (LP-DS)
 
