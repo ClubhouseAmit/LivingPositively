@@ -21,6 +21,7 @@ enum AppColorTokens {
     accentPrimary: AppColors.accentPrimary,
     contentPlaceholder: AppColors.contentPlaceholder,
     contentPrimary: AppColors.contentPrimary,
+    contentPrimary12: AppColors.contentPrimary12,
     contentSecondary: AppColors.contentSecondary,
     contentTertiary: AppColors.contentTertiary,
     effectHairline: AppColors.effectHairline,
@@ -49,6 +50,7 @@ enum AppColorTokens {
     accentPrimary: AppColors.darkAccentPrimary,
     contentPlaceholder: AppColors.darkContentPlaceholder,
     contentPrimary: AppColors.darkContentPrimary,
+    contentPrimary12: AppColors.darkContentPrimary12,
     contentSecondary: AppColors.darkContentSecondary,
     contentTertiary: AppColors.darkContentTertiary,
     effectHairline: AppColors.darkEffectHairline,
@@ -78,6 +80,7 @@ enum AppColorTokens {
     required this.accentPrimary,
     required this.contentPlaceholder,
     required this.contentPrimary,
+    required this.contentPrimary12,
     required this.contentSecondary,
     required this.contentTertiary,
     required this.effectHairline,
@@ -106,6 +109,7 @@ enum AppColorTokens {
   final Color accentPrimary;
   final Color contentPlaceholder;
   final Color contentPrimary;
+  final Color contentPrimary12;
   final Color contentSecondary;
   final Color contentTertiary;
   final Color effectHairline;
