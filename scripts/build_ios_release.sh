@@ -25,4 +25,4 @@ if [[ -n "${GOOGLE_SIGN_IN_SERVER_CLIENT_ID:-}" ]]; then
   )
 fi
 
-flutter build ipa "${dart_defines[@]}"
+BYPASS_PERMISSION_LOCATION_ALWAYS=1 flutter build ipa "${dart_defines[@]}"

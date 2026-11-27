@@ -323,6 +323,13 @@ value through the release owner's provider decision, not as a workaround for
 missing setup. Google configuration is optional, but partial configuration is
 rejected before archiving.
 
+For Swift Package Manager builds, the release script sets
+`BYPASS_PERMISSION_LOCATION_ALWAYS=1` so geolocator compiles without its
+Always-location authorization request. If archiving through Codemagic, Xcode,
+or another command instead, set that environment variable to `1` in the build
+process before Swift packages are resolved and built. After changing it, use a
+clean archive and verify the built app before uploading.
+
 Before archiving, assign a new release build number in the approved release
 configuration/pubspec. Unlike Android CI, this script does not supply a build
 number or forward extra command-line arguments. It also does not pass telemetry
